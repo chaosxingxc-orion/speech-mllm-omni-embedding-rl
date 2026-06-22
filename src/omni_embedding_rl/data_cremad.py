@@ -26,6 +26,7 @@ class Clip:
     path: str       # absolute wav path
     emotion: str    # from filename EMO code
     speaker: str    # from filename prefix
+    content: str    # from filename sentence code (12 fixed sentences) — a lexical/content factor
 
 
 def _parse_csv(root: str | Path, csv_name: str) -> list[Clip]:
@@ -36,11 +37,12 @@ def _parse_csv(root: str | Path, csv_name: str) -> list[Clip]:
             rel = row["path"]
             stem = os.path.basename(rel)[:-4]  # strip .wav
             parts = stem.split("_")
-            spk, emo_code = parts[0], parts[2]
+            spk, sentence, emo_code = parts[0], parts[1], parts[2]
             clips.append(Clip(
                 path=str(root / rel),
                 emotion=EMO_CODE.get(emo_code, emo_code.lower()),
                 speaker=spk,
+                content=sentence,
             ))
     return clips
 

@@ -5,7 +5,7 @@
 name: crema_d
 root: ${oc.env:SPEECHRL_DATA_DIR,${oc.env:HOME}/speechrl-data}/datasets/crema-d
 task: ser
-factors: [emotion, speaker]
+factors: [content, emotion, speaker]   # content = sentence-ID (12), emotion = 6, speaker = 91
 sample_rate: 16000
 # Seeded balanced split sizes for the proof run (kept small so it runs in minutes on a 5090).
 dev_size: 600     # fit the inference-time probe + select the conditioning (from train.csv pool)
