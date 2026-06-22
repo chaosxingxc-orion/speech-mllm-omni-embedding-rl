@@ -1,0 +1,11 @@
+# Frozen flagship backbone: omni-embed-nemotron-3b (SentenceTransformer, dim 2048, cosine).
+# Local path resolves under the data root (SPEECHRL_DATA_DIR = the speechrl-data ROOT, e.g.
+# /mnt/d/chao_workspace/exploring-l4-intelligence/speechrl-data). Falls back to the HF id.
+name: omni_embed
+local_path: ${oc.env:SPEECHRL_DATA_DIR,${oc.env:HOME}/speechrl-data}/models/omni-embed-nemotron-3b
+hf_id: nvidia/omni-embed-nemotron-3b
+embed_dim: 2048
+dtype: bfloat16
+attn_implementation: flash_attention_2   # loader falls back to sdpa on Blackwell sm_120
+normalize: true
+batch_size: 8

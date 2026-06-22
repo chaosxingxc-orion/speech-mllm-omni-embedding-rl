@@ -1,0 +1,13 @@
+# Training-free RL operator for the embedding proof.
+# Operator A = embedding-layer inference-time search: encode under each conditioning variant, pick
+# the one maximizing a VERIFIABLE dev reward (no weight update). Operator B (generative-end) is a
+# future switch behind the same interface.
+algo: embed_search
+operator: A                 # A | B
+probe: knn                  # knn | linear (the verifiable downstream probe / reward)
+knn_k: 5
+recall_k: 1
+beta: 0.1                   # KL/temperature for soft selection (future); best-of-conditioning for now
+search_method: best_of_conditioning
+n_bootstrap: 1000           # bootstrap resamples for accuracy CIs
+ci: 0.95

@@ -1,0 +1,5 @@
+# @package _global_
+# The CREMA-D two-factor disentanglement existence-proof run.
+run_name: cremad_two_factor_proof_v1
+mode: train     # train: encode + build the conditioning x factor matrix; eval: reuse cached embeddings
+cache_embeddings: true
