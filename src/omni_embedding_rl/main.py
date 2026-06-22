@@ -18,19 +18,27 @@ log = get_logger("omni_embedding_rl")
 
 
 def _run_embed_search(cfg: DictConfig) -> None:
+    from pathlib import Path
+
     from omni_embedding_rl import eval_harness
     from speechrl_common.models.omni_embed import load_omni_embedder
     from speechrl_common.utils.checkpoint import run_dir
 
-    model_path = cfg.model.get("local_path") or cfg.model.hf_id
-    log.info("Loading frozen omni-embedder: %s", model_path)
-    embedder = load_omni_embedder(
-        model_path,
-        torch_dtype=cfg.model.dtype,
-        attn_implementation=cfg.model.attn_implementation,
-    )
-
     cache_dir = run_dir(cfg.work_name, cfg.run_name)
+    # Skip the (heavy) model load when reproducing a cached run from disk.
+    cache_hit = cfg.get("mode", "train") == "eval" and (Path(cache_dir) / "embeddings.npz").exists()
+    embedder = None
+    if cache_hit:
+        log.info("mode=eval + cache hit -> skipping model load, reusing %s/embeddings.npz", cache_dir)
+    else:
+        model_path = cfg.model.get("local_path") or cfg.model.hf_id
+        log.info("Loading frozen omni-embedder: %s", model_path)
+        embedder = load_omni_embedder(
+            model_path,
+            torch_dtype=cfg.model.dtype,
+            attn_implementation=cfg.model.attn_implementation,
+        )
+
     params = {
         "model": cfg.model.name, "operator": cfg.rl.operator, "probe": cfg.rl.probe,
         "knn_k": cfg.rl.knn_k, "seed": cfg.seed,

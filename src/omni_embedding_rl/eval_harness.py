@@ -22,7 +22,7 @@ from omni_embedding_rl.probes import bootstrap_ci, probe_accuracy
 
 def _load_wavs(clips, sr):
     from speechrl_common.audio.io import load_audio  # lazy (librosa)
-    return [load_audio(c.path, sr=sr) for c in clips]
+    return [load_audio(c.path, target_sr=sr) for c in clips]
 
 
 def _embed_all(embedder, wavs, *, sr, batch_size):
