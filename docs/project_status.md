@@ -315,10 +315,12 @@ TODO before paper submission:
   test 21, ASR primary falls to 0.333 while direct omni reaches 0.905 with 12
   rescues and 0 regressions.  RRF is poor on Wu at 0.524, showing that bad ASR
   can pollute naive fusion.
-- Speech translation remains blocked by data preparation rather than method
-  code.  A `translation_semantic` instruction arm and parallel-manifest builder
-  now exist, but the local FLEURS Chinese manifest contains mojibake and a new
-  FLEURS French download hit HF unauthenticated rate limits.  See
+- Speech translation is partially unblocked through an HF mirror and a
+  source-id paired FLEURS English-audio -> French-text smoke.  Direct omni and
+  oracle source text both reach text Acc@1 = 1.000 on the 57-row diagnostic,
+  so this compact retrieval task is saturated.  The `translation_semantic`
+  instruction is route-specific: it is safe for audio query in the smoke but
+  significantly hurts oracle text query.  See
   `docs/bugs/issue-002-fleurs-translation-data-blocker.md`.
 
 ## Legacy Code Triage

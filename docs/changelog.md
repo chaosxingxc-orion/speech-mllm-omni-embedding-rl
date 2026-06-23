@@ -603,3 +603,35 @@ Impact:
   while dialect/ASR-collapse conditions can make direct omni primary.
 - Speech translation remains a benchmark gap, but the code path for paired
   source-audio/target-text manifests is ready once data access is stable.
+
+## 2026-06-23: Unblock FLEURS Translation Smoke With Mirror
+
+Changed:
+- Extended `scripts/prepare_hf_audio_manifest.py` with text-only target
+  manifests and source metadata preservation.
+- Regenerated FLEURS English source rows with stable `source_id` metadata.
+- Prepared a FLEURS French text-only target pool through an HF mirror.
+- Built a 57-row English-audio -> French-text parallel manifest by `source_id`.
+- Ran direct-omni and oracle source-text translation candidate retrieval.
+
+Reason:
+- Pairing FLEURS source and target rows by dataset index was invalid because
+  language validation splits do not preserve row order.
+- Direct Hugging Face access hit rate limits, but the mirror path was enough
+  for a bounded smoke.
+
+Evidence:
+- Direct omni raw and `translation_semantic` both reached text Acc@1 = 1.000,
+  R@3 = 1.000, and sample Acc@1 = 0.982 on 57 rows.
+- Oracle source-text raw also reached text Acc@1 = 1.000.
+- Oracle source-text with `translation_semantic` regressed to text Acc@1 =
+  0.754, with paired Acc@1 delta = -0.246 and 95% bootstrap CI
+  [-0.368, -0.140].
+
+Impact:
+- FLEURS en->fr compact candidate retrieval is usable as a data-path smoke but
+  too saturated for a main optimization benchmark.
+- Instruction policies must remain modality/route-specific: an instruction
+  that is harmless for audio query can damage text-query retrieval.
+- Next translation work should scale FLEURS and add CoVoST 2 before making
+  paper-grade claims.

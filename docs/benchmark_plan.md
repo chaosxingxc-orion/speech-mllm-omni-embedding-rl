@@ -595,7 +595,7 @@ rather than always fusing ASR and omni.
 Current status:
 
 ```text
-translation benchmark is not complete yet
+FLEURS English-audio -> French-text candidate retrieval smoke is complete
 ```
 
 Progress:
@@ -603,19 +603,54 @@ Progress:
 - Added a `translation_semantic` instruction arm.
 - Added `scripts/build_parallel_translation_manifest.py` to pair source audio
   manifests with target-language text manifests by `dataset_index`.
+- `hf-mirror.com` works as a Hugging Face endpoint workaround for bounded
+  FLEURS downloads.
+- Regenerated FLEURS English validation 60 with stable `source_id`.
+- Prepared FLEURS French validation text-only pool with 289 rows.
+- Built a 57-row English-audio -> French-text parallel retrieval manifest by
+  joining on FLEURS `source_id`.
 
-Blockers:
+Results:
+
+| Route | Instruction | Query | Target | Rows | Sample Acc@1 | Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---|---:|---:|---:|---:|---:|---|
+| direct omni audio | raw | English speech | French translation | 57 | 0.982 | 1.000 | 1.000 | 0.991 | strong cross-lingual semantic matching |
+| direct omni audio | translation_semantic | English speech | French translation | 57 | 0.982 | 1.000 | 1.000 | 0.991 | no change vs raw |
+| oracle source text | raw | English text | French translation | 57 | 0.982 | 1.000 | 1.000 | 0.991 | text cross-lingual sanity check |
+| oracle source text | translation_semantic | English text | French translation | 57 | 0.737 | 0.754 | 0.947 | 0.846 | instruction hurts text-query route |
+
+Paired comparisons:
+
+```text
+direct omni raw vs translation_semantic:
+Acc@1 delta = 0.000, 95% bootstrap CI [0.000, 0.000]
+
+oracle text raw vs translation_semantic:
+Acc@1 delta = -0.246, 95% bootstrap CI [-0.368, -0.140]
+regressions = 14, fixes = 0
+```
+
+Interpretation:
+
+```text
+The compact FLEURS en->fr task is easy for the current omni embedding model:
+raw direct audio already retrieves the correct French translation.  The
+translation instruction is safe for audio query in this smoke, but harmful for
+oracle text query.  This suggests instruction policies should be route/modal
+specific; an instruction that is safe for audio-side encoding may not be safe
+for text-side query encoding.
+```
+
+Remaining blockers:
 
 - The local FLEURS `cmn_hans_cn` manifest contains mojibake text and should be
   regenerated before any Chinese semantic or translation claim.
-- A bounded FLEURS `fr_fr` download hit the unauthenticated HF API rate limit,
-  so the English-to-French translation smoke is deferred.
 
 Next step:
 
 ```text
-regenerate clean FLEURS multilingual manifests or move to CoVoST 2 bounded
-sample once HF access is stable
+scale FLEURS en->fr beyond 57 rows, regenerate clean Chinese manifests, and
+then move to CoVoST 2 bounded samples for a standard speech-translation corpus
 ```
 
 ### Completed local preparation

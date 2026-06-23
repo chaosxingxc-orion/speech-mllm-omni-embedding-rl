@@ -136,9 +136,11 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
         examples = [first] + list(iterator) if args.streaming else dataset
         for index, example in enumerate(examples):
             sample_id = _sample_id(example, args.id_field, index, args.sample_prefix)
-            audio = example[audio_column]
-            audio_path = audio_dir / f"{sample_id}{_audio_suffix(audio, args.decode_audio)}"
-            _write_audio(audio, audio_path)
+            audio_path: Path | None = None
+            if not args.skip_audio:
+                audio = example[audio_column]
+                audio_path = audio_dir / f"{sample_id}{_audio_suffix(audio, args.decode_audio)}"
+                _write_audio(audio, audio_path)
 
             text = _text_value(example, args.text_field)
             row = {
@@ -147,13 +149,23 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "task": args.task,
                 "split": args.split,
                 "language": args.language,
-                "audio_path": str(audio_path),
+                "audio_path": str(audio_path) if audio_path else "",
                 "text": text,
                 "transcript": text,
                 "dataset": args.dataset,
                 "dataset_config": args.config,
                 "dataset_index": index,
             }
+            for source_key, target_key in (
+                ("id", "source_id"),
+                ("raw_transcription", "raw_transcription"),
+                ("path", "source_audio_path"),
+                ("num_samples", "num_samples"),
+                ("gender", "gender"),
+                ("language", "dataset_language"),
+            ):
+                if example.get(source_key) not in (None, ""):
+                    row[target_key] = example[source_key]
             rows.append(row)
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -165,7 +177,7 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
         "language": args.language,
         "count": len(rows),
         "manifest": str(manifest_path),
-        "audio_dir": str(audio_dir),
+        "audio_dir": "" if args.skip_audio else str(audio_dir),
         "examples": rows[:3],
     }
     (args.output_dir / "manifest_report.json").write_text(
@@ -191,6 +203,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--language", default="")
     parser.add_argument("--sampling-rate", type=int, default=16000)
     parser.add_argument("--decode-audio", action="store_true")
+    parser.add_argument("--skip-audio", action="store_true")
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument("--streaming", action="store_true")
     return parser
