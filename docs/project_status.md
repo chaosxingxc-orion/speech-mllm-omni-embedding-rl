@@ -268,6 +268,10 @@ TODO before paper submission:
   SQuAD passage text Acc@1 = 1.000 and answer-string text Acc@1 = 0.800, while
   question-only text is much weaker. This supports the claim that audio-side
   evidence can help semantic retrieval, but only for the spoken-context setting.
+- HeySQuAD human 60-row spoken-question smoke is now prepared and evaluated.
+  Direct omni audio-only is stronger than clean-question and noisy-transcript
+  text for passage retrieval, and also improves answer-candidate retrieval.
+  This should become the next QA/RAG final-answer target.
 
 ## Legacy Code Triage
 

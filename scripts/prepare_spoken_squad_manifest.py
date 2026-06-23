@@ -1,8 +1,11 @@
-"""Prepare a small Spoken-SQuAD-style speech QA manifest from Hugging Face.
+"""Prepare a small Spoken-SQuAD/HeySQuAD-style speech QA manifest from Hugging Face.
 
 The first supported source is `AudioLLMs/spoken_squad_test`, which exposes a
 spoken context/passage audio column named `context`, the text question in
 `instruction`, and a short gold answer in `answer`.
+
+It also supports HeySQuAD-style datasets that expose spoken question audio,
+question text, passage context, and SQuAD-like answers.
 
 This script does not decode audio or train any model.
 """
@@ -44,6 +47,25 @@ def _write_audio(audio: dict[str, Any], output: Path) -> None:
     output.write_bytes(audio_bytes)
 
 
+def _extract_answer(example: dict[str, Any], answer_field: str) -> tuple[str, Any]:
+    value = example.get(answer_field)
+    if isinstance(value, str):
+        return value.strip(), value
+    if isinstance(value, list) and value:
+        first = value[0]
+        if isinstance(first, dict) and first.get("text") not in (None, ""):
+            return str(first["text"]).strip(), value
+        if isinstance(first, str):
+            return first.strip(), value
+    if isinstance(value, dict):
+        texts = value.get("text")
+        if isinstance(texts, list) and texts:
+            return str(texts[0]).strip(), value
+        if isinstance(texts, str):
+            return texts.strip(), value
+    return "", value
+
+
 def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
     Audio, load_dataset = _require_datasets()
     dataset = load_dataset(
@@ -68,7 +90,9 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
         for index, example in enumerate(dataset):
             sample_id = f"{args.sample_prefix}_{index:06d}"
             question = str(example.get(args.question_field, "")).strip()
-            answer = str(example.get(args.answer_field, "")).strip()
+            transcription = str(example.get(args.transcription_field, question)).strip()
+            context = str(example.get(args.context_field, "")).strip()
+            answer, raw_answers = _extract_answer(example, args.answer_field)
             audio = example[args.audio_column]
             audio_path = audio_dir / f"{sample_id}{_audio_suffix(audio)}"
             _write_audio(audio, audio_path)
@@ -81,16 +105,17 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "audio_path": str(audio_path),
                 "question": question,
                 "text": question,
-                "transcript": question,
+                "transcript": transcription or question,
+                "context": context,
                 "answer": answer,
-                "audio_role": "spoken_context",
+                "raw_answers": raw_answers,
+                "audio_role": args.audio_role,
                 "dataset": args.dataset,
                 "dataset_config": "",
                 "dataset_index": index,
                 "construction_note": (
-                    "HF mirror provides spoken context audio, text question, "
-                    "and answer. The original text passage is not present in "
-                    "this manifest."
+                    args.construction_note
+                    or "HF speech-QA manifest with audio, question, context if available, and answer."
                 ),
             }
             rows.append(row)
@@ -119,10 +144,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-samples", type=int, default=12)
     parser.add_argument("--audio-column", default="context")
     parser.add_argument("--question-field", default="instruction")
+    parser.add_argument("--transcription-field", default="transcription")
+    parser.add_argument("--context-field", default="context")
     parser.add_argument("--answer-field", default="answer")
     parser.add_argument("--sample-prefix", default="spoken_squad")
     parser.add_argument("--source", default="spoken_squad_hf")
     parser.add_argument("--language", default="en")
+    parser.add_argument("--audio-role", default="spoken_context")
+    parser.add_argument("--construction-note", default="")
     parser.add_argument("--streaming", action="store_true")
     return parser
 

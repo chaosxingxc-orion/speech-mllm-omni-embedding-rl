@@ -256,6 +256,33 @@ Impact:
   spoken context. The next step is either a spoken-question dataset with
   passage ids or a controlled transformation that is documented as such.
 
+## 2026-06-23: Add HeySQuAD Human Spoken-Question Smoke
+
+Changed:
+- Reused the generalized speech-QA manifest loader for `yijingwu/HeySQuAD_human`.
+- Prepared 60 rows with spoken question audio, transcript, passage context, and
+  answer.
+- Ran clean-question text, noisy-transcript text, and direct audio-only omni
+  retrieval against passage and answer candidates.
+
+Reason:
+- HeySQuAD human is a better match for spoken-question QA/RAG than the
+  Spoken-SQuAD HF mirror, which exposes spoken context audio.
+
+Evidence:
+- Passage retrieval text Acc@1:
+  clean question text = 0.517, noisy transcript text = 0.500, direct omni audio
+  = 0.867.
+- Answer retrieval text Acc@1:
+  clean question text = 0.300, noisy transcript text = 0.267, direct omni audio
+  = 0.450.
+
+Impact:
+- This is the strongest current semantic-QA evidence that direct omni can add
+  value as a primary audio path under spoken-question input.
+- The next step is final answer evaluation with retrieved passage context,
+  rather than only candidate ranking.
+
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 
 Changed:

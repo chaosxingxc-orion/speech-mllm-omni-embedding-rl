@@ -343,6 +343,54 @@ for 12-row and 60-row small runs, but a paper-grade QA/RAG run still needs a
 larger split, clear deduplication by context, and final answer utility.
 ```
 
+### HeySQuAD human spoken-question retrieval
+
+Source:
+
+```text
+yijingwu/HeySQuAD_human, train split, first 60 rows
+```
+
+Why this matters:
+
+```text
+Unlike the Spoken-SQuAD HF mirror above, HeySQuAD human exposes spoken question
+audio, human/question transcription, passage context, and answer. This is a
+closer match to speech QA and recognized-source speech RAG.
+```
+
+Data check:
+
+```text
+60 rows prepared, 0 missing audio, all rows include question, transcript,
+context, and answer.
+```
+
+Passage candidate retrieval:
+
+| Route | Instruction | Query | Context Sample Acc@1 | Context Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---:|---:|---:|---:|---|
+| clean question text | semantic_qa | question -> passage | 0.250 | 0.517 | 0.917 | 0.523 | clean question text struggles with shared/nearby passages |
+| noisy transcript text | semantic_qa | transcript -> passage | 0.267 | 0.500 | 0.900 | 0.511 | ASR-like noise slightly hurts |
+| direct omni audio | semantic_qa | spoken question audio -> passage | 0.483 | 0.867 | 0.983 | 0.684 | audio-only direct omni is strongest |
+
+Answer candidate retrieval:
+
+| Route | Instruction | Query | Answer Sample Acc@1 | Answer Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---:|---:|---:|---:|---|
+| clean question text | semantic_qa | question -> answer | 0.250 | 0.300 | 0.667 | 0.498 | answer strings are hard from question alone |
+| noisy transcript text | semantic_qa | transcript -> answer | 0.217 | 0.267 | 0.567 | 0.448 | ASR-like noise hurts further |
+| direct omni audio | semantic_qa | spoken question audio -> answer | 0.417 | 0.450 | 0.800 | 0.636 | audio-only direct omni improves answer retrieval |
+
+Interpretation:
+
+```text
+HeySQuAD human is the first stronger evidence that direct omni can be useful
+for spoken-question semantic QA, not only spoken-context matching. The task is
+still a candidate-retrieval proxy; the next step is final answer evaluation with
+retrieved passage context.
+```
+
 ### Completed local preparation
 
 | Date | Dataset | Split | Count | Status |
@@ -354,6 +402,7 @@ larger split, clear deduplication by context, and final answer utility.
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` + `rajpurkar/squad` | test/validation | 12 | passage alignment matched 12/12 |
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` | test | 60 | smoke prepared; manifest summary passed with 0 missing audio |
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` + `rajpurkar/squad` | test/validation | 60 | passage alignment matched 60/60 |
+| 2026-06-23 | `yijingwu/HeySQuAD_human` | train | 60 | spoken-question QA manifest prepared; 0 missing audio |
 
 Local outputs are under ignored `data/semantic/` and should not be committed.
 
