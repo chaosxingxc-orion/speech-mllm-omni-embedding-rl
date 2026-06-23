@@ -480,6 +480,76 @@ answer prompts on larger splits and other semantic tasks, because the first
 60-row run suggests modest gains without changing any model weights.
 ```
 
+### Tool/intent semantic selection
+
+Task:
+
+```text
+spoken command audio -> rank the correct intent/tool label description
+```
+
+Datasets:
+
+```text
+SLURP short 3-8 word intent set, 500 rows, 47 intent labels
+MInDS-14 en-US balanced intent set, 180 rows, 13 intent labels
+```
+
+Frozen method:
+
+```text
+direct omni audio query
+label/tool descriptions encoded as text documents
+no classifier training and no model-weight updates
+```
+
+SLURP 500:
+
+| Audio instruction | Label schema | Acc@1 | R@3 | R@5 | MRR | Note |
+|---|---|---:|---:|---:|---:|---|
+| raw | tool schema card | 0.550 | 0.778 | 0.828 | 0.677 | raw direct-omni label routing is not sufficient |
+| tool_specific_intent | tool schema card | 0.582 | 0.772 | 0.808 | 0.690 | improves top-1 but slightly narrows top-k recall |
+| tool_specific_intent | example-augmented tool card | 0.858 | 0.928 | 0.948 | 0.896 | examples provide a large utility jump |
+| tool_specific_intent | contrastive boundary tool card | 0.880 | 0.930 | 0.958 | 0.912 | best current tool/intent setting |
+
+Paired comparison:
+
+```text
+contrastive boundary vs raw:
+Acc@1 delta = +0.330, 95% bootstrap CI [0.288, 0.374]
+MRR delta = +0.235, 95% bootstrap CI [0.206, 0.267]
+fixes = 170, regressions = 5
+```
+
+MInDS-14 en-US balanced 180:
+
+| Audio instruction | Label schema | Acc@1 | R@3 | R@5 | MRR | Note |
+|---|---|---:|---:|---:|---:|---|
+| raw | tool schema card | 0.883 | 0.972 | 0.994 | 0.931 | banking intents are easier / more saturated |
+| tool_specific_intent | contrastive boundary tool card | 0.972 | 0.994 | 1.000 | 0.984 | strong improvement without regressions |
+
+Paired comparison:
+
+```text
+contrastive boundary vs raw:
+Acc@1 delta = +0.089, 95% bootstrap CI [0.050, 0.133]
+MRR delta = +0.053, 95% bootstrap CI [0.029, 0.081]
+fixes = 16, regressions = 0
+```
+
+Interpretation:
+
+```text
+Tool/intent is currently the clearest frozen semantic task where direct omni
+can move from weak raw usability to practical utility through task-conditioned
+interfaces.  The main gain is not only the audio-side instruction; it comes
+from the combination of a tool-specific audio instruction and structured
+label-side schema cards with examples and boundary notes.  This matches the
+project theory: downstream utility improves when the task policy reshapes both
+the query representation and the candidate decision surface while keeping model
+weights frozen.
+```
+
 ### Completed local preparation
 
 | Date | Dataset | Split | Count | Status |
@@ -492,6 +562,8 @@ answer prompts on larger splits and other semantic tasks, because the first
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` | test | 60 | smoke prepared; manifest summary passed with 0 missing audio |
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` + `rajpurkar/squad` | test/validation | 60 | passage alignment matched 60/60 |
 | 2026-06-23 | `yijingwu/HeySQuAD_human` | train | 60 | spoken-question QA manifest prepared; 0 missing audio |
+| 2026-06-23 | SLURP short 3-8 word intent | train subset | 500 | legacy manifest remapped; summary passed with 0 missing audio |
+| 2026-06-23 | MInDS-14 en-US balanced intent | train subset | 180 | legacy manifest remapped; summary passed with 0 missing audio |
 
 Local outputs are under ignored `data/semantic/` and should not be committed.
 

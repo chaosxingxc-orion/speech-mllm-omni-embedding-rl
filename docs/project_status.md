@@ -127,6 +127,7 @@ src/omni_embedding_rl/data/manifest.py
 src/omni_embedding_rl/execution/cache_taxonomy_plan.py
 src/omni_embedding_rl/execution/cache_taxonomy_runner.py
 src/omni_embedding_rl/tasks/rag_answer.py
+src/omni_embedding_rl/evaluation/tool_intent.py
 scripts/accept_gate.py
 scripts/taxonomy_summary.py
 scripts/strict_selection.py
@@ -135,6 +136,9 @@ scripts/manifest_summary.py
 scripts/cache_taxonomy_plan.py
 scripts/cache_taxonomy_runner.py
 scripts/rag_answer_eval.py
+scripts/remap_manifest_audio_paths.py
+scripts/tool_intent_retrieval.py
+scripts/paired_rank_compare.py
 ```
 
 Hydra configs now available:
@@ -296,6 +300,14 @@ TODO before paper submission:
   direct-omni-first, and RRF, mainly by reducing generation refusals when the
   ASR transcript contains odd words.  Treat it as a promising training-free
   policy arm, not yet as a general claim.
+- Tool/intent selection now has a strong frozen semantic result on recognized
+  SLU source corpora.  On SLURP 500 intent-as-tool, raw direct omni reaches
+  Acc@1 = 0.550, while `tool_specific_intent` plus contrastive boundary schema
+  cards reaches Acc@1 = 0.880, paired delta = +0.330 with 95% bootstrap CI
+  [0.288, 0.374].  On MInDS-14 en-US balanced 180, the same policy improves
+  Acc@1 from 0.883 to 0.972, paired delta = +0.089 with CI [0.050, 0.133] and
+  no hit@1 regressions.  This is currently the clearest example of frozen
+  task-conditioned interface design making direct omni practically useful.
 
 ## Legacy Code Triage
 

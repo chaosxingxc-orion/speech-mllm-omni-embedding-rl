@@ -534,3 +534,39 @@ Impact:
 - Future experiments should preserve controlled synthetic tasks for debugging,
   but final paper claims need coverage from community-recognized benchmarks or
   rigorously documented transformations of them.
+
+## 2026-06-23: Run Frozen Tool/Intent Semantic Utility Baseline
+
+Changed:
+- Added `src/omni_embedding_rl/evaluation/tool_intent.py`.
+- Added `scripts/tool_intent_retrieval.py`.
+- Added `scripts/remap_manifest_audio_paths.py`.
+- Added `scripts/paired_rank_compare.py`.
+- Remapped local SLURP 500 and MInDS-14 180 manifests into ignored semantic
+  tool/intent data directories.
+- Ran direct-omni frozen intent-as-tool selection with raw and structured schema
+  variants.
+
+Reason:
+- The semantic-only benchmark plan requires a recognized SLU/tool task in
+  addition to ASR semantics and spoken QA/RAG.
+- Prior evidence suggested schema quality matters, but the unified repo needed
+  a migrated evaluator and fresh paired comparisons.
+
+Evidence:
+- SLURP 500:
+  - raw direct omni + tool schema card: Acc@1 = 0.550, MRR = 0.677.
+  - tool-specific audio instruction + contrastive boundary tool schema:
+    Acc@1 = 0.880, MRR = 0.912.
+  - paired Acc@1 delta = +0.330, 95% bootstrap CI [0.288, 0.374].
+- MInDS-14 en-US balanced 180:
+  - raw direct omni + tool schema card: Acc@1 = 0.883, MRR = 0.931.
+  - tool-specific audio instruction + contrastive boundary tool schema:
+    Acc@1 = 0.972, MRR = 0.984.
+  - paired Acc@1 delta = +0.089, 95% bootstrap CI [0.050, 0.133].
+
+Impact:
+- Tool/intent selection is now the strongest example that frozen direct omni
+  can become practically useful through task-conditioned interfaces.
+- The gain comes from the joint policy over audio-side instruction and
+  label-side schema cards, not from free-form prompt search or weight updates.
