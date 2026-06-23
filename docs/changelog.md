@@ -302,13 +302,18 @@ Evidence:
   - noisy transcript first: answer_pass = 0.800.
   - direct omni first: answer_pass = 0.900.
   - ASR+omni RRF: answer_pass = 0.900.
+- 60-row API-generation first round with top-3 context:
+  - noisy transcript first: answer_pass = 0.817, grounded target Acc@1 = 0.267.
+  - direct omni first: answer_pass = 0.867, grounded target Acc@1 = 0.483.
+  - ASR+omni RRF: answer_pass = 0.867, grounded target Acc@1 = 0.333.
 
 Impact:
 - The recognized-source speech RAG pipeline is now end-to-end runnable.
 - For HeySQuAD spoken-question QA, direct omni currently looks like the best
-  primary retrieval view; naive RRF can be harmed by noisy ASR retrieval.
-- The next formal run should evaluate full 60-row LLM generation with top-3 and
-  top-5 contexts plus context-pollution / generation-miss analysis.
+  primary retrieval view; RRF can tie answer pass through top-3 context recovery
+  but has weaker top-1 grounding.
+- The next formal ablation should compare top-1/top-3/top-5 contexts and add
+  context-pollution / generation-miss analysis.
 
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 

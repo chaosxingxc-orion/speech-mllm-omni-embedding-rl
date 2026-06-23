@@ -278,6 +278,12 @@ TODO before paper submission:
   top-3 context.  This supports using direct omni as the primary view for this
   spoken-question QA/RAG setting, while keeping ASR/RRF as ablations rather
   than default fusion.
+- The 60-row HeySQuAD API-generation top-3 first round is complete:
+  noisy-transcript-first answer_pass = 0.817, direct-omni-first = 0.867, and
+  ASR+omni RRF = 0.867.  Direct omni has stronger top-1 grounding than RRF
+  (0.483 vs 0.333), so the current conclusion is that direct omni should be the
+  primary retrieval view and RRF should be analyzed as answer-time context
+  recovery rather than a cleaner grounding route.
 
 ## Legacy Code Triage
 

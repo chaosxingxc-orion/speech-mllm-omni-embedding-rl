@@ -422,15 +422,23 @@ Small LLM-generation smoke:
 | direct omni first | DeepSeek-compatible API | top-3 | local rule | 10 | 0.900 | top-3 context often rescues non-exact top-1 passage choices |
 | ASR + omni RRF | DeepSeek-compatible API | top-3 | local rule | 10 | 0.900 | small smoke only; full run needed before treating RRF as competitive |
 
+60-row LLM-generation first round:
+
+| Candidate order | Generator | Context | Judge | Rows | Answer pass | Grounded target Acc@1 | Error summary | Note |
+|---|---|---:|---|---:|---:|---:|---|---|
+| noisy transcript text first | DeepSeek-compatible API | top-3 | local rule | 60 | 0.817 | 0.267 | 7 retrieval miss, 3 generation miss, 1 same-cluster neighbor | ASR errors still cause refusals and retrieval misses |
+| direct omni first | DeepSeek-compatible API | top-3 | local rule | 60 | 0.867 | 0.483 | 1 retrieval miss, 3 generation miss, 4 same-cluster neighbor | best top-1 grounding; strong primary route |
+| ASR + omni RRF | DeepSeek-compatible API | top-3 | local rule | 60 | 0.867 | 0.333 | 3 retrieval miss, 3 generation miss, 2 same-cluster neighbor | answer pass ties omni, but top-1 grounding is weaker |
+
 Interpretation:
 
 ```text
 For HeySQuAD spoken-question QA, direct omni is currently the best primary
-view among the tested routes.  RRF helps less than expected in the local
-first-document audit because ASR retrieval can pull a weaker passage to the top.
-However, top-3 LLM answering can recover some non-exact top-1 cases, so the
-formal next run should evaluate full 60-row LLM generation with top-3/top-5
-contexts and explicit context-pollution accounting.
+view among the tested routes.  RRF can tie direct omni on top-3 final-answer
+pass, but it has weaker top-1 grounding, so its gains come from answer-time
+context recovery rather than better primary retrieval.  The next formal
+ablation should compare top-1/top-3/top-5 context and add explicit
+context-pollution accounting.
 ```
 
 ### Completed local preparation
