@@ -316,6 +316,54 @@ Next URO-Bench experiments:
    retrieval-style semantic baselines are stable.
 ```
 
+### URO-Bench mini taxonomy retrieval
+
+Task:
+
+```text
+direct omni audio query -> same-family target_text candidate retrieval
+```
+
+Setup:
+
+```text
+Model: frozen omni-embed-nemotron-3b
+Candidate pool: full same-family pool, not random negatives
+Rows: 525 semantic-mainline rows
+No model weights are trained or changed
+```
+
+Family-level leaderboard:
+
+| Family | Rows | Raw Acc@1 | Best arm | Best Acc@1 | Best R@3 | Best MRR | Interpretation |
+|---|---:|---:|---|---:|---:|---:|---|
+| speech_qa_reasoning | 200 | 0.380 | policy_grounding | 0.465 | 0.595 | 0.544 | clear accepted gain candidate |
+| speech_translation | 125 | 0.728 | translation_semantic | 0.736 | 0.864 | 0.815 | Acc@1 gain small; MRR improves |
+| tool_or_label_semantics | 100 | 0.970 | tool_specific_intent | 0.970 | 0.990 | 0.983 | saturated in this benchmark |
+| asr_semantics | 50 | 0.980 | exact_condition_matching | 0.980 | 1.000 | 0.990 | saturated repeat task |
+| speech_summarization | 50 | 0.980 | raw | 0.980 | 0.980 | 0.984 | raw already best |
+
+Paired comparisons:
+
+| Family | Candidate arm | Acc@1 delta | 95% CI | MRR delta | Fixes | Regressions | Decision |
+|---|---|---:|---:|---:|---:|---:|---|
+| speech_qa_reasoning | policy_grounding | +0.085 | [0.045, 0.130] | +0.056 | 18 | 1 | accept for QA/reasoning |
+| speech_translation | translation_semantic | +0.008 | [-0.040, 0.056] | +0.039 | 5 | 4 | do not claim Acc@1; useful rank-shaping |
+| tool_or_label_semantics | tool_specific_intent | +0.000 | [0.000, 0.000] | +0.0005 | 0 | 0 | neutral; URO label task saturated |
+
+Interpretation:
+
+```text
+URO-Bench mini gives the first compact multi-task evidence that the frozen
+omni model benefits from task-conditioned instructions on harder semantic
+speech tasks.  The strongest current finding is speech QA/reasoning:
+policy_grounding raises full-pool target retrieval from 0.380 to 0.465 with a
+positive paired CI and low regression.  Translation/code-switching mostly
+improves rank ordering rather than top-1.  Tool, ASR-like repeat, and
+summarization subsets are too easy in the mini set and should be treated as
+sanity checks, not optimization targets.
+```
+
 ### FLEURS transcript-candidate retrieval
 
 Task:

@@ -733,3 +733,41 @@ Impact:
 - Paralinguistic and speaker-aware URO-Bench subsets should stay diagnostic
   rather than mainline, because current evidence suggests the omni path is
   primarily semantic.
+
+## 2026-06-24: Run URO-Bench Mini Semantic Taxonomy Retrieval
+
+Changed:
+- Added `scripts/uro_bench_taxonomy_retrieval.py`, a cache-first runner that
+  keeps the frozen omni model loaded once and evaluates multiple audio-side
+  instruction arms by URO task family.
+- Ran full-pool target-text candidate retrieval on the 525 URO semantic-mainline
+  rows.
+
+Reason:
+- The project needed a harder multi-task semantic benchmark after FLEURS ASR
+  and several label/repeat settings proved too saturated.
+- URO-Bench mini lets us test whether task-conditioned instructions help across
+  QA/reasoning, translation/code-switching, label semantics, ASR-like repeat,
+  and summarization without changing model weights.
+
+Evidence:
+- Speech QA/reasoning:
+  - raw Acc@1 = 0.380.
+  - `policy_grounding` Acc@1 = 0.465.
+  - paired delta = +0.085, 95% CI [0.045, 0.130].
+  - fixes = 18, regressions = 1.
+- Speech translation/code-switching:
+  - raw Acc@1 = 0.728.
+  - `translation_semantic` Acc@1 = 0.736.
+  - paired delta = +0.008, 95% CI [-0.040, 0.056].
+  - MRR delta = +0.039.
+- Tool/label, ASR-like repeat, and summarization are near-saturated in URO
+  mini, with raw Acc@1 around 0.97 to 0.98.
+
+Impact:
+- URO QA/reasoning is now the strongest near-term task for training-free
+  instruction optimization.
+- Translation/code-switching should be treated as rank-shaping evidence until a
+  larger or harder split shows top-1 improvement.
+- Saturated URO subsets should remain sanity checks; they should not drive
+  policy search.

@@ -344,6 +344,14 @@ TODO before paper submission:
   This is the strongest current candidate for testing whether one
   task-conditioned policy surface transfers across related semantic speech
   tasks without changing model weights.
+- URO-Bench mini taxonomy retrieval has a completed first pass over the 525
+  semantic-mainline rows.  The most important result is QA/reasoning:
+  `policy_grounding` improves full-pool target-text Acc@1 from 0.380 to 0.465,
+  paired delta = +0.085 with 95% CI [0.045, 0.130], 18 fixes, and 1
+  regression.  Translation/code-switching gets only a small non-significant
+  Acc@1 delta (+0.008, CI [-0.040, 0.056]) but improves MRR by +0.039.  Tool,
+  ASR-like repeat, and summarization subsets are saturated in URO mini, so they
+  are sanity checks rather than current optimization targets.
 
 ## Legacy Code Triage
 
