@@ -283,6 +283,33 @@ Impact:
 - The next step is final answer evaluation with retrieved passage context,
   rather than only candidate ranking.
 
+## 2026-06-23: Add HeySQuAD Final-Answer Input Adapter And Smoke
+
+Changed:
+- Added `scripts/build_qa_rag_eval_inputs.py` to convert candidate-retrieval
+  outputs into the generic RAG final-answer evaluator format.
+- Extended the RAG answer evaluator to read passage `context` fields and to use
+  normalized local answer matching for punctuation-sensitive aliases.
+- Ran a 60-row local first-document audit for HeySQuAD human spoken-question
+  RAG and a 10-row API-generation smoke with top-3 context.
+
+Evidence:
+- 60-row local first-document audit:
+  - noisy transcript first: answer_pass = 0.567, grounded target Acc@1 = 0.267.
+  - direct omni first: answer_pass = 0.883, grounded target Acc@1 = 0.483.
+  - ASR+omni RRF: answer_pass = 0.767, grounded target Acc@1 = 0.333.
+- 10-row API-generation smoke with top-3 context:
+  - noisy transcript first: answer_pass = 0.800.
+  - direct omni first: answer_pass = 0.900.
+  - ASR+omni RRF: answer_pass = 0.900.
+
+Impact:
+- The recognized-source speech RAG pipeline is now end-to-end runnable.
+- For HeySQuAD spoken-question QA, direct omni currently looks like the best
+  primary retrieval view; naive RRF can be harmed by noisy ASR retrieval.
+- The next formal run should evaluate full 60-row LLM generation with top-3 and
+  top-5 contexts plus context-pollution / generation-miss analysis.
+
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 
 Changed:

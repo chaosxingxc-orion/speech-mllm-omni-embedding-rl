@@ -391,6 +391,48 @@ still a candidate-retrieval proxy; the next step is final answer evaluation with
 retrieved passage context.
 ```
 
+### HeySQuAD human recognized-source RAG answer smoke
+
+Construction:
+
+```text
+spoken question audio -> retrieve HeySQuAD/SQuAD passage context -> answer
+```
+
+The first smoke uses the 60-row HeySQuAD human manifest above.  Candidate
+retrieval rows are converted into the generic RAG final-answer evaluator shape,
+and answer keys are built from dataset answer aliases.  This is a local
+first-document audit unless marked as LLM generation: it checks whether the
+selected passage text itself contains enough information to satisfy the answer
+key, rather than measuring natural-language answer quality.
+
+Local first-document audit:
+
+| Candidate order | Generator | Judge | Rows | Answer pass | Grounded target Acc@1 | Error summary | Note |
+|---|---|---|---:|---:|---:|---|---|
+| noisy transcript text first | first selected passage | local rule | 60 | 0.567 | 0.267 | 26 retrieval miss | ASR-like text misses many relevant passages |
+| direct omni first | first selected passage | local rule | 60 | 0.883 | 0.483 | 7 retrieval miss | strongest route for this spoken-question QA smoke |
+| ASR + omni RRF | first selected passage | local rule | 60 | 0.767 | 0.333 | 14 retrieval miss | fusion is worse than omni-primary here, likely because the ASR view pollutes the top item |
+
+Small LLM-generation smoke:
+
+| Candidate order | Generator | Context | Judge | Rows | Answer pass | Note |
+|---|---|---:|---|---:|---:|---|
+| noisy transcript text first | DeepSeek-compatible API | top-3 | local rule | 10 | 0.800 | API path works; ASR errors such as `beyond a` can still cause refusals |
+| direct omni first | DeepSeek-compatible API | top-3 | local rule | 10 | 0.900 | top-3 context often rescues non-exact top-1 passage choices |
+| ASR + omni RRF | DeepSeek-compatible API | top-3 | local rule | 10 | 0.900 | small smoke only; full run needed before treating RRF as competitive |
+
+Interpretation:
+
+```text
+For HeySQuAD spoken-question QA, direct omni is currently the best primary
+view among the tested routes.  RRF helps less than expected in the local
+first-document audit because ASR retrieval can pull a weaker passage to the top.
+However, top-3 LLM answering can recover some non-exact top-1 cases, so the
+formal next run should evaluate full 60-row LLM generation with top-3/top-5
+contexts and explicit context-pollution accounting.
+```
+
 ### Completed local preparation
 
 | Date | Dataset | Split | Count | Status |

@@ -179,7 +179,13 @@ def base_candidates(row: dict[str, Any], config: RAGAnswerEvalConfig) -> list[di
 
 def candidate_doc(candidate: dict[str, Any], samples: dict[str, dict[str, Any]]) -> str:
     sample = samples.get(candidate["sample_id"], {})
-    return str(candidate.get("document") or sample.get("document_text") or sample.get("text") or "")
+    return str(
+        candidate.get("document")
+        or sample.get("document_text")
+        or sample.get("context")
+        or sample.get("text")
+        or ""
+    )
 
 
 def answer_prompt(
@@ -189,12 +195,12 @@ def answer_prompt(
 ) -> str:
     lines = [
         "You answer a user question using only the provided knowledge documents.",
-        "The user question came from speech ASR and may contain recognition errors.",
-        "Prefer the document that directly matches the user's business rule, condition, exception, amount, time, or tool intent.",
-        "Do not merge conflicting rules from neighboring documents.",
+        "The user question may come from speech and may contain recognition errors.",
+        "Prefer the document that directly answers the question.",
+        "Do not merge conflicting facts from neighboring documents.",
         "If the documents do not contain enough information, say that the knowledge base does not provide enough information.",
         "",
-        f"ASR/user question: {row.get('asr_text') or row.get('query_text') or row.get('target')}",
+        f"User question: {row.get('asr_text') or row.get('query_text') or row.get('target')}",
         "",
         "Knowledge documents:",
     ]
@@ -219,6 +225,12 @@ def local_generated_answer(
     raise ValueError(f"Unsupported non-LLM generator_mode: {mode} for target {target_id}")
 
 
+def normalize_match_text(text: str) -> str:
+    text = str(text or "").lower()
+    text = re.sub(r"[^a-z0-9\u4e00-\u9fff]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def generate_answer(
     config: RAGAnswerEvalConfig,
     row: dict[str, Any],
@@ -232,13 +244,17 @@ def generate_answer(
 
 
 def group_matches(answer: str, group: list[str]) -> bool:
-    return any(term and term in answer for term in group)
+    answer_norm = normalize_match_text(answer)
+    return any(term and normalize_match_text(term) in answer_norm for term in group)
 
 
 def score_answer_local(answer: str, key: dict[str, Any]) -> dict[str, Any]:
     required_groups = key.get("required_terms", [])
     group_hits = [group_matches(answer, group) for group in required_groups]
-    forbidden_hits = [term for term in key.get("forbidden_terms", []) if term and term in answer]
+    answer_norm = normalize_match_text(answer)
+    forbidden_hits = [
+        term for term in key.get("forbidden_terms", []) if term and normalize_match_text(term) in answer_norm
+    ]
     required_recall = sum(group_hits) / len(group_hits) if group_hits else 1.0
     return {
         "required_terms_recall": required_recall,

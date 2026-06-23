@@ -271,7 +271,13 @@ TODO before paper submission:
 - HeySQuAD human 60-row spoken-question smoke is now prepared and evaluated.
   Direct omni audio-only is stronger than clean-question and noisy-transcript
   text for passage retrieval, and also improves answer-candidate retrieval.
-  This should become the next QA/RAG final-answer target.
+- HeySQuAD human has now entered a recognized-source RAG final-answer smoke.
+  In the 60-row local first-document audit, direct omni first reaches
+  answer_pass = 0.883 versus 0.567 for noisy-transcript-first and 0.767 for
+  ASR+omni RRF.  A 10-row API-generation smoke also runs end to end with
+  top-3 context.  This supports using direct omni as the primary view for this
+  spoken-question QA/RAG setting, while keeping ASR/RRF as ablations rather
+  than default fusion.
 
 ## Legacy Code Triage
 
