@@ -20,7 +20,11 @@ def _load_rows(path: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _hit(row: dict[str, Any]) -> float:
+def _hit(row: dict[str, Any], mode: str) -> float:
+    if mode == "text" and "text_hit_at_1" in row:
+        return 1.0 if row.get("text_hit_at_1") else 0.0
+    if mode == "sample" and "sample_hit_at_1" in row:
+        return 1.0 if row.get("sample_hit_at_1") else 0.0
     if "hit_at_1" in row:
         return 1.0 if row.get("hit_at_1") else 0.0
     if "sample_hit_at_1" in row:
@@ -30,7 +34,13 @@ def _hit(row: dict[str, Any]) -> float:
     return 1.0 if int(row.get("rank", row.get("sample_rank", 10**9))) == 1 else 0.0
 
 
-def _reciprocal_rank(row: dict[str, Any]) -> float:
+def _reciprocal_rank(row: dict[str, Any], mode: str) -> float:
+    if mode == "text" and "text_rank" in row:
+        rank = int(row.get("text_rank", 10**9))
+        return 1.0 / rank if rank > 0 else 0.0
+    if mode == "sample" and "sample_rank" in row:
+        rank = int(row.get("sample_rank", 10**9))
+        return 1.0 / rank if rank > 0 else 0.0
     rank = int(row.get("rank", row.get("sample_rank", row.get("text_rank", 10**9))))
     return 1.0 / rank if rank > 0 else 0.0
 
@@ -45,6 +55,7 @@ def compare(
     output_path: Path,
     bootstrap_rounds: int,
     seed: int,
+    hit_mode: str,
 ) -> dict[str, Any]:
     baseline = _load_rows(baseline_path)
     candidate = _load_rows(candidate_path)
@@ -52,10 +63,15 @@ def compare(
     if not ids:
         raise ValueError("no overlapping sample_id values")
 
-    hit_deltas = [_hit(candidate[sid]) - _hit(baseline[sid]) for sid in ids]
-    mrr_deltas = [_reciprocal_rank(candidate[sid]) - _reciprocal_rank(baseline[sid]) for sid in ids]
-    fixes = [sid for sid in ids if _hit(candidate[sid]) > _hit(baseline[sid])]
-    regressions = [sid for sid in ids if _hit(candidate[sid]) < _hit(baseline[sid])]
+    hit_deltas = [_hit(candidate[sid], hit_mode) - _hit(baseline[sid], hit_mode) for sid in ids]
+    mrr_deltas = [
+        _reciprocal_rank(candidate[sid], hit_mode) - _reciprocal_rank(baseline[sid], hit_mode)
+        for sid in ids
+    ]
+    fixes = [sid for sid in ids if _hit(candidate[sid], hit_mode) > _hit(baseline[sid], hit_mode)]
+    regressions = [
+        sid for sid in ids if _hit(candidate[sid], hit_mode) < _hit(baseline[sid], hit_mode)
+    ]
 
     rng = random.Random(seed)
     boot_hit = []
@@ -78,16 +94,17 @@ def compare(
         "experiment": "paired_rank_compare",
         "baseline": str(baseline_path),
         "candidate": str(candidate_path),
+        "hit_mode": hit_mode,
         "n": len(ids),
         "hit_at_1": {
-            "baseline": _mean([_hit(baseline[sid]) for sid in ids]),
-            "candidate": _mean([_hit(candidate[sid]) for sid in ids]),
+            "baseline": _mean([_hit(baseline[sid], hit_mode) for sid in ids]),
+            "candidate": _mean([_hit(candidate[sid], hit_mode) for sid in ids]),
             "delta": _mean(hit_deltas),
             "bootstrap_ci95": ci(boot_hit),
         },
         "mrr": {
-            "baseline": _mean([_reciprocal_rank(baseline[sid]) for sid in ids]),
-            "candidate": _mean([_reciprocal_rank(candidate[sid]) for sid in ids]),
+            "baseline": _mean([_reciprocal_rank(baseline[sid], hit_mode) for sid in ids]),
+            "candidate": _mean([_reciprocal_rank(candidate[sid], hit_mode) for sid in ids]),
             "delta": _mean(mrr_deltas),
             "bootstrap_ci95": ci(boot_mrr),
         },
@@ -108,6 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--bootstrap-rounds", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--hit-mode", choices=("auto", "sample", "text"), default="auto")
     return parser
 
 
@@ -115,7 +133,14 @@ def main() -> None:
     args = build_parser().parse_args()
     print(
         json.dumps(
-            compare(args.baseline, args.candidate, args.output, args.bootstrap_rounds, args.seed),
+            compare(
+                args.baseline,
+                args.candidate,
+                args.output,
+                args.bootstrap_rounds,
+                args.seed,
+                args.hit_mode,
+            ),
             ensure_ascii=False,
             indent=2,
         )

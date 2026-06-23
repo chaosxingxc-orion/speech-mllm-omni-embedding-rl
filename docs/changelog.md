@@ -635,3 +635,32 @@ Impact:
   that is harmless for audio query can damage text-query retrieval.
 - Next translation work should scale FLEURS and add CoVoST 2 before making
   paper-grade claims.
+
+## 2026-06-23: Run FLEURS Translation Full-Pool Diagnostic
+
+Changed:
+- Reran FLEURS English-audio -> French-text retrieval with every paired target
+  as the candidate pool.
+- Compared direct-omni audio and oracle source-text routes under `raw`,
+  `semantic_qa`, `transcript_like`, and `translation_semantic` instructions.
+- Extended paired-rank comparison with explicit text/sample hit modes.
+
+Reason:
+- The earlier 8-candidate smoke was too easy. A full-pool candidate set is a
+  stricter diagnostic and exposes route-specific instruction effects.
+
+Evidence:
+- Direct-omni audio raw reaches text Acc@1 = 0.982, R@3 = 1.000, and MRR =
+  0.991 on 57 candidates. All tested audio-side instructions tie raw exactly.
+- Oracle source-text raw reaches text Acc@1 = 1.000 and MRR = 1.000.
+- Oracle source-text with `translation_semantic` falls to text Acc@1 = 0.509,
+  paired delta = -0.491, 95% bootstrap CI [-0.614, -0.368], with 28
+  regressions and 0 fixes.
+
+Impact:
+- The translation diagnostic supports a clear method rule: instruction arms
+  must be route/modal-specific. Reusing an audio-side instruction on text-query
+  retrieval can cause a large and statistically clear regression.
+- The task is still too small and partly affected by accent mojibake in local
+  French strings, so it remains a data-path diagnostic rather than a final
+  paper benchmark.

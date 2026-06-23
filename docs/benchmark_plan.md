@@ -602,7 +602,8 @@ Progress:
 
 - Added a `translation_semantic` instruction arm.
 - Added `scripts/build_parallel_translation_manifest.py` to pair source audio
-  manifests with target-language text manifests by `dataset_index`.
+  manifests with target-language text manifests by stable keys such as
+  `source_id`.
 - `hf-mirror.com` works as a Hugging Face endpoint workaround for bounded
   FLEURS downloads.
 - Regenerated FLEURS English validation 60 with stable `source_id`.
@@ -610,7 +611,7 @@ Progress:
 - Built a 57-row English-audio -> French-text parallel retrieval manifest by
   joining on FLEURS `source_id`.
 
-Results:
+Compact 8-candidate results:
 
 | Route | Instruction | Query | Target | Rows | Sample Acc@1 | Text Acc@1 | R@3 | MRR | Note |
 |---|---|---|---|---:|---:|---:|---:|---:|---|
@@ -630,15 +631,53 @@ Acc@1 delta = -0.246, 95% bootstrap CI [-0.368, -0.140]
 regressions = 14, fixes = 0
 ```
 
+Full-pool 57-candidate results:
+
+| Route | Instruction | Query | Target | Rows | Candidates | Sample Acc@1 | Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---|
+| direct omni audio | raw | English speech | French translation | 57 | 57 | 0.860 | 0.982 | 1.000 | 0.991 | one text miss; duplicate translations lower sample Acc@1 |
+| direct omni audio | semantic_qa | English speech | French translation | 57 | 57 | 0.860 | 0.982 | 1.000 | 0.991 | identical to raw |
+| direct omni audio | transcript_like | English speech | French translation | 57 | 57 | 0.860 | 0.982 | 1.000 | 0.991 | identical to raw |
+| direct omni audio | translation_semantic | English speech | French translation | 57 | 57 | 0.860 | 0.982 | 1.000 | 0.991 | identical to raw |
+| oracle source text | raw | English text | French translation | 57 | 57 | 0.877 | 1.000 | 1.000 | 1.000 | best text-query route |
+| oracle source text | semantic_qa | English text | French translation | 57 | 57 | 0.614 | 0.719 | 0.789 | 0.780 | significant regression |
+| oracle source text | transcript_like | English text | French translation | 57 | 57 | 0.789 | 0.912 | 0.912 | 0.925 | significant regression |
+| oracle source text | translation_semantic | English text | French translation | 57 | 57 | 0.421 | 0.509 | 0.614 | 0.601 | strongest regression |
+
+Full-pool paired text-hit comparisons:
+
+```text
+direct omni raw vs semantic_qa/transcript_like/translation_semantic:
+Acc@1 delta = 0.000, 95% bootstrap CI [0.000, 0.000]
+
+oracle text raw vs semantic_qa:
+Acc@1 delta = -0.281, 95% bootstrap CI [-0.404, -0.175]
+
+oracle text raw vs transcript_like:
+Acc@1 delta = -0.088, 95% bootstrap CI [-0.158, -0.018]
+
+oracle text raw vs translation_semantic:
+Acc@1 delta = -0.491, 95% bootstrap CI [-0.614, -0.368]
+```
+
 Interpretation:
 
 ```text
-The compact FLEURS en->fr task is easy for the current omni embedding model:
-raw direct audio already retrieves the correct French translation.  The
-translation instruction is safe for audio query in this smoke, but harmful for
-oracle text query.  This suggests instruction policies should be route/modal
-specific; an instruction that is safe for audio-side encoding may not be safe
-for text-side query encoding.
+The FLEURS en->fr diagnostic is easy for the current omni embedding model even
+when every paired French target is used as a candidate. Raw direct audio nearly
+solves the text-level task. The important finding is negative and
+route-specific: adding audio-style instructions to a text-query route can cause
+large, statistically clear regressions. Instruction policies should therefore
+be route/modal-specific, not shared across audio-query and text-query paths.
+```
+
+Data caveat:
+
+```text
+Some French target strings in the local mirror-derived manifest show accent
+mojibake. The run is valid as a retrieval data-path diagnostic because targets
+are paired consistently by source id, but paper-grade translation experiments
+need a clean text source or a standard CoVoST 2 preparation.
 ```
 
 Remaining blockers:
@@ -649,8 +688,8 @@ Remaining blockers:
 Next step:
 
 ```text
-scale FLEURS en->fr beyond 57 rows, regenerate clean Chinese manifests, and
-then move to CoVoST 2 bounded samples for a standard speech-translation corpus
+use a planned data-prep window for clean FLEURS or CoVoST 2, then rerun the
+same full-pool translation matrix on a larger and cleaner benchmark
 ```
 
 ### Completed local preparation

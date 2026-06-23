@@ -316,11 +316,15 @@ TODO before paper submission:
   rescues and 0 regressions.  RRF is poor on Wu at 0.524, showing that bad ASR
   can pollute naive fusion.
 - Speech translation is partially unblocked through an HF mirror and a
-  source-id paired FLEURS English-audio -> French-text smoke.  Direct omni and
-  oracle source text both reach text Acc@1 = 1.000 on the 57-row diagnostic,
-  so this compact retrieval task is saturated.  The `translation_semantic`
-  instruction is route-specific: it is safe for audio query in the smoke but
-  significantly hurts oracle text query.  See
+  source-id paired FLEURS English-audio -> French-text diagnostic.  In the
+  harder full-pool 57-candidate setting, direct omni audio remains strong
+  (text Acc@1 = 0.982, R@3 = 1.000) and all tested audio-side instructions tie
+  raw.  Oracle source text with raw instruction reaches text Acc@1 = 1.000,
+  but audio-style instructions significantly hurt this text-query route:
+  `translation_semantic` drops to text Acc@1 = 0.509 with paired delta =
+  -0.491, 95% CI [-0.614, -0.368].  This supports route-specific instruction
+  policy design.  The local French text still has accent mojibake, so this is a
+  data-path diagnostic rather than paper-grade translation evidence.  See
   `docs/bugs/issue-002-fleurs-translation-data-blocker.md`.
 
 ## Legacy Code Triage
