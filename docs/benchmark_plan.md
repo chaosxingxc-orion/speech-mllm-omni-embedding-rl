@@ -692,6 +692,41 @@ use a planned data-prep window for clean FLEURS or CoVoST 2, then rerun the
 same full-pool translation matrix on a larger and cleaner benchmark
 ```
 
+### Unified training-free policy surface
+
+Current status:
+
+```text
+first offline unified-controller evaluation complete
+```
+
+The unified controller treats task behavior as a policy surface around the
+frozen omni model rather than as a new trained model:
+
+```text
+policy = route + audio instruction + candidate wrapper + context_k + answer prompt
+```
+
+First offline result:
+
+| Task | Candidate policy | Primary delta | 95% CI | Regression rate | Gate |
+|---|---|---:|---:|---:|---|
+| FLEURS ASR semantics | transcript_like | +0.000 | [0.000, 0.000] | 0.000 | neutral-safe |
+| HeySQuAD RAG answer | omni top-3 + ASR-robust prompt | +0.067 | [-0.033, 0.167] | 0.050 | reject for now |
+| SLURP tool intent | tool instruction + boundary schema | +0.330 | [0.288, 0.374] | 0.010 | accept |
+| MInDS tool intent | tool instruction + boundary schema | +0.089 | [0.050, 0.133] | 0.000 | accept |
+| FLEURS speech translation | translation_semantic audio query | +0.000 | [0.000, 0.000] | 0.000 | neutral-safe |
+| Translation text-route guard | translation_semantic text query | -0.491 | [-0.614, -0.368] | 0.491 | reject |
+
+Interpretation:
+
+```text
+The unified training-free system should be a route/task-conditioned controller,
+not a universal instruction string. Tool/intent is robustly accepted. RAG is
+promising but needs larger evaluation. Translation proves the need for
+protected route-specific guards.
+```
+
 ### Completed local preparation
 
 | Date | Dataset | Split | Count | Status |

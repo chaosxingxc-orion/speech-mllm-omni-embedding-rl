@@ -326,6 +326,15 @@ TODO before paper submission:
   policy design.  The local French text still has accent mojibake, so this is a
   data-path diagnostic rather than paper-grade translation evidence.  See
   `docs/bugs/issue-002-fleurs-translation-data-blocker.md`.
+- A first unified training-free policy-surface evaluation is complete.  It
+  treats the frozen omni model plus route/instruction/schema/context/prompt
+  decisions as one deployable controller.  Tool/intent policies are robustly
+  accepted, ASR/translation direct-audio policies are neutral-safe, HeySQuAD
+  RAG remains promising but not robustly accepted because CI crosses zero and
+  regression rate is 0.050, and the translation text-route guard correctly
+  rejects reusing `translation_semantic` on oracle text query.  The Lean core
+  proof in `docs/lean/unified_policy_surface.lean` checks the conservative
+  aggregation logic.
 
 ## Legacy Code Triage
 

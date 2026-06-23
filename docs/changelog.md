@@ -664,3 +664,38 @@ Impact:
 - The task is still too small and partly affected by accent mojibake in local
   French strings, so it remains a data-path diagnostic rather than a final
   paper benchmark.
+
+## 2026-06-23: Add Unified Training-Free Policy Surface
+
+Changed:
+- Added `docs/unified_training_free_policy.md`.
+- Added Lean-checkable proof core at `docs/lean/unified_policy_surface.lean`.
+- Added `scripts/unified_training_free_policy_eval.py`.
+- Ran the first offline unified-controller evaluation over current row-level
+  ASR, RAG, tool, and translation outputs.
+
+Reason:
+- The project needs to fuse task-specific training-free methods into one
+  deployable controller without changing model weights.
+- Prior results show that a universal instruction is unsafe; the controller
+  must be route/task-conditioned and protected by accept gates.
+
+Evidence:
+- Lean check passed for the core aggregation and accept-gate implications.
+- Offline unified evaluation covered six task/guard rows with no missing
+  result files.
+- Tool policies were accepted:
+  - SLURP primary delta = +0.330, CI [0.288, 0.374].
+  - MInDS primary delta = +0.089, CI [0.050, 0.133].
+- ASR semantics and speech translation direct-audio instruction changes were
+  neutral-safe.
+- HeySQuAD RAG improved mean answer pass by +0.067 but was rejected by the
+  robust gate because CI crossed zero and regression rate was 0.050.
+- Translation text-route guard rejected `translation_semantic` on oracle text
+  query with delta = -0.491 and CI [-0.614, -0.368].
+
+Impact:
+- The current best training-free system is a task/route-conditioned policy
+  surface, not a single universal instruction string.
+- The next experimental bottleneck is larger recognized speech-QA/RAG and
+  cleaner speech-translation data, not model-weight training.
