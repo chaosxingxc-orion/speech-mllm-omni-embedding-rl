@@ -78,6 +78,12 @@ Still pending:
   recent `train_omni_audio_lora.py` run.
 - Restore or install the missing shared `speechrl-common` dependency if the
   outer framework is expected to run immediately.
+- Reframe the next experiment cycle around semantic speech tasks only:
+  ASR semantics, speech QA, speech RAG, speech translation, and semantic
+  tool/intent selection.
+- Freeze all model weights in the next experiment cycle. LoRA and
+  weight-changing RL are paused until frozen semantic baselines are stable and
+  aligned.
 
 ## Suggested Next Milestones
 
@@ -228,13 +234,16 @@ Current status:
 
 TODO before paper submission:
 
+- Execute the semantic benchmark plan in `docs/benchmark_plan.md`.
 - Identify at least one community-recognized benchmark for speech-driven RAG or
   audio question answering, or construct a benchmark from recognized QA/RAG data
   with a fully documented TTS/noise/accent protocol.
+- Add a speech QA benchmark such as Spoken-SQuAD, HeySQuAD, or SQuAD-SRC.
+- Add a speech translation benchmark such as FLEURS or CoVoST 2.
 - Add an official or widely used spoken language understanding benchmark for
   tool/intent selection beyond the intent-as-tool transformation.
-- Add a recognized speech emotion/paralinguistic benchmark beyond CREMA-D if
-  the paper claims broader factor disentanglement.
+- Keep emotion and speaker results as diagnostics unless later evidence shows
+  they are robustly useful for semantic downstream tasks.
 - For every project-specific task transformation, publish the construction
   rules, split policy, label schema, and leakage checks.
 - Report results separately as:
@@ -340,4 +349,3 @@ Status: `audio_rag_answer_eval.py` has been rewritten as
 `src/omni_embedding_rl/tasks/rag_answer.py`. The answer-key builder is still not
 migrated because its historical Chinese keys are corrupted and should be rebuilt
 from clean source data.
-

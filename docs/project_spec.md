@@ -36,10 +36,17 @@ lightweight RL / LoRA adaptation?
 ## Non-Goals
 
 - Do not train a new omni-embedding model from scratch.
+- In the next experiment cycle, do not modify model weights. No LoRA, adapter
+  training, ASR fine-tuning, omni-embedding fine-tuning, text-embedding
+  fine-tuning, or LLM fine-tuning should be run until frozen semantic baselines
+  are stable.
 - Do not claim direct omni is always better than ASR.
 - Do not claim one universal instruction solves all tasks.
 - Do not optimize only top-1 retrieval if the final task is RAG answer or tool
   execution.
+- Do not make emotion or speaker recognition a main task claim in the next
+  cycle. Emotion remains a future/diagnostic branch because it may require
+  intermediate-layer extraction; speaker appears weak in the current setup.
 
 ## Hypotheses
 
@@ -61,6 +68,14 @@ factor cannot be separated by any frozen conditioning, it should be routed to a
 different operator, stronger model, or lightweight adaptation path instead of
 being treated as a failed prompt.
 
+Current scope note:
+
+```text
+semantic factors are the active target;
+emotion is diagnostic/future work;
+speaker is not a main claim for this cycle.
+```
+
 ### H1: Task-family interfaces matter
 
 Different task families require different audio-side and document-side
@@ -79,10 +94,11 @@ Dialect     -> semantic intent under ASR failure
 A finite, structured policy space with robust acceptance can improve usability
 without training the base embedding model or LLM.
 
-### H3: Lightweight RL/LoRA is an upper-bound adaptation layer
+### H3: Lightweight RL/LoRA is a deferred upper-bound adaptation layer
 
 If training-free methods hit a ceiling, audio-side LoRA or an offline policy
-learner can estimate what is gained by small trainable components.
+learner can estimate what is gained by small trainable components. This is a
+future branch, not part of the next semantic frozen-model experiment cycle.
 
 ### H4: Utility must include regressions and costs
 
@@ -144,7 +160,7 @@ experiments supply downstream utility proof obligations.
   - rerank trigger
   - accept/reject override
 
-### Stage 3: Lightweight Representation Adaptation
+### Stage 3: Lightweight Representation Adaptation (Deferred)
 
 - train only audio tower LoRA
 - freeze text/document side
@@ -152,12 +168,18 @@ experiments supply downstream utility proof obligations.
 - RL-style ranking surrogate
 - anchor and regression penalty
 
+This stage is paused until the frozen semantic benchmark suite is stable and
+the existing LoRA frozen-baseline mismatch is resolved.
+
 ## Evaluation Tasks
 
 | Task | Dataset Source | Benchmark Status | Primary Metrics |
 |---|---|---|---|
-| Disentanglement Probe | CREMA-D | public, widely used speech emotion/speaker corpus; our conditioning matrix is a new evaluation view | conditioning x factor matrix, probe acc, selected-vs-baseline delta, diagonal dominance |
-| RAG / QA | Chinese synthetic spoken RAG 600 | constructed by us; useful for controlled debugging but not yet a community benchmark | answer pass, grounded doc, R@K, MRR, generation miss |
+| Semantic representation probe | CREMA-D content view / transcript-like probes | representation diagnostic only; not the main downstream claim | content-factor selectivity, selected-vs-baseline delta |
+| ASR semantics | LibriSpeech / AISHELL-1 / FLEURS | recognized public speech corpora | WER/CER, transcript candidate rank, semantic preservation |
+| Speech QA | Spoken-SQuAD / HeySQuAD / SQuAD-SRC | recognized spoken QA benchmarks or benchmark-derived tasks | exact/F1, answer pass, grounding |
+| Speech RAG | Spoken-SQuAD / HeySQuAD or documented QA-to-speech RAG construction | must be documented carefully; current Chinese synthetic RAG is diagnostic only | answer pass, grounded doc, R@K, MRR, generation miss |
+| Speech translation | CoVoST 2 / FLEURS / MuST-C | recognized speech translation benchmarks | BLEU/chrF/COMET or translation-candidate rank |
 | Tool / Intent | SLURP intent-as-tool | SLURP is public and recognized; intent-as-tool schema/ranking is our task transformation | tool acc, R@3, MRR, unsafe wrong tool |
 | ASR-like | SLURP/MInDS transcript selection | source corpora are public; multiple-choice transcript selection is our diagnostic task | text acc, R@3, MRR, literal regression |
 | Mandarin | AISHELL-1 | public, widely used Mandarin ASR corpus; routing evaluation is our task transformation | ASR vs omni routing |
@@ -175,23 +197,23 @@ Evidence is currently stored under `omni_embedding/`.
 - Tool schemas and boundary notes can matter as much as audio-side modeling.
 - Early audio LoRA runs are technically functional but need objective and
   evaluation audit before being treated as an upper bound.
-- The collaborator's CREMA-D proof line tests whether frozen omni embeddings
-  can be steered toward content, emotion, and speaker factors by audio-side
-  conditioning. This should be treated as a representation-level task family,
-  complementary to our agentic RAG/Tool utility tasks.
+- The collaborator's CREMA-D proof line is useful as a representation-level
+  diagnostic. Current evidence suggests semantic/content factors are the most
+  usable path; emotion needs special extraction and speaker is weak, so this
+  cycle should focus on semantic downstream tasks.
 
 ## Success Criteria
 
 The project should produce:
 
 - a unified taxonomy of agentic speech task families;
-- a representation-factor proof showing whether instruction conditioning can
-  actually change the audio embedding view;
+- a semantic-focused representation and task-utility proof showing whether
+  instruction conditioning changes the usable audio embedding view;
 - reproducible training-free policy search results;
 - at least one robust route or interface policy that improves utility with
   regression accounting;
-- a lightweight RL/LoRA comparison that either exceeds training-free baselines
-  or establishes why adaptation is hard;
+- a frozen-model semantic benchmark suite before any lightweight RL/LoRA
+  comparison is resumed;
 - a paper-ready theory section connecting utility decomposition, accept gates,
   and task-family controller composition.
 - a theory note that separates representation-factor claims from downstream
@@ -217,6 +239,12 @@ final claims should include at least one community-recognized benchmark or a
 clearly documented transformation of a recognized benchmark per major task
 family.
 
+The immediate semantic benchmark plan is maintained in:
+
+```text
+docs/benchmark_plan.md
+```
+
 ## Paper Contribution Draft
 
 1. A task-conditioned framework for using frozen speech omni-embeddings in
@@ -227,6 +255,7 @@ family.
    regression-aware acceptance.
 4. A task-family utility formulation covering RAG, tool selection, ASR-like
    matching, and dialect routing.
-5. A lightweight RL/LoRA upper-bound study for audio-side adaptation.
+5. A deferred lightweight RL/LoRA upper-bound study for audio-side adaptation,
+   only after frozen semantic baselines are stable.
 6. Empirical evidence showing when omni should be primary, secondary, or only a
    recall/rerank view.

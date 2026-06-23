@@ -105,6 +105,48 @@ Impact:
 - ...
 ```
 
+## 2026-06-23: Narrow Next Cycle To Semantic Frozen Tasks
+
+Changed:
+- Added `docs/benchmark_plan.md`.
+- Added durable decisions for semantic-only scope and frozen-weight
+  experiments.
+- Updated project spec and project status to prioritize ASR semantics, speech
+  QA, speech RAG, speech translation, and semantic tool/intent selection.
+
+Reason:
+- Current evidence suggests omni embedding is most useful for semantic matching.
+- Emotion may require special intermediate-layer extraction and should remain a
+  diagnostic/future branch.
+- Speaker identity appears weak in the current setup and should not anchor the
+  next paper claim.
+- The next experiment cycle should be small, precise, and defensible before any
+  LoRA or weight-changing RL is resumed.
+
+Impact:
+- No model weights should be changed in the next cycle.
+- Dataset selection should prefer recognized semantic speech benchmarks.
+- Synthetic RAG remains useful for controlled diagnostics, but cannot be the
+  sole evidence for paper-level claims.
+
+## 2026-06-23: Add FLEURS Data Preparation Entry Point
+
+Changed:
+- Added `scripts/prepare_hf_audio_manifest.py`.
+- Prepared FLEURS `en_us` validation smoke and 60-sample manifests under the
+  ignored local data directory.
+- Verified the 60-sample manifest with `manifest_summary` and 0 missing audio.
+
+Reason:
+- Existing local data already covers SLURP, MInDS, AISHELL, WenetSpeech-Wu,
+  CREMA-D, and synthetic RAG.
+- FLEURS fills a non-duplicative gap for semantic ASR and multilingual
+  translation-style evaluation.
+
+Impact:
+- The next runnable task is frozen ASR/direct-omni transcript-candidate
+  retrieval on FLEURS, followed by a Chinese FLEURS preparation if stable.
+
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 
 Changed:
@@ -306,4 +348,3 @@ Impact:
 - Future experiments should preserve controlled synthetic tasks for debugging,
   but final paper claims need coverage from community-recognized benchmarks or
   rigorously documented transformations of them.
-

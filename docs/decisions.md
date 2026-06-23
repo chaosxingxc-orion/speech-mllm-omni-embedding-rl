@@ -327,3 +327,83 @@ Consequence:
 - RAG/Tool/ASR-like experiments should be framed as separate utility bridges
   from factor exposure to task success.
 
+## D016: Scope the next cycle to semantic speech tasks
+
+Date: 2026-06-23
+
+Decision:
+
+The next experiment cycle should focus on semantic speech tasks:
+
+```text
+ASR / transcript semantics
+speech QA
+speech RAG
+speech translation
+semantic tool / intent selection
+```
+
+Emotion and speaker probing are not removed, but they are no longer main
+experiment claims for this cycle.
+
+Reason:
+
+- Current evidence suggests the strongest usable capability of the omni
+  embedding model is semantic matching.
+- Emotion information may require special handling such as intermediate-layer
+  sentence embeddings, so it should be treated as a diagnostic or future branch.
+- Speaker information appears weak or absent in the current setup, so it should
+  not anchor the paper's main story.
+- A semantic-only scope keeps the next paper and experiment suite small,
+  coherent, and easier to defend.
+
+Consequence:
+
+- CREMA-D remains useful as a representation probe, but semantic task utility is
+  the core benchmark target.
+- Dataset selection should prioritize recognized semantic speech benchmarks
+  rather than low-level acoustic or speaker verification datasets.
+- Claims should be phrased as improving semantic task usability, not universal
+  audio representation quality.
+
+## D017: Freeze model weights in the next experiment cycle
+
+Date: 2026-06-23
+
+Decision:
+
+The next experiment cycle should not modify any model weights.
+
+Allowed:
+
+```text
+frozen omni embedding inference
+frozen ASR inference
+frozen text embedding inference
+instruction / wrapper / route / rerank policy search
+cache-first evaluation
+rule-based or LLM-rule judging
+offline policy analysis over logged results
+```
+
+Not allowed in this cycle:
+
+```text
+LoRA updates
+adapter training
+RL updates to model weights
+fine-tuning ASR, omni embedding, text embedding, or LLM
+```
+
+Reason:
+
+- The immediate question is whether semantic task usability can be improved
+  through task-conditioned interfaces and policies before any weight update.
+- The LoRA branch currently has a frozen-baseline mismatch and should remain an
+  upper-bound audit item, not the next active experiment.
+
+Consequence:
+
+- The immediate plan should rerun and extend frozen baselines only.
+- LoRA/RL weight updates may resume after the frozen semantic benchmark suite is
+  stable, aligned, and reproducible.

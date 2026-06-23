@@ -3,12 +3,12 @@
 The omni-embed default is a first-order MEAN pool of the final Thinker layer. x-vector/ECAPA/attentive-
 statistics pooling show speaker/emotion live in second-order statistics (std) and salient frames that
 mean-pooling washes out. This sweeps {mean, std, stats(mean+std), attn(weight-free self-attentive stats)}
-x {layers} x {emotion, speaker, content} on CREMA-D, vs the mean baseline — a direct test of sub-claim C2
+x {layers} x {emotion, speaker, content} on CREMA-D, vs the mean baseline -- a direct test of sub-claim C2
 (is plain mean-pooling itself a loss term?) and C3 (is the signal present mid-stack but lost at the output?).
 
 Weight-free: no parameters are trained; this stays inside training-free Operator A.
 
-Run (Ubuntu-24.04 WSL2, speechrl venv, SPEECHRL_DATA_DIR set):
+Run (from a configured project Python environment with SPEECHRL_DATA_DIR set):
     python scripts/pool_method_probe.py
 Env overrides: SWEEP_DEV, SWEEP_TEST, SWEEP_SEED, SWEEP_LAYERS (csv), SWEEP_POOLS (csv), SWEEP_MLFLOW=0 to skip.
 """
