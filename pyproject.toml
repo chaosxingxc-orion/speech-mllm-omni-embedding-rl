@@ -14,12 +14,14 @@ dependencies = [
     "omegaconf>=2.3",
     "mlflow",
     "transformers",
+    "sentence-transformers",   # frozen omni-embed backbone (W4 flagship)
+    "scikit-learn",            # linear/kNN probes (the verifiable downstream reward)
     "datasets",
     "librosa",
     "soundfile",
     "jiwer",
-    # torch (cu128) and verl come from the WSL2 env setup (Phase 2/4), NOT from PyPI
-    # here, so the correct CUDA index is used. See ../../docs/setup.md.
+    # torch is installed by the local environment setup, not pinned here, so the correct
+    # accelerator build can be chosen outside PyPI dependency resolution.
 ]
 
 [tool.uv.sources]

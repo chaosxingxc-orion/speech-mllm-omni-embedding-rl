@@ -1,4 +1,11 @@
-"""Hydra entrypoint for unified speech omni-embedding experiments."""
+﻿"""Hydra entrypoint for unified speech omni-embedding experiments.
+
+This entrypoint supports two complementary paths:
+
+1. ``rl.algo=embed_search`` for the CREMA-D representation-factor proof.
+2. ``mode=...`` for migrated offline, routing, cache-taxonomy, and RAG utility
+   evaluators.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +17,7 @@ from typing import Any
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-try:  # Keep offline migrated tools runnable before speechrl-common is restored.
+try:  # Keep offline migrated tools runnable before speechrl-common is installed.
     from speechrl_common import get_logger, seed_everything
 except ImportError:  # pragma: no cover - exercised only in lightweight local setups.
     logging.basicConfig(level=logging.INFO)
@@ -21,22 +28,22 @@ except ImportError:  # pragma: no cover - exercised only in lightweight local se
     def seed_everything(seed: int) -> None:
         random.seed(seed)
 
+from omni_embedding_rl.data.manifest import ManifestSummaryConfig
+from omni_embedding_rl.data.manifest import summarize_manifest
 from omni_embedding_rl.evaluation.routing import RouteEvalConfig
 from omni_embedding_rl.evaluation.routing import run as run_route_policy_eval
 from omni_embedding_rl.evaluation.taxonomy import TaxonomySummaryConfig
 from omni_embedding_rl.evaluation.taxonomy import run as run_taxonomy_summary
-from omni_embedding_rl.data.manifest import ManifestSummaryConfig
-from omni_embedding_rl.data.manifest import summarize_manifest
 from omni_embedding_rl.execution.cache_taxonomy_plan import CacheTaxonomyPlanConfig
 from omni_embedding_rl.execution.cache_taxonomy_plan import run as run_cache_taxonomy_plan
 from omni_embedding_rl.execution.cache_taxonomy_runner import CacheTaxonomyRunnerConfig
 from omni_embedding_rl.execution.cache_taxonomy_runner import run as run_cache_taxonomy_runner
-from omni_embedding_rl.tasks.rag_answer import RAGAnswerEvalConfig
-from omni_embedding_rl.tasks.rag_answer import run as run_rag_answer_eval
 from omni_embedding_rl.policies.accept_gate import AcceptGateConfig
 from omni_embedding_rl.policies.accept_gate import run as run_accept_gate
 from omni_embedding_rl.policies.strict_selection import StrictSelectionConfig
 from omni_embedding_rl.policies.strict_selection import run as run_strict_selection
+from omni_embedding_rl.tasks.rag_answer import RAGAnswerEvalConfig
+from omni_embedding_rl.tasks.rag_answer import run as run_rag_answer_eval
 from omni_embedding_rl.training.offline_policy import OfflinePolicyConfig
 from omni_embedding_rl.training.offline_policy import run as run_offline_policy
 
@@ -226,11 +233,80 @@ def offline_policy_config(cfg: DictConfig) -> OfflinePolicyConfig:
     )
 
 
+def _run_embed_search(cfg: DictConfig) -> None:
+    """Run the CREMA-D Operator-A representation proof."""
+
+    from speechrl_common.models.omni_embed import load_omni_embedder
+    from speechrl_common.tracking.mlflow_logger import mlflow_run
+    from speechrl_common.utils.checkpoint import run_dir
+
+    from omni_embedding_rl import eval_harness
+
+    cache_dir = run_dir(cfg.work_name, cfg.run_name)
+    cache_path = Path(cache_dir) / "embeddings.npz"
+    cache_hit = cfg.get("mode", "train") == "eval" and cache_path.exists()
+    embedder = None
+    if cache_hit:
+        log.info("mode=eval + cache hit -> skipping model load, reusing %s", cache_path)
+    else:
+        model_path = cfg.model.get("local_path") or cfg.model.hf_id
+        log.info("Loading frozen omni-embedder: %s", model_path)
+        embedder = load_omni_embedder(
+            model_path,
+            torch_dtype=cfg.model.dtype,
+            attn_implementation=cfg.model.attn_implementation,
+        )
+
+    params = {
+        "model": cfg.model.name,
+        "operator": cfg.rl.operator,
+        "probe": cfg.rl.probe,
+        "knn_k": cfg.rl.knn_k,
+        "seed": cfg.seed,
+        "dev_size": cfg.dataset.dev_size,
+        "test_size": cfg.dataset.test_size,
+        "mode": cfg.get("mode", "train"),
+    }
+    with mlflow_run(cfg.tracking.experiment, cfg.run_name, params=params) as run:
+        import mlflow  # lazy import; only required for this model-heavy path.
+
+        res = eval_harness.run(embedder, cfg, cache_dir=cache_dir)
+        log.info(
+            "dev=%d test=%d diagonal_dominant=%s",
+            res["n_dev"],
+            res["n_test"],
+            res["diagonal_dominant"],
+        )
+        mlflow.log_metric("diagonal_dominant", float(res["diagonal_dominant"]))
+        for cname, row in res["matrix"].items():
+            for factor, acc in row.items():
+                mlflow.log_metric(f"acc__{cname}__{factor}", float(acc))
+        for factor, info in res["per_factor"].items():
+            mlflow.log_metric(f"delta__{factor}", float(info["delta"]))
+            mlflow.log_metric(f"acc_selected__{factor}", float(info["test_acc_selected"]))
+            mlflow.log_metric(f"acc_baseline__{factor}", float(info["test_acc_baseline"]))
+            log.info(
+                "factor=%s selected=%s delta=%+.3f (sel CI=%s, base CI=%s)",
+                factor,
+                info["selected_conditioning"],
+                info["delta"],
+                info["ci_selected"],
+                info["ci_baseline"],
+            )
+        mlflow.log_dict(res, "results.json")
+        log.info("MLflow run: %s", getattr(run, "info", None) and run.info.run_id)
+
+
 @hydra.main(version_base=None, config_path="../../configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     seed_everything(cfg.seed)
     log.info("Resolved config:\n%s", OmegaConf.to_yaml(cfg))
     mode = cfg.get("mode", "stub")
+
+    if cfg.get("rl") is not None and cfg.rl.get("algo") == "embed_search" and mode in {"train", "eval"}:
+        _run_embed_search(cfg)
+        return
+
     if mode == "stub":
         log.info("Stub mode: no experiment executed for %s", cfg.work_name)
         return

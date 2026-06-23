@@ -3,10 +3,17 @@
 This is the unified workspace for joint research on task-conditioned optimization
 of speech omni-embedding systems.
 
-The repository now uses `speech-mllm-omni-embedding-rl` as the main project. The
-previous standalone project is kept under `omni_embedding/` as a legacy archive
-and evidence source while useful code and documents are migrated into the unified
-framework.
+The repository now combines two complementary lines:
+
+1. **Representation-factor proof**: use CREMA-D to test whether audio-side
+   conditioning can steer a frozen omni-embedding model toward content,
+   emotion, and speaker factors.
+2. **Agentic task utility**: use RAG, Tool, ASR-like, and routing tasks to test
+   whether those task-conditioned embeddings improve downstream utility.
+
+The previous standalone project is kept under `omni_embedding/` as a legacy
+archive and evidence source while useful code and documents are migrated into
+the unified framework.
 
 ## Research Direction
 
@@ -16,29 +23,34 @@ The merged research line is:
 > agentic tasks by optimizing the task interface, routing policy, and eventually
 > lightweight audio-side adapters.
 
-We separate the work into three layers:
+We separate the work into four layers:
 
-1. **Training-free interface optimization**
+1. **Representation proof**
+   - CREMA-D conditioning x factor matrix
+   - content / emotion / speaker probes
+   - Operator-A selection without model updates
+
+2. **Training-free interface optimization**
    - instruction / wrapper taxonomy
    - validation-reward policy search
    - robust accept gates against overfitting
    - RAG, tool selection, ASR-like selection, dialect stress tasks
 
-2. **Lightweight policy learning**
+3. **Lightweight policy learning**
    - instruction selector
    - ASR vs omni vs RRF router
    - accept gate / override policy
    - offline contextual-bandit or small RL policies
 
-3. **Representation adaptation as an upper-bound baseline**
+4. **Representation adaptation as an upper-bound baseline**
    - audio-tower LoRA
    - contrastive / ranking warmup
    - RL-style surrogate objectives
    - frozen text/document side for interpretability
 
-The current priority is still to establish reliable, reproducible task utility.
-Training-heavy GRPO or full model updates are future work unless lightweight
-methods are clearly insufficient.
+The current priority is reliable, reproducible task utility. Training-heavy GRPO
+or full model updates are future work unless lightweight methods are clearly
+insufficient.
 
 ## Repository Layout
 
@@ -62,22 +74,23 @@ docs/
 |-- project_status.md          # Current progress and milestones
 |-- changelog.md               # Research direction changes
 |-- decisions.md               # Technical decision records
+|-- theory.md                  # Lean-style theory notes
+|-- lean/                      # Lean-checkable proof sketches
 `-- bugs/
     `-- issue-xxx-research.md  # Bad-case and research bug reports
 ```
 
 ## Setup
 
-The outer framework expects a Python environment with the dependencies from
-`pyproject.toml`.
+Use a Python environment with the dependencies from `pyproject.toml`.
 
 ```bash
 uv sync
 ```
 
-The current `pyproject.toml` references a sibling `speechrl-common` package. If
-that package is not present on a machine, resolve the local workspace layout
-before running experiments.
+If the optional shared `speechrl-common` workspace package is unavailable on a
+machine, use the offline migrated modes first or install the shared dependency
+according to the broader workspace setup.
 
 ## Run
 
@@ -87,12 +100,26 @@ The scaffolded entrypoint is:
 uv run python -m omni_embedding_rl.main
 ```
 
-Example local run:
+A plain local run can also use:
 
 ```bash
 export PYTHONPATH=$PWD/src
 python -m omni_embedding_rl.main
 ```
+
+### CREMA-D representation proof
+
+The default config currently targets the CREMA-D Operator-A proof:
+
+```bash
+python -m omni_embedding_rl.main experiment=cremad_proof seed=42
+python -m omni_embedding_rl.main experiment=cremad_proof mode=eval
+```
+
+This evaluates a conditioning x factor matrix and reports selected-vs-baseline
+deltas for content, emotion, and speaker factors.
+
+### Migrated offline / agentic modes
 
 Offline migrated modes are exposed through Hydra experiment configs:
 
@@ -108,7 +135,7 @@ python -m omni_embedding_rl.main experiment=offline_policy
 python -m omni_embedding_rl.main experiment=rag_answer_eval
 ```
 
-Cache-taxonomy sweeps are now split into a stable plan and a runner:
+Cache-taxonomy sweeps are split into a stable plan and a runner:
 
 ```bash
 python -m omni_embedding_rl.main experiment=cache_taxonomy_plan \
@@ -137,29 +164,25 @@ python -m omni_embedding_rl.main experiment=rag_answer_eval \
   rag_answer_eval.judge_mode=llm_rule
 ```
 
-`generator_mode=first_document` and `generator_mode=gold` are smoke-test
-helpers only; do not report them as LLM results.
+`generator_mode=first_document` and `generator_mode=gold` are smoke-test helpers
+only; do not report them as LLM results.
 
-Most legacy experiment scripts still live under `omni_embedding/experiments/`.
-They should be migrated gradually into the unified `src/` and `configs/`
-structure instead of being bulk-moved.
+## Data and License Notes
+
+- `omni-embed-nemotron-3b` is a research/evaluation dependency; do not
+  redistribute model weights.
+- Datasets, caches, generated audio, row-level results, model weights, adapters,
+  and paper build artifacts must stay out of git.
+- Community-recognized source datasets and project-specific task transformations
+  should be reported separately in papers.
 
 ## Migration Policy
 
-- Keep `omni_embedding/` as a read-only-ish archive until a component is
+- Keep `omni_embedding/` as a local legacy archive until a component is
   explicitly migrated.
-- Migrate scripts by task family: RAG, tool, ASR-like, dialect, LoRA/RL.
+- Migrate scripts by task family: representation proof, RAG, tool, ASR-like,
+  dialect, LoRA/RL.
 - Do not commit model weights, datasets, caches, row-level results, API keys, or
   paper build artifacts.
 - Record research bugs and bad cases under `docs/bugs/` before turning them into
   implementation work.
-
-## Current Status
-
-The unified repo is in a merge-and-refactor stage:
-
-- Outer framework provides the RL/Hydra skeleton.
-- Legacy project provides tasks, baselines, documents, formalization notes, and
-  pilot evidence.
-- Immediate next work is to migrate the reusable experiment runners and align
-  their configs with the unified framework.
