@@ -450,6 +450,23 @@ Context audit:
 | direct omni first | top-5 | 0.883 | 0.983 | 5 | 8 | 1 |
 | ASR + omni RRF | top-5 | 0.767 | 0.983 | 12 | 6 | 1 |
 
+ASR-robust answer prompt ablation:
+
+The default answer prompt gives the generator the ASR transcript as the user
+question.  The `asr_robust` prompt instead labels it as an uncertain speech
+transcript, warns that names/dates/short words may be corrupted, and asks the
+generator to infer the intended question from retrieved evidence rather than
+refusing because of odd ASR text.
+
+| Candidate order | Context | Prompt | Answer pass | Generation miss rate | Context pollution / generation miss count | Note |
+|---|---:|---|---:|---:|---:|---|
+| noisy transcript text first | top-3 | default | 0.817 | 0.050 | 7 | baseline |
+| noisy transcript text first | top-3 | asr_robust | 0.833 | 0.017 | 6 | small gain by reducing refusals |
+| direct omni first | top-3 | default | 0.867 | 0.050 | 7 | baseline |
+| direct omni first | top-3 | asr_robust | 0.883 | 0.050 | 6 | small gain; still best grounding |
+| ASR + omni RRF | top-3 | default | 0.867 | 0.050 | 6 | baseline |
+| ASR + omni RRF | top-3 | asr_robust | 0.883 | 0.017 | 5 | small gain by reducing generation misses |
+
 Interpretation:
 
 ```text
@@ -459,8 +476,8 @@ achieves the best final answer pass, but it has weaker top-1 grounding and
 relies more on answer-time context recovery.  Direct omni has much stronger
 first-document evidence coverage, while top-5 can slightly increase context
 pollution or generation misses.  The next ablation should test ASR-robust
-answer prompts, because the generator still reads the noisy ASR question text
-even when retrieval is driven by direct omni audio.
+answer prompts on larger splits and other semantic tasks, because the first
+60-row run suggests modest gains without changing any model weights.
 ```
 
 ### Completed local preparation

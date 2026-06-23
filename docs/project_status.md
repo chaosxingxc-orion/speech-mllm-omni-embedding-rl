@@ -291,6 +291,11 @@ TODO before paper submission:
   context can also create generation/context-pollution failures.  Next priority:
   ASR-robust answer prompts and route rewards that jointly score final answer
   pass and grounding quality.
+- A first ASR-robust answer prompt ablation is complete on HeySQuAD top-3.
+  It improves answer_pass by about one example out of 60 for ASR-first,
+  direct-omni-first, and RRF, mainly by reducing generation refusals when the
+  ASR transcript contains odd words.  Treat it as a promising training-free
+  policy arm, not yet as a general claim.
 
 ## Legacy Code Triage
 

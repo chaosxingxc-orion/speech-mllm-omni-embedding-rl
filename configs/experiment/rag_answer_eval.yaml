@@ -16,6 +16,7 @@ rag_answer_eval:
   # gold/first_document are smoke-test helpers and must not be reported as LLM results.
   generator_mode: llm
   judge_mode: local_rule
+  answer_prompt_style: default
   model: deepseek-chat
   base_url: https://api.deepseek.com
   api_key_env: DEEPSEEK_API_KEY

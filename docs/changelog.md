@@ -315,6 +315,11 @@ Evidence:
   - RRF first-document answer coverage = 0.767.
   - RRF top-5 reaches answer_pass = 0.883 by context recovery, not cleaner
     top-1 grounding.
+- ASR-robust prompt ablation on top-3 context:
+  - ASR-first improves from 0.817 to 0.833.
+  - direct-omni-first improves from 0.867 to 0.883.
+  - RRF improves from 0.867 to 0.883.
+  - The main effect is fewer generation misses/refusals from noisy ASR wording.
 
 Impact:
 - The recognized-source speech RAG pipeline is now end-to-end runnable.
@@ -324,9 +329,9 @@ Impact:
 - Route-policy reward should include both final answer pass and grounding /
   context-pollution terms.  If it only optimizes answer pass, it may prefer
   broader RRF context even when direct omni is the cleaner primary view.
-- The next ablation should test ASR-robust answer prompts, because generator
-  failures often come from over-reading noisy ASR text despite useful retrieved
-  context.
+- ASR-robust answer prompting is now a viable frozen policy arm, but the effect
+  is small on the 60-row split and must be retested on larger / different
+  semantic speech tasks.
 
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 

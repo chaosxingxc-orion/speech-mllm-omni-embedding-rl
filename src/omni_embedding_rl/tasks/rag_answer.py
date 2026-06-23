@@ -44,6 +44,7 @@ class RAGAnswerEvalConfig:
     rrf_k: int = 60
     generator_mode: str = "llm"
     judge_mode: str = "local_rule"
+    answer_prompt_style: str = "default"
     model: str = "deepseek-chat"
     base_url: str = "https://api.deepseek.com"
     api_key_env: str = "DEEPSEEK_API_KEY"
@@ -192,18 +193,37 @@ def answer_prompt(
     row: dict[str, Any],
     candidates: list[dict[str, Any]],
     samples: dict[str, dict[str, Any]],
+    style: str = "default",
 ) -> str:
-    lines = [
-        "You answer a user question using only the provided knowledge documents.",
-        "The user question may come from speech and may contain recognition errors.",
-        "Prefer the document that directly answers the question.",
-        "Do not merge conflicting facts from neighboring documents.",
-        "If the documents do not contain enough information, say that the knowledge base does not provide enough information.",
-        "",
-        f"User question: {row.get('asr_text') or row.get('query_text') or row.get('target')}",
-        "",
-        "Knowledge documents:",
-    ]
+    query = row.get("asr_text") or row.get("query_text") or row.get("target")
+    if style == "default":
+        lines = [
+            "You answer a user question using only the provided knowledge documents.",
+            "The user question may come from speech and may contain recognition errors.",
+            "Prefer the document that directly answers the question.",
+            "Do not merge conflicting facts from neighboring documents.",
+            "If the documents do not contain enough information, say that the knowledge base does not provide enough information.",
+            "",
+            f"User question: {query}",
+            "",
+            "Knowledge documents:",
+        ]
+    elif style == "asr_robust":
+        lines = [
+            "You answer a user question using only the provided knowledge documents.",
+            "The user question is an uncertain speech transcript and may contain severe recognition errors, especially names, dates, and short function words.",
+            "Do not refuse only because the transcript contains odd words.",
+            "Infer the most plausible intended question from the retrieved documents and answer the supported entity, date, count, or phrase.",
+            "Prefer higher-ranked documents, but use lower-ranked documents when they clearly contain the answer.",
+            "Do not merge conflicting facts from unrelated documents.",
+            "If no provided document supports a plausible answer, say that the knowledge base does not provide enough information.",
+            "",
+            f"Uncertain speech transcript: {query}",
+            "",
+            "Knowledge documents:",
+        ]
+    else:
+        raise ValueError(f"Unsupported answer_prompt_style: {style}")
     for index, candidate in enumerate(candidates, start=1):
         lines.append(f"{index}. {candidate_doc(candidate, samples)}")
     lines.append("")
@@ -239,7 +259,11 @@ def generate_answer(
     key: dict[str, Any],
 ) -> str:
     if config.generator_mode == "llm":
-        return call_openai_compatible(config, answer_prompt(row, candidates, samples), config.answer_max_tokens)
+        return call_openai_compatible(
+            config,
+            answer_prompt(row, candidates, samples, config.answer_prompt_style),
+            config.answer_max_tokens,
+        )
     return local_generated_answer(config.generator_mode, row["sample_id"], candidates, samples, key)
 
 
@@ -545,6 +569,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--answer-context-count", type=int, default=3)
     parser.add_argument("--generator-mode", choices=["llm", "gold", "first_document"], default="llm")
     parser.add_argument("--judge-mode", choices=["local_rule", "llm_rule"], default="local_rule")
+    parser.add_argument("--answer-prompt-style", choices=["default", "asr_robust"], default="default")
     parser.add_argument("--model", default="deepseek-chat")
     parser.add_argument("--base-url", default="https://api.deepseek.com")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
@@ -566,6 +591,7 @@ def config_from_args(args: argparse.Namespace) -> RAGAnswerEvalConfig:
         answer_context_count=args.answer_context_count,
         generator_mode=args.generator_mode,
         judge_mode=args.judge_mode,
+        answer_prompt_style=args.answer_prompt_style,
         model=args.model,
         base_url=args.base_url,
         api_key_env=args.api_key_env,
