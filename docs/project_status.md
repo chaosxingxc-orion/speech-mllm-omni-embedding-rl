@@ -284,6 +284,13 @@ TODO before paper submission:
   (0.483 vs 0.333), so the current conclusion is that direct omni should be the
   primary retrieval view and RRF should be analyzed as answer-time context
   recovery rather than a cleaner grounding route.
+- The HeySQuAD top-1/top-3/top-5 context ablation is complete.  Best final
+  answer pass is RRF top-5 at 0.883, but direct-omni-first has stronger
+  first-document evidence coverage (0.883 vs 0.767 for RRF).  The context audit
+  shows that top-k context often rescues weak top-1 grounding, while extra
+  context can also create generation/context-pollution failures.  Next priority:
+  ASR-robust answer prompts and route rewards that jointly score final answer
+  pass and grounding quality.
 
 ## Legacy Code Triage
 

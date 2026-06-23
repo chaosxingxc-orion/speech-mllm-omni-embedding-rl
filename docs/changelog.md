@@ -306,14 +306,27 @@ Evidence:
   - noisy transcript first: answer_pass = 0.817, grounded target Acc@1 = 0.267.
   - direct omni first: answer_pass = 0.867, grounded target Acc@1 = 0.483.
   - ASR+omni RRF: answer_pass = 0.867, grounded target Acc@1 = 0.333.
+- 60-row top-1/top-3/top-5 ablation:
+  - top-1 answer_pass: ASR = 0.383, direct omni = 0.667, RRF = 0.533.
+  - top-3 answer_pass: ASR = 0.817, direct omni = 0.867, RRF = 0.867.
+  - top-5 answer_pass: ASR = 0.833, direct omni = 0.850, RRF = 0.883.
+- Context audit:
+  - direct omni first-document answer coverage = 0.883.
+  - RRF first-document answer coverage = 0.767.
+  - RRF top-5 reaches answer_pass = 0.883 by context recovery, not cleaner
+    top-1 grounding.
 
 Impact:
 - The recognized-source speech RAG pipeline is now end-to-end runnable.
 - For HeySQuAD spoken-question QA, direct omni currently looks like the best
   primary retrieval view; RRF can tie answer pass through top-3 context recovery
   but has weaker top-1 grounding.
-- The next formal ablation should compare top-1/top-3/top-5 contexts and add
-  context-pollution / generation-miss analysis.
+- Route-policy reward should include both final answer pass and grounding /
+  context-pollution terms.  If it only optimizes answer pass, it may prefer
+  broader RRF context even when direct omni is the cleaner primary view.
+- The next ablation should test ASR-robust answer prompts, because generator
+  failures often come from over-reading noisy ASR text despite useful retrieved
+  context.
 
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 

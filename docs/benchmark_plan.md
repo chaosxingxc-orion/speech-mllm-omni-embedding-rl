@@ -422,23 +422,45 @@ Small LLM-generation smoke:
 | direct omni first | DeepSeek-compatible API | top-3 | local rule | 10 | 0.900 | top-3 context often rescues non-exact top-1 passage choices |
 | ASR + omni RRF | DeepSeek-compatible API | top-3 | local rule | 10 | 0.900 | small smoke only; full run needed before treating RRF as competitive |
 
-60-row LLM-generation first round:
+60-row LLM-generation context-count ablation:
 
 | Candidate order | Generator | Context | Judge | Rows | Answer pass | Grounded target Acc@1 | Error summary | Note |
 |---|---|---:|---|---:|---:|---:|---|---|
+| noisy transcript text first | DeepSeek-compatible API | top-1 | local rule | 60 | 0.383 | 0.267 | 34 retrieval miss, 3 generation miss | top-1 context is too brittle |
+| direct omni first | DeepSeek-compatible API | top-1 | local rule | 60 | 0.667 | 0.483 | 13 retrieval miss, 7 generation miss | stronger top-1 evidence, but generation can be ASR-prompt-polluted |
+| ASR + omni RRF | DeepSeek-compatible API | top-1 | local rule | 60 | 0.533 | 0.333 | 23 retrieval miss, 5 generation miss | weaker than omni-primary |
 | noisy transcript text first | DeepSeek-compatible API | top-3 | local rule | 60 | 0.817 | 0.267 | 7 retrieval miss, 3 generation miss, 1 same-cluster neighbor | ASR errors still cause refusals and retrieval misses |
 | direct omni first | DeepSeek-compatible API | top-3 | local rule | 60 | 0.867 | 0.483 | 1 retrieval miss, 3 generation miss, 4 same-cluster neighbor | best top-1 grounding; strong primary route |
 | ASR + omni RRF | DeepSeek-compatible API | top-3 | local rule | 60 | 0.867 | 0.333 | 3 retrieval miss, 3 generation miss, 2 same-cluster neighbor | answer pass ties omni, but top-1 grounding is weaker |
+| noisy transcript text first | DeepSeek-compatible API | top-5 | local rule | 60 | 0.833 | 0.267 | 4 retrieval miss, 2 generation miss, 4 same-cluster neighbor | extra context helps but remains ASR-limited |
+| direct omni first | DeepSeek-compatible API | top-5 | local rule | 60 | 0.850 | 0.483 | 1 retrieval miss, 5 generation miss, 3 same-cluster neighbor | top-5 adds slight context pollution vs top-3 |
+| ASR + omni RRF | DeepSeek-compatible API | top-5 | local rule | 60 | 0.883 | 0.333 | 1 retrieval miss, 2 generation miss, 4 same-cluster neighbor | best answer pass, but weaker grounding than omni-primary |
+
+Context audit:
+
+| Candidate order | Context | First doc has answer | Any context has answer | Context recovery count | Context pollution / generation miss count | Retrieval miss by answer key |
+|---|---:|---:|---:|---:|---:|---:|
+| noisy transcript text first | top-1 | 0.567 | 0.567 | 0 | 12 | 26 |
+| direct omni first | top-1 | 0.883 | 0.883 | 0 | 14 | 7 |
+| ASR + omni RRF | top-1 | 0.767 | 0.767 | 0 | 15 | 14 |
+| noisy transcript text first | top-3 | 0.567 | 0.933 | 20 | 7 | 4 |
+| direct omni first | top-3 | 0.883 | 0.983 | 5 | 7 | 1 |
+| ASR + omni RRF | top-3 | 0.767 | 0.967 | 12 | 6 | 2 |
+| noisy transcript text first | top-5 | 0.567 | 0.967 | 21 | 8 | 2 |
+| direct omni first | top-5 | 0.883 | 0.983 | 5 | 8 | 1 |
+| ASR + omni RRF | top-5 | 0.767 | 0.983 | 12 | 6 | 1 |
 
 Interpretation:
 
 ```text
 For HeySQuAD spoken-question QA, direct omni is currently the best primary
-view among the tested routes.  RRF can tie direct omni on top-3 final-answer
-pass, but it has weaker top-1 grounding, so its gains come from answer-time
-context recovery rather than better primary retrieval.  The next formal
-ablation should compare top-1/top-3/top-5 context and add explicit
-context-pollution accounting.
+view among the tested routes when grounding quality matters.  RRF with top-5
+achieves the best final answer pass, but it has weaker top-1 grounding and
+relies more on answer-time context recovery.  Direct omni has much stronger
+first-document evidence coverage, while top-5 can slightly increase context
+pollution or generation misses.  The next ablation should test ASR-robust
+answer prompts, because the generator still reads the noisy ASR question text
+even when retrieval is driven by direct omni audio.
 ```
 
 ### Completed local preparation
