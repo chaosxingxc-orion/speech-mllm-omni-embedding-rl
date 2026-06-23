@@ -570,3 +570,36 @@ Impact:
   can become practically useful through task-conditioned interfaces.
 - The gain comes from the joint policy over audio-side instruction and
   label-side schema cards, not from free-form prompt search or weight updates.
+
+## 2026-06-23: Record Routing Boundary And Translation Blocker
+
+Changed:
+- Added `translation_semantic` to the instruction taxonomy.
+- Added `scripts/build_parallel_translation_manifest.py`.
+- Added `docs/bugs/issue-002-fleurs-translation-data-blocker.md`.
+- Recorded AISHELL-1 clean Mandarin and WenetSpeech-Wu dialect route-policy
+  results in the benchmark plan.
+
+Reason:
+- The semantic benchmark plan still needed a decision table for when direct
+  omni should be primary, auxiliary, or avoided.
+- Speech translation needs a clean parallel-manifest construction path before
+  running FLEURS or CoVoST 2 candidate retrieval.
+
+Evidence:
+- AISHELL-1 test 63:
+  - ASR primary Acc@1 = 0.952.
+  - Direct omni primary Acc@1 = 0.762 with 14 regressions.
+  - RRF Acc@1 = 0.937, close but still below ASR.
+- WenetSpeech-Wu dialect stress test 21:
+  - ASR primary Acc@1 = 0.333.
+  - Direct omni primary Acc@1 = 0.905 with 12 rescues and 0 regressions.
+  - RRF Acc@1 = 0.524, showing bad ASR can pollute fusion.
+- FLEURS `cmn_hans_cn` local manifest text is mojibake, and a bounded
+  FLEURS `fr_fr` download hit an unauthenticated HF API rate limit.
+
+Impact:
+- The route-policy story is sharper: clean speech should keep ASR primary,
+  while dialect/ASR-collapse conditions can make direct omni primary.
+- Speech translation remains a benchmark gap, but the code path for paired
+  source-audio/target-text manifests is ready once data access is stable.

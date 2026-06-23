@@ -550,6 +550,74 @@ the query representation and the candidate decision surface while keeping model
 weights frozen.
 ```
 
+### Mandarin clean vs Wu dialect routing
+
+Task:
+
+```text
+spoken query -> retrieve matching text / memory item
+```
+
+This uses existing legacy hybrid retrieval outputs and the migrated offline
+route-policy evaluator.  No embeddings are recomputed in this summary.
+
+AISHELL-1 Mandarin clean, test split 63:
+
+| Policy | Acc@1 | R@3 | MRR | Route rate | Rescue count | Regression count | Interpretation |
+|---|---:|---:|---:|---:|---:|---:|---|
+| ASR primary | 0.952 | 0.984 | 0.966 | 0.000 | 0 | 0 | best deployable clean-speech path |
+| Direct omni primary | 0.762 | 0.952 | 0.857 | 0.000 | 2 | 14 | useful auxiliary, not primary |
+| RRF | 0.937 | 0.984 | 0.963 | 0.000 | 1 | 2 | close but slightly worse than ASR |
+| Disagreement rerank fallback to RRF | 0.937 | 0.984 | 0.963 | 0.270 | 1 | 2 | rerouting is unnecessary here |
+
+WenetSpeech-Wu dialect stress, test split 21:
+
+| Policy | Acc@1 | R@3 | MRR | Route rate | Rescue count | Regression count | Interpretation |
+|---|---:|---:|---:|---:|---:|---:|---|
+| ASR primary | 0.333 | 0.524 | 0.431 | 0.000 | 0 | 0 | ASR collapses under dialect stress |
+| Direct omni primary | 0.905 | 0.952 | 0.935 | 0.000 | 12 | 0 | best deployable path |
+| Dialect-aware branch | 0.905 | 0.952 | 0.935 | 1.000 | 12 | 0 | equivalent to omni primary on all routed rows |
+| RRF | 0.524 | 0.571 | 0.605 | 0.000 | 4 | 0 | bad ASR pollutes fusion |
+
+Interpretation:
+
+```text
+The clean Mandarin and Wu dialect stress results give a clear primary/auxiliary
+decision rule.  For clean Mandarin, ASR+text should stay primary and direct
+omni is only an auxiliary view.  For Wu dialect stress, direct omni should be
+primary because ASR collapses and RRF is polluted by the bad ASR view.  This
+supports route policies that switch by ASR reliability / dialect condition
+rather than always fusing ASR and omni.
+```
+
+### Speech translation preparation status
+
+Current status:
+
+```text
+translation benchmark is not complete yet
+```
+
+Progress:
+
+- Added a `translation_semantic` instruction arm.
+- Added `scripts/build_parallel_translation_manifest.py` to pair source audio
+  manifests with target-language text manifests by `dataset_index`.
+
+Blockers:
+
+- The local FLEURS `cmn_hans_cn` manifest contains mojibake text and should be
+  regenerated before any Chinese semantic or translation claim.
+- A bounded FLEURS `fr_fr` download hit the unauthenticated HF API rate limit,
+  so the English-to-French translation smoke is deferred.
+
+Next step:
+
+```text
+regenerate clean FLEURS multilingual manifests or move to CoVoST 2 bounded
+sample once HF access is stable
+```
+
 ### Completed local preparation
 
 | Date | Dataset | Split | Count | Status |

@@ -39,6 +39,11 @@ INSTRUCTION_ARMS: dict[str, str] = {
         "Represent the user's underlying semantic intent even when accent, dialect, "
         "or ASR-like surface forms are noisy."
     ),
+    "translation_semantic": (
+        "Represent the spoken audio by its cross-lingual meaning for matching an "
+        "equivalent translation in another language. Preserve named entities, "
+        "numbers, negation, and core predicate-argument meaning."
+    ),
 }
 
 
@@ -68,6 +73,12 @@ TASK_DEFAULT_ARMS: dict[str, tuple[str, ...]] = {
         "raw",
         "dialect_robust_semantic",
         "policy_grounding",
+        "transcript_like",
+    ),
+    "translation": (
+        "raw",
+        "translation_semantic",
+        "semantic_qa",
         "transcript_like",
     ),
 }

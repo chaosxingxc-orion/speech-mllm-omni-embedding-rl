@@ -308,6 +308,18 @@ TODO before paper submission:
   Acc@1 from 0.883 to 0.972, paired delta = +0.089 with CI [0.050, 0.133] and
   no hit@1 regressions.  This is currently the clearest example of frozen
   task-conditioned interface design making direct omni practically useful.
+- AISHELL-1 clean Mandarin vs WenetSpeech-Wu dialect routing now has a clear
+  primary-path decision table from existing route-policy outputs.  On AISHELL
+  test 63, ASR primary is best at Acc@1 = 0.952 while direct omni is only
+  0.762 and causes 14 regressions if used as primary.  On Wu dialect stress
+  test 21, ASR primary falls to 0.333 while direct omni reaches 0.905 with 12
+  rescues and 0 regressions.  RRF is poor on Wu at 0.524, showing that bad ASR
+  can pollute naive fusion.
+- Speech translation remains blocked by data preparation rather than method
+  code.  A `translation_semantic` instruction arm and parallel-manifest builder
+  now exist, but the local FLEURS Chinese manifest contains mojibake and a new
+  FLEURS French download hit HF unauthenticated rate limits.  See
+  `docs/bugs/issue-002-fleurs-translation-data-blocker.md`.
 
 ## Legacy Code Triage
 
