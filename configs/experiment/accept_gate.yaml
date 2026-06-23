@@ -1,0 +1,19 @@
+# @package _global_
+mode: accept_gate
+run_name: accept_gate
+
+accept_gate:
+  family: tool
+  baseline: ???
+  # Each candidate is "name=path".
+  candidates: []
+  output: outputs/accept_gate.json
+  min_primary_delta: 0.0
+  min_utility_delta: 0.0
+  max_recall_regression: 0.0
+  recall_weight: 0.05
+  mrr_weight: 0.10
+  max_primary_regression: 0.0
+  max_unsafe_increase: 0.0
+  max_regression_rate: 0.03
+  bootstrap_rounds: 5000

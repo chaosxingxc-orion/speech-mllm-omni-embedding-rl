@@ -1,0 +1,21 @@
+# @package _global_
+mode: route_policy_eval
+run_name: route_policy_eval
+
+route_policy:
+  hybrid_result: ???
+  output: outputs/route_policy_eval.json
+  split: test
+  policies:
+    - asr_primary
+    - omni_primary
+    - rrf
+    - disagreement_rerank
+    - asr_confidence_branch
+    - dialect_aware_branch
+  max_rows: 0
+  confidence_below: 0.6
+  asr_wer_above: 0.6
+  unrouted_policy: asr
+  disagreement_fallback: rrf
+  bootstrap_rounds: 10000

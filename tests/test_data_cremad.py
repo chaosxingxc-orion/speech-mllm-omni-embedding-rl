@@ -13,7 +13,7 @@ from omni_embedding_rl import data_cremad as D
 
 ROOT = os.environ.get(
     "CREMAD_ROOT",
-    "/mnt/d/chao_workspace/exploring-l4-intelligence/speechrl-data/datasets/crema-d",
+    "/data/speechrl-data/datasets/crema-d",
 )
 _HAVE = os.path.exists(os.path.join(ROOT, "train.csv"))
 pytestmark = pytest.mark.skipif(not _HAVE, reason=f"CREMA-D not found at {ROOT}")

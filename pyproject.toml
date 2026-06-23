@@ -20,8 +20,8 @@ dependencies = [
     "librosa",
     "soundfile",
     "jiwer",
-    # torch (cu128) comes from the WSL2 env setup (Phase 2), NOT from PyPI here, so the correct
-    # CUDA index is used. The Operator-A embedding proof does NOT need verl/vLLM. See ../../docs/setup.md.
+    # torch is installed by the local environment setup, not pinned here, so the correct
+    # accelerator build can be chosen outside PyPI dependency resolution.
 ]
 
 [tool.uv.sources]

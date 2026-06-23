@@ -1,0 +1,15 @@
+# @package _global_
+mode: strict_selection
+run_name: strict_selection
+
+strict_selection:
+  task: rag
+  # Each candidate is "name:path".
+  candidates: []
+  output: outputs/strict_selection.json
+  proposal_ratio: 0.3
+  selection_ratio: 0.3
+  split_seed: ${seed}
+  reward_r3_weight: 0.1
+  reward_mrr_weight: 0.1
+  bootstrap_rounds: 10000
