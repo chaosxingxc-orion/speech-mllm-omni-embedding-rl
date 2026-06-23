@@ -1,8 +1,10 @@
 """Build a compact speech-translation retrieval manifest from parallel manifests.
 
 The source manifest supplies the spoken audio and source transcript.  The target
-manifest supplies the target-language text.  Rows are paired by `dataset_index`
-by default, which matches parallel corpora such as FLEURS.
+manifest supplies the target-language text.  Rows are paired by a configurable
+key field.  Prefer a stable dataset id such as `source_id` when available;
+`dataset_index` is only a fallback for corpora that explicitly preserve row
+order across languages.
 """
 
 from __future__ import annotations

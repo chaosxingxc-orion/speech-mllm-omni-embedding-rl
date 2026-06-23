@@ -57,3 +57,25 @@ audio query in this smoke, but harmful for text query.
   target text by `source_id` once both source and target manifests are clean.
 - Move to CoVoST 2 with a bounded sample and record the exact data construction
   protocol.
+
+## Follow-Up Access Probe
+
+After the 57-row smoke, two larger-data probes were attempted:
+
+- FLEURS `en_us` validation 200 through the mirror failed in the datasets
+  parquet download path; streaming also could not recover the needed cache.
+- Direct HF preparation for FLEURS `en_us` validation 200 timed out and was
+  stopped.
+- ModelScope `pengzhendong/fleurs` is visible and its dataset script is a
+  standard FLEURS builder, but loading it requires remote-code execution and
+  appeared to pull full language archives; the bounded smoke timed out and was
+  stopped.
+
+Current conclusion:
+
+```text
+Keep the 57-row FLEURS en->fr run as a translation data-path smoke.
+Do not spend more short-cycle time scaling FLEURS through unstable mirrors.
+For paper-grade translation, use a planned data-prep window for CoVoST 2 or a
+pre-mirrored FLEURS archive with documented source ids.
+```
