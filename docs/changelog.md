@@ -205,6 +205,31 @@ Impact:
 - This source should not yet be treated as full recognized-source speech RAG;
   next work needs passage alignment or a dataset with passage ids/context text.
 
+## 2026-06-23: Align Spoken-SQuAD Smoke To SQuAD Passages
+
+Changed:
+- Added `scripts/align_spoken_squad_context.py`.
+- Aligned the 12-row Spoken-SQuAD HF smoke manifest to `rajpurkar/squad`
+  validation by normalized question text.
+- Ran passage-candidate retrieval with oracle question text and direct omni
+  spoken context audio.
+
+Reason:
+- Speech QA smoke becomes more useful if it can recover recognized source
+  passages rather than only rank short answer strings.
+
+Evidence:
+- 12/12 smoke rows matched SQuAD validation passages.
+- Oracle question-text to context retrieval reached context text Acc@1 = 0.833.
+- Direct omni spoken context audio plus question text to context retrieval
+  reached context text Acc@1 = 1.000.
+
+Impact:
+- A recognized-source passage retrieval smoke is now available.
+- Because the audio is spoken context, not spoken question, this should be used
+  as a pipeline proof before larger QA/RAG construction rather than as a final
+  claim about spoken-question retrieval.
+
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 
 Changed:

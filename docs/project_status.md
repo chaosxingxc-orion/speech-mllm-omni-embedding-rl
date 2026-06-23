@@ -259,6 +259,10 @@ TODO before paper submission:
   retrieval smoke. It is useful for pipeline validation, but the available HF
   mirror contains spoken context audio plus text question rather than a complete
   passage-aligned RAG dataset.
+- The same 12 Spoken-SQuAD HF rows align 12/12 to SQuAD validation passages.
+  This enables a recognized-source passage retrieval smoke; larger runs must
+  deduplicate shared contexts and separate spoken-context retrieval from
+  spoken-question retrieval claims.
 
 ## Legacy Code Triage
 

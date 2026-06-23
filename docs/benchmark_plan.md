@@ -309,14 +309,29 @@ Results:
 | oracle text | semantic_qa | question text only | 0.417 | 1.000 | 0.681 | short answers are hard to infer from question alone |
 | direct omni | semantic_qa | spoken context audio + question text | 0.917 | 1.000 | 0.958 | useful smoke, but only 12 rows |
 
+Passage alignment:
+
+```text
+The first 12 HF rows align 12/12 to `rajpurkar/squad` validation by normalized
+question text. This recovers SQuAD title, passage context, id, and answer
+aliases.
+```
+
+Passage candidate retrieval:
+
+| Route | Instruction | Query Payload | Context Sample Acc@1 | Context Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---:|---:|---:|---:|---|
+| oracle text | semantic_qa | question text only | 0.750 | 0.833 | 0.917 | 0.840 | question-only passage retrieval is harder |
+| direct omni | semantic_qa | spoken context audio + question text | 0.833 | 1.000 | 1.000 | 0.917 | audio is spoken context, so context retrieval is strong |
+
 Interpretation:
 
 ```text
 This smoke confirms that the pipeline can materialize a speech-QA dataset and
 rank answer candidates. The strong direct-omni result should be read carefully:
-the audio is spoken context, not spoken question. A paper-grade QA/RAG run must
-recover or align the original text passage and evaluate passage retrieval plus
-final answer utility.
+the audio is spoken context, not spoken question. Passage alignment now works
+for the 12-row smoke, but a paper-grade QA/RAG run still needs a larger split,
+clear deduplication by context, and final answer utility.
 ```
 
 ### Completed local preparation
@@ -327,6 +342,7 @@ final answer utility.
 | 2026-06-23 | FLEURS `en_us` | validation | 60 | prepared; manifest summary passed with 0 missing audio |
 | 2026-06-23 | FLEURS `cmn_hans_cn` | validation | 60 | prepared; manifest summary passed with 0 missing audio |
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` | test | 12 | smoke prepared; manifest summary passed with 0 missing audio |
+| 2026-06-23 | `AudioLLMs/spoken_squad_test` + `rajpurkar/squad` | test/validation | 12 | passage alignment matched 12/12 |
 
 Local outputs are under ignored `data/semantic/` and should not be committed.
 
