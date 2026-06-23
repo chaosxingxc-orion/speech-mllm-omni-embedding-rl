@@ -248,6 +248,17 @@ TODO before paper submission:
   rules, split policy, label schema, and leakage checks.
 - Report results separately as:
   controlled synthetic diagnostics vs recognized benchmark evaluations.
+- FLEURS `en_us` and `cmn_hans_cn` validation 60-sample manifests are prepared
+  locally as the first non-duplicative semantic ASR / translation-bridge
+  benchmark inputs.
+- FLEURS transcript-candidate retrieval has a completed 60-row first pass:
+  direct omni reaches text Acc@1 = 1.000 on both English and Mandarin. This is
+  useful as a sanity check, but too saturated to validate instruction
+  optimization by itself.
+- Spoken-SQuAD HF smoke has a 12-row prepared manifest and answer-candidate
+  retrieval smoke. It is useful for pipeline validation, but the available HF
+  mirror contains spoken context audio plus text question rather than a complete
+  passage-aligned RAG dataset.
 
 ## Legacy Code Triage
 

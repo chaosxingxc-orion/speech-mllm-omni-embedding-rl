@@ -135,6 +135,8 @@ Changed:
 - Added `scripts/prepare_hf_audio_manifest.py`.
 - Prepared FLEURS `en_us` validation smoke and 60-sample manifests under the
   ignored local data directory.
+- Prepared FLEURS `cmn_hans_cn` validation 60-sample manifest under the ignored
+  local data directory.
 - Verified the 60-sample manifest with `manifest_summary` and 0 missing audio.
 
 Reason:
@@ -145,7 +147,63 @@ Reason:
 
 Impact:
 - The next runnable task is frozen ASR/direct-omni transcript-candidate
-  retrieval on FLEURS, followed by a Chinese FLEURS preparation if stable.
+  retrieval on FLEURS.
+- Chinese FLEURS evaluation should normalize spaces between CJK characters
+  before text matching or text embedding.
+
+## 2026-06-23: Run FLEURS Transcript-Candidate Baseline
+
+Changed:
+- Added `src/omni_embedding_rl/evaluation/transcript_candidates.py`.
+- Added `scripts/transcript_candidate_retrieval.py`.
+- Added `semantic_qa` to the shared instruction taxonomy.
+- Ran FLEURS `en_us` and `cmn_hans_cn` validation 60 transcript-candidate
+  retrieval with direct omni and fixed instruction arms.
+
+Reason:
+- The semantic-only benchmark cycle needs a recognized ASR-semantic diagnostic
+  before moving to speech QA and recognized-source speech RAG.
+
+Evidence:
+- FLEURS `en_us` direct omni text Acc@1 reached 1.000 with raw,
+  `transcript_like`, and `semantic_qa` instructions.
+- FLEURS `cmn_hans_cn` direct omni text Acc@1 reached 1.000 with raw,
+  `transcript_like`, and `semantic_qa` instructions.
+- Sample-level misses were duplicate transcript rows rather than semantic
+  failures.
+
+Impact:
+- Direct omni is usable for small transcript-candidate matching in both English
+  and Mandarin FLEURS.
+- This task is too easy for instruction optimization; the next experiments
+  should move to speech QA, speech RAG, translation, and tool/schema boundaries.
+
+## 2026-06-23: Add Spoken-SQuAD HF Smoke Loader
+
+Changed:
+- Added `scripts/prepare_spoken_squad_manifest.py`.
+- Extended transcript/answer candidate retrieval with configurable query and
+  candidate fields.
+- Added support for including text question content in an audio query payload.
+
+Reason:
+- The next semantic benchmark gap is speech QA. A small HF mirror can validate
+  the data and retrieval plumbing before a full passage-aligned benchmark is
+  built.
+
+Evidence:
+- `AudioLLMs/spoken_squad_test` test smoke prepared 12 rows with 0 missing
+  audio.
+- The mirror exposes spoken context audio, text question, and answer, but not
+  the original passage text.
+- On answer-candidate retrieval, oracle text question reached Acc@1 = 0.417
+  and R@3 = 1.000; direct omni with spoken context audio plus question text
+  reached Acc@1 = 0.917 and R@3 = 1.000.
+
+Impact:
+- The speech-QA pipeline smoke works.
+- This source should not yet be treated as full recognized-source speech RAG;
+  next work needs passage alignment or a dataset with passage ids/context text.
 
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 

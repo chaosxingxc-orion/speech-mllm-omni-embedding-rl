@@ -239,12 +239,94 @@ recognized-source speech RAG
 
 ## Download And Run Plan
 
+## Current Small-Scale Results
+
+### FLEURS transcript-candidate retrieval
+
+Task:
+
+```text
+audio or oracle transcript -> rank the correct transcript among 8 candidates
+```
+
+Dataset:
+
+```text
+FLEURS validation, 60 rows each, random negatives from the same manifest
+```
+
+Results:
+
+| Dataset | Route | Instruction | Sample Acc@1 | Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---:|---:|---:|---:|---|
+| FLEURS `en_us` | oracle transcript | raw | 0.967 | 1.000 | 1.000 | 0.983 | sample misses are duplicate transcript rows |
+| FLEURS `en_us` | direct omni audio | raw | 0.967 | 1.000 | 1.000 | 0.983 | strong semantic utility |
+| FLEURS `en_us` | direct omni audio | transcript_like | 0.967 | 1.000 | 1.000 | 0.983 | no change vs raw |
+| FLEURS `en_us` | direct omni audio | semantic_qa | 0.967 | 1.000 | 1.000 | 0.983 | no change vs raw |
+| FLEURS `cmn_hans_cn` | oracle transcript | raw | 1.000 | 1.000 | 1.000 | 1.000 | CJK-space normalized |
+| FLEURS `cmn_hans_cn` | direct omni audio | raw | 0.983 | 1.000 | 1.000 | 0.992 | sample miss is duplicate transcript row |
+| FLEURS `cmn_hans_cn` | direct omni audio | transcript_like | 0.983 | 1.000 | 1.000 | 0.992 | no change vs raw |
+| FLEURS `cmn_hans_cn` | direct omni audio | semantic_qa | 0.983 | 1.000 | 1.000 | 0.992 | no change vs raw |
+
+Interpretation:
+
+```text
+For small FLEURS transcript-candidate retrieval, direct omni is already usable
+and nearly saturated. The instruction arms do not improve this easy setting,
+which means harder semantic tasks should be used for instruction optimization:
+speech QA, recognized-source speech RAG, translation candidate retrieval, and
+schema/tool boundary tasks.
+```
+
+### Spoken-SQuAD HF smoke
+
+Source:
+
+```text
+AudioLLMs/spoken_squad_test, test split, first 12 rows
+```
+
+Important limitation:
+
+```text
+This HF mirror exposes spoken context audio, text question, and gold answer.
+It does not expose the original text passage in the prepared manifest, so this
+is a speech-QA smoke for answer-candidate retrieval, not yet recognized-source
+passage retrieval or final-answer RAG.
+```
+
+Task:
+
+```text
+spoken context audio + optional text question -> rank the correct answer among
+8 answer candidates
+```
+
+Results:
+
+| Route | Instruction | Query Payload | Answer Acc@1 | R@3 | MRR | Note |
+|---|---|---|---:|---:|---:|---|
+| oracle text | semantic_qa | question text only | 0.417 | 1.000 | 0.681 | short answers are hard to infer from question alone |
+| direct omni | semantic_qa | spoken context audio + question text | 0.917 | 1.000 | 0.958 | useful smoke, but only 12 rows |
+
+Interpretation:
+
+```text
+This smoke confirms that the pipeline can materialize a speech-QA dataset and
+rank answer candidates. The strong direct-omni result should be read carefully:
+the audio is spoken context, not spoken question. A paper-grade QA/RAG run must
+recover or align the original text passage and evaluate passage retrieval plus
+final answer utility.
+```
+
 ### Completed local preparation
 
 | Date | Dataset | Split | Count | Status |
 |---|---|---:|---:|---|
 | 2026-06-23 | FLEURS `en_us` | validation | 12 | smoke passed; manifest and audio materialized |
 | 2026-06-23 | FLEURS `en_us` | validation | 60 | prepared; manifest summary passed with 0 missing audio |
+| 2026-06-23 | FLEURS `cmn_hans_cn` | validation | 60 | prepared; manifest summary passed with 0 missing audio |
+| 2026-06-23 | `AudioLLMs/spoken_squad_test` | test | 12 | smoke prepared; manifest summary passed with 0 missing audio |
 
 Local outputs are under ignored `data/semantic/` and should not be committed.
 
@@ -292,7 +374,9 @@ Current next step:
 
 ```text
 Run ASR/direct-omni/transcript-candidate retrieval on FLEURS en_us validation 60.
-Then repeat the same preparation for zh_cn validation 60 if the English path is stable.
+Then run the same transcript-candidate retrieval on FLEURS `cmn_hans_cn`
+validation 60. Chinese FLEURS transcripts are character-spaced in the source
+manifest, so evaluation should normalize spaces between CJK characters.
 ```
 
 ### Batch B: Speech QA benchmark
@@ -318,6 +402,14 @@ Immediate runs:
 2. spoken question -> answer candidate retrieval
 3. ASR+text vs direct omni vs instruction taxonomy vs RRF
 4. final answer evaluation with exact/F1 plus rule-constrained judge
+```
+
+Current caveat:
+
+```text
+The first HF smoke source is spoken-context QA rather than spoken-question QA.
+Keep it as a pipeline smoke; continue searching for a source that exposes
+spoken question audio with passage ids or align this mirror back to SQuAD.
 ```
 
 ### Batch C: Tool/intent rerun with existing data

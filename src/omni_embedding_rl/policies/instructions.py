@@ -15,6 +15,10 @@ INSTRUCTION_ARMS: dict[str, str] = {
         "Represent the spoken question for retrieving the business rule that directly "
         "grounds the answer."
     ),
+    "semantic_qa": (
+        "Represent the spoken audio as a semantic question or utterance. Focus on the "
+        "meaning needed to match an answer, passage, transcript, or knowledge item."
+    ),
     "negation_exception_sensitive": (
         "Represent the spoken audio with special attention to negation, exclusion, "
         "exceptions, and boundary conditions."
@@ -56,6 +60,7 @@ TASK_DEFAULT_ARMS: dict[str, tuple[str, ...]] = {
     "asr_like": (
         "raw",
         "transcript_like",
+        "semantic_qa",
         "dialect_robust_semantic",
         "exact_condition_matching",
     ),
