@@ -1,0 +1,9 @@
+# @package _global_
+mode: manifest_summary
+run_name: manifest_summary
+
+manifest_summary:
+  manifest: ???
+  output: outputs/manifest_summary.json
+  top_k: 20
+  check_audio_exists: true

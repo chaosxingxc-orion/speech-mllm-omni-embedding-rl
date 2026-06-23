@@ -1,0 +1,26 @@
+# @package _global_
+mode: cache_taxonomy_plan
+run_name: cache_taxonomy_plan
+
+cache_taxonomy_plan:
+  task: rag
+  manifest: ???
+  output: outputs/cache_taxonomy_plan.json
+  dataset_name: ""
+  arms:
+    - raw
+    - policy_grounding
+  max_samples: 0
+  test_size: 0.35
+  results_dir: outputs
+  text_model: Qwen/Qwen3-Embedding-4B
+  omni_model: experiments/models/omni-embed-nemotron-3b
+  score_count: 8
+  memory_text_style: document_memory
+  tool_task: intent
+  label_description_style: contrastive_boundary_tool
+  label_example_count: 3
+  label_boundary_count: 3
+  candidate_count: 8
+  same_intent_negatives: 2
+  same_domain_negatives: 2

@@ -1,53 +1,165 @@
-# RL-Based Omni Embedding Models for Speech Tasks
+﻿# RL-Based Omni Embedding Models for Speech Tasks
 
-> **Status: 🟡 Skeleton.** Hydra scaffold in place; the `omni-embed-nemotron-3b` download target is
-> wired. RL objective to be filled in. Use W1
-> ([speech-mllm-training-free-rl](https://github.com/chaosxingxc-orion/speech-mllm-training-free-rl))
-> as the reference pattern.
->
-> Part of the **chaos speech-multimodal-LLM RL** series. Shares code via the
-> `speechrl-common` package (installed from `../../common`).
-> Umbrella: [exploring-l4-intelligence](https://github.com/chaosxingxc-orion/exploring-l4-intelligence).
+This is the unified workspace for joint research on task-conditioned optimization
+of speech omni-embedding systems.
 
-## Idea
+The repository now uses `speech-mllm-omni-embedding-rl` as the main project. The
+previous standalone project is kept under `omni_embedding/` as a legacy archive
+and evidence source while useful code and documents are migrated into the unified
+framework.
 
-RL-optimized omni/embedding models for speech, targeting personalized performance across diverse downstream tasks.
+## Research Direction
 
-**RL approach:** RL over contrastive/retrieval objectives for embeddings.
+The merged research line is:
 
-## Setup (WSL2)
+> Make frozen or lightly adapted omni-embedding systems useful across speech
+> agentic tasks by optimizing the task interface, routing policy, and eventually
+> lightweight audio-side adapters.
+
+We separate the work into three layers:
+
+1. **Training-free interface optimization**
+   - instruction / wrapper taxonomy
+   - validation-reward policy search
+   - robust accept gates against overfitting
+   - RAG, tool selection, ASR-like selection, dialect stress tasks
+
+2. **Lightweight policy learning**
+   - instruction selector
+   - ASR vs omni vs RRF router
+   - accept gate / override policy
+   - offline contextual-bandit or small RL policies
+
+3. **Representation adaptation as an upper-bound baseline**
+   - audio-tower LoRA
+   - contrastive / ranking warmup
+   - RL-style surrogate objectives
+   - frozen text/document side for interpretability
+
+The current priority is still to establish reliable, reproducible task utility.
+Training-heavy GRPO or full model updates are future work unless lightweight
+methods are clearly insufficient.
+
+## Repository Layout
+
+```text
+.
+|-- AGENTS.md                  # Long-term project instructions
+|-- configs/                   # Hydra experiment configs
+|-- docs/                      # Stable research documentation
+|-- omni_embedding/            # Legacy archive from the previous project
+|-- src/omni_embedding_rl/     # Unified framework source package
+`-- pyproject.toml             # Python project metadata
+```
+
+The documentation set follows this structure:
+
+```text
+docs/
+|-- brainstorm.md              # Loose idea pool
+|-- project_spec.md            # Stable research/product spec
+|-- architecture.md            # System and code architecture
+|-- project_status.md          # Current progress and milestones
+|-- changelog.md               # Research direction changes
+|-- decisions.md               # Technical decision records
+`-- bugs/
+    `-- issue-xxx-research.md  # Bad-case and research bug reports
+```
+
+## Setup
+
+The outer framework expects a Python environment with the dependencies from
+`pyproject.toml`.
 
 ```bash
-source ~/.venvs/speechrl/bin/activate          # shared env, see ../../docs/setup.md
-uv pip install -e ../../common -e .
+uv sync
 ```
+
+The current `pyproject.toml` references a sibling `speechrl-common` package. If
+that package is not present on a machine, resolve the local workspace layout
+before running experiments.
 
 ## Run
 
+The scaffolded entrypoint is:
+
 ```bash
-bash scripts/train.sh                          # train (Hydra config in configs/)
-bash scripts/train.sh rl.learning_rate=2e-6    # override any config key
-bash scripts/eval.sh                           # evaluate
+uv run python -m omni_embedding_rl.main
 ```
 
-## Layout
+Example local run:
 
-- `src/omni_embedding_rl/main.py` — Hydra entrypoint (fill in the RL loop)
-- `configs/` — Hydra configs: `model/`, `dataset/`, `rl/`, `experiment/`
-- `scripts/` — `train.sh`, `eval.sh`
-- depends on `speechrl_common` for audio I/O, reward functions, MLflow tracking, prompts
+```bash
+export PYTHONPATH=$PWD/src
+python -m omni_embedding_rl.main
+```
 
-## Status & roadmap
+Offline migrated modes are exposed through Hydra experiment configs:
 
-Skeleton. Next: implement the contrastive/retrieval RL objective and a retrieval evaluation; the W4
-omni-embedding model (`omni-embed-nemotron-3b`) download target is already wired in the umbrella's
-data scripts. Track progress on the umbrella Wiki's
-[Per-Work-Status](https://github.com/chaosxingxc-orion/exploring-l4-intelligence/wiki/Per-Work-Status).
+```bash
+python -m omni_embedding_rl.main experiment=route_policy_eval \
+  route_policy.hybrid_result=path/to/hybrid.json \
+  route_policy.output=outputs/route_policy_eval.json
 
----
+python -m omni_embedding_rl.main experiment=taxonomy_summary
+python -m omni_embedding_rl.main experiment=accept_gate
+python -m omni_embedding_rl.main experiment=strict_selection
+python -m omni_embedding_rl.main experiment=offline_policy
+python -m omni_embedding_rl.main experiment=rag_answer_eval
+```
 
-## 中文
+Cache-taxonomy sweeps are now split into a stable plan and a runner:
 
-面向语音的 RL 优化 omni/嵌入模型，目标是在多样下游任务上的个性化表现。**当前是骨架**：Hydra 脚手架已就
-位，`omni-embed-nemotron-3b` 下载目标已接好，RL 目标（对比/检索）待实现，请以 W1 为参考范式。环境与命令
-见上（详见 `../../docs/setup.md`）。
+```bash
+python -m omni_embedding_rl.main experiment=cache_taxonomy_plan \
+  cache_taxonomy_plan.task=rag \
+  cache_taxonomy_plan.manifest=path/to/manifest.jsonl \
+  cache_taxonomy_plan.output=outputs/cache_taxonomy_plan.json
+
+python -m omni_embedding_rl.main experiment=cache_taxonomy_runner \
+  cache_taxonomy_runner.plan=outputs/cache_taxonomy_plan.json \
+  cache_taxonomy_runner.output=outputs/cache_taxonomy_runner_report.json \
+  cache_taxonomy_runner.mode=dry_run
+```
+
+`cache_taxonomy_runner.mode=execute` currently uses a reviewed legacy bridge
+into `omni_embedding/experiments`. Use dry-run first, inspect the generated
+command report, and only then run model-heavy execution.
+
+For `rag_answer_eval`, formal experiments should use:
+
+```bash
+python -m omni_embedding_rl.main experiment=rag_answer_eval \
+  rag_answer_eval.retrieval_result=path/to/retrieval.json \
+  rag_answer_eval.manifest=path/to/manifest.jsonl \
+  rag_answer_eval.answer_keys=path/to/answer_keys.json \
+  rag_answer_eval.generator_mode=llm \
+  rag_answer_eval.judge_mode=llm_rule
+```
+
+`generator_mode=first_document` and `generator_mode=gold` are smoke-test
+helpers only; do not report them as LLM results.
+
+Most legacy experiment scripts still live under `omni_embedding/experiments/`.
+They should be migrated gradually into the unified `src/` and `configs/`
+structure instead of being bulk-moved.
+
+## Migration Policy
+
+- Keep `omni_embedding/` as a read-only-ish archive until a component is
+  explicitly migrated.
+- Migrate scripts by task family: RAG, tool, ASR-like, dialect, LoRA/RL.
+- Do not commit model weights, datasets, caches, row-level results, API keys, or
+  paper build artifacts.
+- Record research bugs and bad cases under `docs/bugs/` before turning them into
+  implementation work.
+
+## Current Status
+
+The unified repo is in a merge-and-refactor stage:
+
+- Outer framework provides the RL/Hydra skeleton.
+- Legacy project provides tasks, baselines, documents, formalization notes, and
+  pilot evidence.
+- Immediate next work is to migrate the reusable experiment runners and align
+  their configs with the unified framework.

@@ -1,0 +1,19 @@
+# @package _global_
+mode: offline_policy
+run_name: offline_policy
+
+offline_policy:
+  hybrid_result: ???
+  output: outputs/offline_policy.json
+  split: test
+  baseline_action: asr
+  max_rows: 0
+  train_ratio: 0.4
+  val_ratio: 0.3
+  mrr_weight: 0.1
+  api_cost: 0.0
+  regression_penalty: 0.2
+  confidence_thresholds: [0.2, 0.4, 0.6, 0.8]
+  asr_margin_thresholds: [0.02, 0.05, 0.1, 0.2]
+  omni_margin_thresholds: [0.02, 0.05, 0.1]
+  bootstrap_rounds: 2000

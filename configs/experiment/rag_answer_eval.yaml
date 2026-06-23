@@ -1,0 +1,34 @@
+# @package _global_
+mode: rag_answer_eval
+run_name: rag_answer_eval
+
+rag_answer_eval:
+  retrieval_result: ???
+  manifest: ???
+  answer_keys: ???
+  output: outputs/rag_answer_eval.json
+  split: test
+  candidate_order: asr
+  candidate_count: 5
+  answer_context_count: 3
+  rrf_k: 60
+  # Formal experiments should use generator_mode=llm.
+  # gold/first_document are smoke-test helpers and must not be reported as LLM results.
+  generator_mode: llm
+  judge_mode: local_rule
+  model: deepseek-chat
+  base_url: https://api.deepseek.com
+  api_key_env: DEEPSEEK_API_KEY
+  api_key_file: ""
+  temperature: 0.0
+  answer_max_tokens: 256
+  judge_max_tokens: 256
+  timeout: 60.0
+  api_retries: 2
+  api_retry_sleep: 2.0
+  sleep_sec: 0.0
+  max_rows: 0
+  include_rows: true
+  example_count: 5
+  bad_case_count: 20
+  grounding_target: document_id

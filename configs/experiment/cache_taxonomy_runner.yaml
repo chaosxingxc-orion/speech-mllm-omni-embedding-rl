@@ -1,0 +1,15 @@
+# @package _global_
+mode: cache_taxonomy_runner
+run_name: cache_taxonomy_runner
+
+cache_taxonomy_runner:
+  plan: ???
+  output: outputs/cache_taxonomy_runner_report.json
+  mode: dry_run
+  backend: legacy
+  python: python
+  legacy_experiments_dir: omni_embedding/experiments
+  max_steps: 0
+  skip_existing: true
+  require_manifest: true
+  continue_on_error: false

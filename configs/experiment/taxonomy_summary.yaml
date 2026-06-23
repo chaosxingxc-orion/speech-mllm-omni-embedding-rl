@@ -1,0 +1,13 @@
+# @package _global_
+mode: taxonomy_summary
+run_name: taxonomy_summary
+
+taxonomy_summary:
+  task: rag
+  dataset_name: ""
+  output: outputs/taxonomy_summary.json
+  arms:
+    - raw
+    - policy_grounding
+  # Each result is "arm=path".
+  results: []
