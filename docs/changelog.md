@@ -699,3 +699,37 @@ Impact:
   surface, not a single universal instruction string.
 - The next experimental bottleneck is larger recognized speech-QA/RAG and
   cleaner speech-translation data, not model-weight training.
+
+## 2026-06-24: Acquire URO-Bench Mini For Unified Semantic Speech Evaluation
+
+Changed:
+- Downloaded and extracted URO-Bench mini as a local ignored dataset asset.
+- Added `scripts/prepare_uro_bench_manifest.py` to normalize the benchmark into
+  the project manifest format.
+- Updated `docs/benchmark_plan.md` with URO-Bench, VoiceBench, AIR-Bench,
+  MMAU, and SpeechBench as related semantic/audio agentic benchmarks.
+
+Reason:
+- The project needs a recognized multi-task spoken benchmark rather than only
+  task-specific smokes or synthetic RAG data.
+- URO-Bench mini gives a compact 40-test-set surface for QA/reasoning,
+  translation/code-switching, label semantics, repeat/ASR-like evaluation,
+  summarization, and open-ended spoken instruction following.
+
+Evidence:
+- URO-Bench mini contains 1000 rows across 40 test sets.
+- The normalized manifest reports 525 semantic-mainline rows:
+  - speech QA/reasoning: 200 rows.
+  - speech translation/code-switching: 125 rows.
+  - tool or label semantics: 100 rows.
+  - ASR-like repeat semantics: 50 rows.
+  - speech summarization: 50 rows.
+- 925 rows have direct single-turn audio paths; dialogue-only rows are retained
+  for later multi-turn handling.
+
+Impact:
+- The next formal experiment can evaluate a task-conditioned frozen omni policy
+  surface across multiple semantic task families inside one benchmark.
+- Paralinguistic and speaker-aware URO-Bench subsets should stay diagnostic
+  rather than mainline, because current evidence suggests the omni path is
+  primarily semantic.

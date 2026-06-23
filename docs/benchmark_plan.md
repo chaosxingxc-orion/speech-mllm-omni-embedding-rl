@@ -43,6 +43,14 @@ project-specific synthetic tasks only as controlled diagnostics
 
 ## Recommended Public Datasets
 
+### Multi-task spoken agentic benchmark
+
+| Dataset | Why use it | First use |
+|---|---|---|
+| URO-Bench | end-to-end spoken dialogue benchmark with 40 test sets in mini version; covers understanding, reasoning, oral conversation, multilingual/code-switching, summarization, QA, and instruction following | unified semantic speech policy surface and task-family stress |
+| VoiceBench | spoken instruction benchmark that contributes AlpacaEval/CommonEval-style tasks to URO-Bench | related benchmark for open-ended spoken instruction following |
+| AIR-Bench / MMAU / SpeechBench | broader audio or speech LLM benchmark families | related work and optional future comparison, especially if we move beyond semantic-only retrieval |
+
 ### ASR semantics
 
 | Dataset | Why use it | First use |
@@ -55,6 +63,7 @@ project-specific synthetic tasks only as controlled diagnostics
 
 | Dataset | Why use it | First use |
 |---|---|---|
+| URO-Bench mini QA/reasoning subsets | includes OpenbookQA-zh, SQuAD-zh, Gsm8kEval, GaokaoEval, HSK5-zh, TruthfulEval, StoralEval, MuChoEval-en | speech QA/reasoning candidate retrieval and final-answer diagnostics |
 | Spoken-SQuAD | spoken QA dataset derived from SQuAD | speech QA baseline and ASR-error stress |
 | HeySQuAD | spoken QA resource with human-spoken and synthetic spoken questions | human-spoken QA robustness |
 | SQuAD-SRC | multi-accent spoken reading comprehension | accent-sensitive speech QA |
@@ -87,6 +96,7 @@ evaluation keys
 
 | Dataset | Why use it | First use |
 |---|---|---|
+| URO-Bench mini translation/code-switching subsets | includes APE-zh, CodeSwitching-en/zh, SRT-en/zh | speech-to-target candidate retrieval and route-specific instruction tests |
 | CoVoST 2 | large multilingual speech-to-text translation corpus based on Common Voice | speech translation semantic task |
 | FLEURS | multilingual parallel speech benchmark useful for ASR and translation diagnostics | compact multilingual translation/retrieval diagnostic |
 | MuST-C | established TED-talk speech translation corpus | optional if download/licensing is convenient |
@@ -95,6 +105,7 @@ evaluation keys
 
 | Dataset | Why use it | First use |
 |---|---|---|
+| URO-Bench mini MLC / MLCpro | spoken multi-label classification style tasks in English and Chinese | label/tool-style semantic selection beyond SLURP/MInDS |
 | SLURP | public SLU resource with scenarios, actions, intents, entities, and audio | intent-as-tool and schema-boundary evaluation |
 | MInDS-14 | multilingual spoken intent classification from e-banking | domain-specific tool/intent evaluation |
 | Fluent Speech Commands | simple command/action benchmark | sanity check only; likely too easy |
@@ -240,6 +251,70 @@ recognized-source speech RAG
 ## Download And Run Plan
 
 ## Current Small-Scale Results
+
+### URO-Bench mini acquisition
+
+Current status:
+
+```text
+URO-Bench mini downloaded, extracted, and normalized to a project manifest.
+```
+
+Source:
+
+```text
+Hugging Face dataset: Honggao/URO-Bench
+File: URO-Bench-mini.zip
+License: MIT
+```
+
+Local preparation summary:
+
+| Item | Value |
+|---|---:|
+| Downloaded zip size | 587,291,698 bytes |
+| Extracted mini size | about 796 MB |
+| Test sets | 40 |
+| Total rows | 1000 |
+| Rows marked semantic mainline | 525 |
+| Rows with direct `source_wav` audio path | 925 |
+| Missing audio among direct audio rows | 0 |
+
+Task-family mapping:
+
+| Family | Rows | Included examples |
+|---|---:|---|
+| speech_qa_reasoning | 200 | GaokaoEval, Gsm8kEval, HSK5-zh, OpenbookQA-zh, SQuAD-zh, TruthfulEval |
+| speech_translation | 125 | APE-zh, CodeSwitching-en/zh, SRT-en/zh |
+| tool_or_label_semantics | 100 | MLC, MLC-zh, MLCpro-en/zh |
+| asr_semantics | 50 | Repeat, Repeat-zh |
+| speech_summarization | 50 | LCSTS-zh, Summary |
+| open_ended_agentic | 250 | AlpacaEval, CommonEval, Wildchat, Safety, Multilingual |
+| paralinguistic_or_speaker | 225 | GenEmotion, GenStyle, SpeakerAware, UnderEmotion, ClothoEval |
+
+Interpretation:
+
+```text
+URO-Bench is the best next dataset for our unified training-free policy surface.
+It is broader than the current task-specific smokes and contains multiple
+semantic task families in one benchmark.  For the current semantic-only paper
+line, prioritize QA/reasoning, translation/code-switching, label semantics,
+repeat/ASR-like, and summarization subsets.  Keep emotion/style/speaker-aware
+subsets as future diagnostics because the current omni path is not primarily
+speaker/emotion oriented.
+```
+
+Next URO-Bench experiments:
+
+```text
+1. Run direct omni audio -> target_text candidate retrieval on semantic subsets.
+2. Compare raw, semantic_qa, transcript_like, translation_semantic, and
+   tool_specific_intent arms by task family.
+3. Reuse the unified policy-surface accept gate to decide which task-local
+   policies can be globally accepted.
+4. For open-ended subsets, defer generation/judge evaluation until the
+   retrieval-style semantic baselines are stable.
+```
 
 ### FLEURS transcript-candidate retrieval
 

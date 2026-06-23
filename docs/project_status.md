@@ -335,6 +335,15 @@ TODO before paper submission:
   rejects reusing `translation_semantic` on oracle text query.  The Lean core
   proof in `docs/lean/unified_policy_surface.lean` checks the conservative
   aggregation logic.
+- URO-Bench mini is now acquired and normalized locally as the next unified
+  semantic-speech benchmark.  The mini set contains 40 test sets and 1000
+  rows, including 525 rows that directly fit the current semantic mainline:
+  QA/reasoning, translation/code-switching, label semantics, repeat/ASR-like,
+  and summarization.  There are 925 rows with direct single-turn audio paths;
+  multi-round dialogue rows are kept for later conversation-aware processing.
+  This is the strongest current candidate for testing whether one
+  task-conditioned policy surface transfers across related semantic speech
+  tasks without changing model weights.
 
 ## Legacy Code Triage
 
