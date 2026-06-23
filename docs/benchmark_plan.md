@@ -324,14 +324,23 @@ Passage candidate retrieval:
 | oracle text | semantic_qa | question text only | 0.750 | 0.833 | 0.917 | 0.840 | question-only passage retrieval is harder |
 | direct omni | semantic_qa | spoken context audio + question text | 0.833 | 1.000 | 1.000 | 0.917 | audio is spoken context, so context retrieval is strong |
 
+Expanded 60-row result:
+
+| Target | Route | Instruction | Query Payload | Sample Acc@1 | Text Acc@1 | R@3 | MRR | Note |
+|---|---|---|---|---:|---:|---:|---:|---|
+| SQuAD passage | oracle text | semantic_qa | question text only | 0.500 | 0.667 | 0.767 | 0.647 | question-only retrieval is weak |
+| SQuAD passage | direct omni | semantic_qa | spoken context audio + question text | 0.817 | 1.000 | 1.000 | 0.901 | direct audio carries passage evidence |
+| answer string | oracle text | semantic_qa | question text only | 0.450 | 0.450 | 0.767 | 0.628 | short-answer ranking is hard from question alone |
+| answer string | direct omni | semantic_qa | spoken context audio + question text | 0.783 | 0.800 | 1.000 | 0.888 | answer ranking improves with spoken context |
+
 Interpretation:
 
 ```text
 This smoke confirms that the pipeline can materialize a speech-QA dataset and
 rank answer candidates. The strong direct-omni result should be read carefully:
 the audio is spoken context, not spoken question. Passage alignment now works
-for the 12-row smoke, but a paper-grade QA/RAG run still needs a larger split,
-clear deduplication by context, and final answer utility.
+for 12-row and 60-row small runs, but a paper-grade QA/RAG run still needs a
+larger split, clear deduplication by context, and final answer utility.
 ```
 
 ### Completed local preparation
@@ -343,6 +352,8 @@ clear deduplication by context, and final answer utility.
 | 2026-06-23 | FLEURS `cmn_hans_cn` | validation | 60 | prepared; manifest summary passed with 0 missing audio |
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` | test | 12 | smoke prepared; manifest summary passed with 0 missing audio |
 | 2026-06-23 | `AudioLLMs/spoken_squad_test` + `rajpurkar/squad` | test/validation | 12 | passage alignment matched 12/12 |
+| 2026-06-23 | `AudioLLMs/spoken_squad_test` | test | 60 | smoke prepared; manifest summary passed with 0 missing audio |
+| 2026-06-23 | `AudioLLMs/spoken_squad_test` + `rajpurkar/squad` | test/validation | 60 | passage alignment matched 60/60 |
 
 Local outputs are under ignored `data/semantic/` and should not be committed.
 

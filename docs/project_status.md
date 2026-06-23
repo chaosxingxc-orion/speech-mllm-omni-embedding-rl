@@ -263,6 +263,11 @@ TODO before paper submission:
   This enables a recognized-source passage retrieval smoke; larger runs must
   deduplicate shared contexts and separate spoken-context retrieval from
   spoken-question retrieval claims.
+- The Spoken-SQuAD HF path has now been scaled to 60 rows with 60/60 passage
+  alignment. Direct omni with spoken context audio plus question text reaches
+  SQuAD passage text Acc@1 = 1.000 and answer-string text Acc@1 = 0.800, while
+  question-only text is much weaker. This supports the claim that audio-side
+  evidence can help semantic retrieval, but only for the spoken-context setting.
 
 ## Legacy Code Triage
 

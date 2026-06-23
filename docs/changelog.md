@@ -230,6 +230,32 @@ Impact:
   as a pipeline proof before larger QA/RAG construction rather than as a final
   claim about spoken-question retrieval.
 
+## 2026-06-23: Scale Spoken-SQuAD Passage Smoke To 60 Rows
+
+Changed:
+- Prepared 60 rows from `AudioLLMs/spoken_squad_test`.
+- Aligned 60/60 rows to `rajpurkar/squad` validation passages.
+- Ran passage-candidate and answer-candidate retrieval on the 60-row aligned
+  manifest.
+
+Reason:
+- The 12-row smoke was useful but too small. A 60-row run gives a more stable
+  first signal before investing in a larger benchmark construction.
+
+Evidence:
+- Question-only oracle text to SQuAD passage reached text Acc@1 = 0.667.
+- Direct omni spoken context audio plus question text to SQuAD passage reached
+  text Acc@1 = 1.000.
+- Question-only oracle text to answer string reached text Acc@1 = 0.450.
+- Direct omni spoken context audio plus question text to answer string reached
+  text Acc@1 = 0.800.
+
+Impact:
+- Direct omni is useful when audio carries the evidence context.
+- This still does not prove spoken-question RAG, because the available audio is
+  spoken context. The next step is either a spoken-question dataset with
+  passage ids or a controlled transformation that is documented as such.
+
 ## 2026-06-23: Convert Legacy Project To Ignored Plain Archive
 
 Changed:
