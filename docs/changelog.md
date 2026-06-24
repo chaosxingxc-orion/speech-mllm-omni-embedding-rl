@@ -873,3 +873,39 @@ Impact:
   regressions even when the oracle top-k contains the answer.
 - HeySQuAD should become the main recognized-source QA/RAG path; synthetic RAG
   should remain a controlled diagnostic rather than the paper's main dataset.
+
+## 2026-06-24: Audit HeySQuAD Final-Answer Utility
+
+Changed:
+- Extended `rag_answer_eval` with arbitrary grounding targets, enabling
+  `grounding_target=context` for SQuAD-style shared passages.
+- Added `docs/bugs/issue-005-heysquad-rag-final-answer-audit.md`.
+- Ran HeySQuAD 60-row final-answer audits for raw and `policy_grounding`
+  direct-omni retrieval.
+
+Reason:
+- Passage retrieval alone is not enough evidence for agentic utility. The
+  recognized-source QA/RAG path needs final-answer metrics and a distinction
+  between retrieval misses and generation/context-pollution misses.
+
+Evidence:
+- Raw + first-doc audit:
+  - answer pass = 0.850.
+  - grounded context accuracy = 0.833.
+  - retrieval misses = 9/60.
+- `policy_grounding` + first-doc audit:
+  - answer pass = 0.883.
+  - grounded context accuracy = 0.867.
+  - context contains answer = 55/60.
+  - retrieval misses = 5/60.
+- `policy_grounding` + LLM answer:
+  - answer pass remains 0.883 under local rule audit.
+  - remaining failures split into 5 retrieval misses and 2
+    generation/context-pollution misses.
+
+Impact:
+- The instruction optimization effect transfers to final-answer utility on the
+  HeySQuAD smoke split, mainly by reducing retrieval misses.
+- The next recognized-source RAG experiment should scale HeySQuAD or add
+  Spoken-SQuAD, then test conservative low-margin rerank on rows where top-k
+  contains the answer but the selected answer still fails.

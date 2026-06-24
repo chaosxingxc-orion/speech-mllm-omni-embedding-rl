@@ -193,6 +193,34 @@ Spoken-SQuAD / HeySQuAD first
 SQuAD/NQ + documented TTS/accent/noise second
 ```
 
+Status as of 2026-06-24:
+
+```text
+HeySQuAD human spoken-question 60-row smoke completed.
+```
+
+The first recognized-source final-answer audit uses human spoken question audio
+to retrieve SQuAD-style context passages and answer with rule-key evaluation.
+Because many questions share the same passage, the final-answer evaluator uses
+`grounding_target=context` rather than exact `sample_id`.
+
+| Policy / Generator | Answer Pass | Grounded Context Acc | Context Has Answer | Retrieval Miss | Generation / Pollution Miss |
+|---|---:|---:|---:|---:|---:|
+| raw + first-doc audit | 0.850 | 0.833 | 0.850 | 9 | 0 |
+| policy_grounding + first-doc audit | 0.883 | 0.867 | 0.917 | 5 | 2 |
+| policy_grounding + LLM answer | 0.883 | 0.867 | 0.917 | 5 | 2 |
+
+Interpretation:
+
+- `policy_grounding` transfers from retrieval proxy to final-answer utility on
+  this smoke split, improving answer pass from 0.850 to 0.883.
+- The main gain is reducing retrieval misses from 9 to 5.
+- Top-3 context contains the answer in 55/60 cases under `policy_grounding`,
+  but two rows still fail final-answer evaluation, so generation/context
+  pollution remains a separate bottleneck.
+- This is a smoke-scale result and should be expanded before being used as a
+  main paper claim.
+
 ### P5: Keep training-free only in this cycle
 
 Do not run LoRA or weight-changing RL until:

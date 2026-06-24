@@ -366,6 +366,8 @@ def judge_answer(
 def domain_intent_match(sample_id: str, target_id: str, samples: dict[str, dict[str, Any]]) -> bool:
     sample = samples.get(sample_id, {})
     target = samples.get(target_id, {})
+    if not sample.get("domain") or not sample.get("intent"):
+        return False
     return sample.get("domain") == target.get("domain") and sample.get("intent") == target.get("intent")
 
 
@@ -373,6 +375,8 @@ def grounding_id(sample_id: str, samples: dict[str, dict[str, Any]], grounding_t
     sample = samples.get(sample_id, {})
     if grounding_target == "document_id":
         return str(sample.get("document_id") or sample.get("base_sample_id") or sample_id)
+    if grounding_target in sample:
+        return normalize_match_text(str(sample.get(grounding_target, "")))
     return sample_id
 
 
@@ -400,7 +404,8 @@ def error_type(
         return "over_override"
     if not grounding_match(selected_id, target_id, samples, grounding_target) and domain_intent_match(selected_id, target_id, samples):
         return "same_cluster_neighbor"
-    asr_top = row.get("asr_top_k", [{}])[0].get("sample_id")
+    asr_candidates = row.get("asr_top_k", [])
+    asr_top = asr_candidates[0].get("sample_id") if asr_candidates else ""
     if asr_top and not domain_intent_match(asr_top, target_id, samples):
         return "asr_semantic_drift"
     return "generation_miss"
@@ -533,9 +538,11 @@ def run(config: RAGAnswerEvalConfig) -> dict[str, Any]:
             }
         )
 
+    safe_config = asdict(config)
+    safe_config["api_key_file"] = "<local-file>" if config.api_key_file else ""
     report = {
         "experiment": "rag_final_answer_eval",
-        "config": asdict(config) | {
+        "config": safe_config | {
             "retrieval_result": str(config.retrieval_result),
             "manifest": str(config.manifest),
             "answer_keys": str(config.answer_keys),
@@ -576,6 +583,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-key-file", default="")
     parser.add_argument("--max-rows", type=int, default=0)
     parser.add_argument("--include-rows", action="store_true")
+    parser.add_argument("--grounding-target", default="document_id")
     return parser
 
 
@@ -598,6 +606,7 @@ def config_from_args(args: argparse.Namespace) -> RAGAnswerEvalConfig:
         api_key_file=args.api_key_file,
         max_rows=args.max_rows,
         include_rows=args.include_rows,
+        grounding_target=args.grounding_target,
     )
 
 

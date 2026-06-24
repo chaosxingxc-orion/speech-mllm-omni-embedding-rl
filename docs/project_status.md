@@ -59,6 +59,11 @@ The legacy project has already explored:
    on context pollution and generation miss.
 8. Early audio LoRA is technically runnable but currently shows weak locked-test
    gains and high regression, so the objective/evaluation needs audit.
+9. HeySQuAD human spoken-question results provide the first recognized-source
+   speech QA/RAG smoke beyond synthetic Chinese RAG: `policy_grounding` raises
+   60-row final-answer pass from 0.850 to 0.883 and reduces retrieval misses
+   from 9 to 5, while two rows still expose generation/context-pollution
+   failures.
 
 ## Immediate Merge Status
 
@@ -84,6 +89,9 @@ Still pending:
 - Freeze all model weights in the next experiment cycle. LoRA and
   weight-changing RL are paused until frozen semantic baselines are stable and
   aligned.
+- Expand recognized-source QA/RAG beyond the 60-row HeySQuAD smoke and test
+  whether conservative low-margin rerank transfers from URO QA to HeySQuAD or
+  Spoken-SQuAD final-answer utility.
 
 ## Suggested Next Milestones
 
