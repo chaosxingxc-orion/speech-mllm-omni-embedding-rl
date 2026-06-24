@@ -111,6 +111,8 @@ Oracle and conservative API rerank:
 | oracle | 0.01 | 0.933 | 0.900 | 2 | 0 |
 | oracle | 0.02 | 0.950 | 0.917 | 3 | 0 |
 | conservative API | 0.02 | 0.950 | 0.900 | 2 | 0 |
+| oracle + unique top-5 passages >= 2 | 0.02 | 0.083 | 0.917 | 3 | 0 |
+| conservative API + unique top-5 passages >= 2 | 0.02 | 0.083 | 0.900 | 2 | 0 |
 
 Interpretation:
 
@@ -119,6 +121,22 @@ Interpretation:
 - The cost profile is poor on this split because score ties make almost every
   row low margin.
 - For HeySQuAD-like shared-passage QA, margin alone is not a selective router.
-  It needs an additional trigger, such as answer-key absence in context,
-  candidate diversity, passage-cluster entropy, or disagreement between two
-  independent views.
+  A simple candidate-diversity trigger fixes the cost issue: only rerank rows
+  whose top-5 candidates contain at least two unique passage texts. This keeps
+  the same conservative API gain as full low-margin rerank while reducing route
+  rate from 0.950 to 0.083.
+
+## Router Lesson
+
+For shared-passage QA, many low-margin rows are harmless ties among duplicate
+or equivalent passages. Reranking them wastes API calls. A practical
+training-free router should therefore be:
+
+```text
+route_to_rerank =
+  low_score_margin
+  AND candidate_set_contains_distinct_passages
+```
+
+This is a sharper condition than URO QA, where low margin alone was already
+selective enough.

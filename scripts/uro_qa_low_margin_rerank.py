@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Any
 
 
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "").strip().lower())
+
+
 def _load_report(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -31,6 +35,18 @@ def _top_margin(row: dict[str, Any]) -> float:
     if len(scores) < 2:
         return float("inf")
     return float(scores[0].get("score", 0.0)) - float(scores[1].get("score", 0.0))
+
+
+def _unique_text_count(row: dict[str, Any], top_k: int) -> int:
+    return len({_normalize_text(candidate.get("text", "")) for candidate in row.get("scores", [])[:top_k]})
+
+
+def _top_tie_count(row: dict[str, Any], top_k: int, eps: float = 1e-9) -> int:
+    scores = row.get("scores", [])[:top_k]
+    if not scores:
+        return 0
+    top_score = float(scores[0].get("score", 0.0))
+    return sum(abs(float(candidate.get("score", 0.0)) - top_score) <= eps for candidate in scores)
 
 
 def _hit_from_top(row: dict[str, Any], top_sample_id: str, top_text: str) -> bool:
@@ -226,7 +242,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for row in rows:
         base_hit = bool(row.get("text_hit_at_1", row.get("sample_hit_at_1", False)))
         margin = _top_margin(row)
+        unique_texts = _unique_text_count(row, args.top_k)
+        top_tie_count = _top_tie_count(row, args.top_k)
         should_route = margin <= args.margin_threshold
+        if args.min_unique_texts > 0 and unique_texts < args.min_unique_texts:
+            should_route = False
+        if args.max_top_tie_count > 0 and top_tie_count > args.max_top_tie_count:
+            should_route = False
         if args.max_rerank > 0 and routed >= args.max_rerank:
             should_route = False
 
@@ -269,6 +291,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 **row,
                 "base_margin": margin,
+                "unique_text_count": unique_texts,
+                "top_tie_count": top_tie_count,
                 "rerouted": should_route,
                 "selected_choice": _candidate_label(selected_index),
                 "selected_sample_id": selected.get("sample_id", ""),
@@ -289,6 +313,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "prompt_style": args.prompt_style if args.rerank_mode == "llm" else "",
         "top_k": args.top_k,
         "margin_threshold": args.margin_threshold,
+        "min_unique_texts": args.min_unique_texts,
+        "max_top_tie_count": args.max_top_tie_count,
         "sample_count": len(output_rows),
         "route_count": routed,
         "route_rate": routed / len(output_rows) if output_rows else 0.0,
@@ -309,6 +335,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rerank-mode", choices=("none", "oracle", "llm"), default="llm")
     parser.add_argument("--margin-threshold", type=float, default=0.01)
     parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--min-unique-texts", type=int, default=0)
+    parser.add_argument("--max-top-tie-count", type=int, default=0)
     parser.add_argument("--max-rerank", type=int, default=0)
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
     parser.add_argument("--api-key-file", type=Path, default=None)

@@ -228,10 +228,14 @@ Low-margin rerank transfer check:
 | policy_grounding | - | 0.000 | 0.867 | - | - |
 | oracle rerank | 0.02 | 0.950 | 0.917 | 3 | 0 |
 | conservative API rerank | 0.02 | 0.950 | 0.900 | 2 | 0 |
+| oracle rerank + unique top-5 passages >= 2 | 0.02 | 0.083 | 0.917 | 3 | 0 |
+| conservative API rerank + unique top-5 passages >= 2 | 0.02 | 0.083 | 0.900 | 2 | 0 |
 
 The policy transfers qualitatively, but not economically: score ties from
-shared passages make 57/60 rows low-margin. Margin-only rerank is therefore not
-selective enough for HeySQuAD-style shared-passage QA.
+shared passages make 57/60 rows low-margin. Adding a candidate-diversity trigger
+solves the cost issue on this split: the conservative API route keeps Acc@1 =
+0.900 and zero observed regressions while reducing route rate from 0.950 to
+0.083.
 
 ### P5: Keep training-free only in this cycle
 

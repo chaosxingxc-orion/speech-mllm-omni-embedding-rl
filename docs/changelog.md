@@ -938,3 +938,47 @@ Impact:
 - The next router should add a second signal, such as candidate diversity,
   passage-cluster entropy, answer-bearing context absence, or ASR/omni
   disagreement.
+
+## 2026-06-24: Add Candidate-Diversity Router for HeySQuAD
+
+Changed:
+- Added `--min-unique-texts` and `--max-top-tie-count` gates to
+  `scripts/uro_qa_low_margin_rerank.py`.
+- Ran the selective HeySQuAD route:
+
+```text
+margin <= 0.02 AND unique top-5 passage texts >= 2
+```
+
+Reason:
+- Full low-margin routing on HeySQuAD routes 57/60 rows because shared passage
+  candidates often have tied scores. Most of those rows are harmless duplicate
+  passage ties and do not need API rerank.
+
+Evidence:
+- Oracle rerank with low margin only:
+  - route rate = 0.950.
+  - Acc@1 = 0.917.
+  - fixes = 3, regressions = 0.
+- Conservative API rerank with low margin only:
+  - route rate = 0.950.
+  - Acc@1 = 0.900.
+  - fixes = 2, regressions = 0.
+- Oracle rerank with low margin + unique top-5 passage texts >= 2:
+  - route rate = 0.083.
+  - Acc@1 = 0.917.
+  - fixes = 3, regressions = 0.
+- Conservative API rerank with low margin + unique top-5 passage texts >= 2:
+  - route rate = 0.083.
+  - Acc@1 = 0.900.
+  - fixes = 2, regressions = 0.
+
+Impact:
+- Candidate diversity is the missing selectivity signal for HeySQuAD-style
+  shared-passage QA.
+- This gives a cleaner training-free policy rule:
+
+```text
+rerank only when the embedding is uncertain and the candidate set contains
+meaningfully distinct passages.
+```

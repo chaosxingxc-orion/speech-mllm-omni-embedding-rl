@@ -366,6 +366,58 @@ whether the override is cross-task rescue or same-task neighbor replacement
 
 Only accepted overrides should count as policy changes.
 
+### Selective Rerank Cost
+
+HeySQuAD adds one more constraint. In shared-passage QA, many low-margin rows
+are harmless ties among equivalent or duplicate passage candidates. A margin
+threshold alone can therefore have high API cost without additional fixes.
+
+Let:
+
+```text
+R_low(q) = [gap(q) <= tau]
+R_sel(q) = [gap(q) <= tau] AND [unique_texts(top-k(q)) >= m]
+```
+
+The second predicate is a candidate-diversity trigger. It asks whether the
+reranker is seeing meaningfully distinct passages rather than duplicates of
+the same passage.
+
+For a route policy `R`, define a simple cost-adjusted utility:
+
+```text
+U(R) = fixes(R) - call_cost * routes(R)
+```
+
+If a selective router keeps the same fixes as the broad low-margin router but
+routes fewer rows, then:
+
+```text
+fixes(R_sel) = fixes(R_low)
+routes(R_sel) < routes(R_low)
+call_cost > 0
+--------------------------------
+U(R_sel) > U(R_low)
+```
+
+The Lean-checkable skeleton in `docs/lean/conservative_rerank_gate.lean`
+formalizes the unit-cost version of this statement.
+
+Empirical HeySQuAD status:
+
+| Router | Route rate | Fixes | Regressions | Context Acc@1 |
+|---|---:|---:|---:|---:|
+| low margin only | 0.950 | 2 | 0 | 0.900 |
+| low margin + unique top-5 passages >= 2 | 0.083 | 2 | 0 | 0.900 |
+
+This means the correct transfer from URO to HeySQuAD is not simply
+`use low-margin rerank`. It is:
+
+```text
+use low-margin rerank only when the candidate set contains distinct competing
+semantic hypotheses.
+```
+
 ## 12. Evidence Sufficiency Audit
 
 The project has a coherent research mainline, but the evidence is uneven across
