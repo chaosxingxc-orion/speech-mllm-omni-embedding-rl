@@ -982,3 +982,45 @@ Impact:
 rerank only when the embedding is uncertain and the candidate set contains
 meaningfully distinct passages.
 ```
+
+## 2026-06-24: Run SLURP / MInDS Tool-Intent Schema Audit
+
+Changed:
+- Added `docs/bugs/issue-006-tool-intent-schema-audit.md`.
+- Reran frozen direct-omni tool/intent retrieval on SLURP 500 and MInDS-14
+  en-US 180 with basic labels, tool schema cards, example-augmented cards, and
+  contrastive boundary cards.
+- Compared raw audio instructions against `tool_specific_intent` audio
+  instructions under paired bootstrap evaluation.
+
+Reason:
+- The semantic benchmark cycle needed a third recognized semantic task beyond
+  transcript matching and spoken QA/RAG.
+- Tool/intent selection is the closest current proxy for agentic tool-call
+  utility.
+
+Evidence:
+- SLURP:
+  - raw basic label Acc@1 = 0.522.
+  - raw contrastive boundary card Acc@1 = 0.894.
+  - paired delta +0.372, CI95 [0.328, 0.418], fixes = 193, regressions = 7.
+  - adding `tool_specific_intent` to the best boundary schema slightly hurts:
+    0.894 -> 0.880.
+- MInDS:
+  - raw basic label Acc@1 = 0.856.
+  - raw contrastive boundary card Acc@1 = 0.956.
+  - paired delta +0.100, CI95 [0.050, 0.156], fixes = 22, regressions = 4.
+  - adding `tool_specific_intent` to the best boundary schema helps slightly:
+    0.956 -> 0.972.
+
+Impact:
+- Tool/intent semantic retrieval now has a clear training-free upgrade:
+
+```text
+raw audio instruction + contrastive boundary tool cards
+```
+
+- Candidate-side schema enrichment is more reliable than universal audio-side
+  instruction changes.
+- Task-specific audio instructions should be validation-gated, because the same
+  instruction can help one dataset while regressing another.

@@ -458,3 +458,61 @@ one unified policy solves all speech agentic tasks
 or
 instruction optimization alone is sufficient for final QA/RAG answer utility.
 ```
+
+## 13. Tool Schema as Candidate-Side Margin Enrichment
+
+The SLURP/MInDS tool-intent audit gives a clean example where the dominant
+intervention is not an audio instruction but a candidate wrapper.
+
+For a spoken command `x` and intent label `y`, a basic-label retriever scores:
+
+```text
+s_basic(x, y) = < E_audio(x, raw), E_text(name(y)) >
+```
+
+If two tools have neighboring names or overlapping business language, the
+gold-vs-negative margin can be small:
+
+```text
+margin_basic(x) =
+  s_basic(x, y_gold) - max_{y != y_gold} s_basic(x, y)
+```
+
+A boundary card replaces the candidate text with a richer schema:
+
+```text
+card(y) = name(y) + description(y) + examples(y) + boundary_notes(y)
+s_card(x, y) = < E_audio(x, raw), E_text(card(y)) >
+```
+
+The candidate wrapper is useful when it raises the gold margin:
+
+```text
+margin_card(x) > margin_basic(x)
+```
+
+This explains the empirical pattern:
+
+| Dataset | Basic Label Acc@1 | Boundary Card Acc@1 | Delta |
+|---|---:|---:|---:|
+| SLURP 500 | 0.522 | 0.894 | +0.372 |
+| MInDS 180 | 0.856 | 0.956 | +0.100 |
+
+The audio-side `tool_specific_intent` instruction is not universally safe:
+
+```text
+SLURP boundary: 0.894 -> 0.880
+MInDS boundary: 0.956 -> 0.972
+```
+
+So the current theory-backed default is:
+
+```text
+use raw audio query
+enrich candidate tools with contrastive boundary cards
+accept task-specific audio instructions only when validation evidence and
+regression gates support them
+```
+
+This is a useful design rule for semantic tool calling because it improves the
+candidate geometry without requiring model training or a learned classifier.

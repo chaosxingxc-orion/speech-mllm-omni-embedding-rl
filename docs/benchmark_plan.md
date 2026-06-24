@@ -1,6 +1,6 @@
 # Semantic Speech Benchmark Plan
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ## Scope
 
@@ -245,6 +245,87 @@ Do not run LoRA or weight-changing RL until:
 2. semantic benchmark suite is stable;
 3. utility metrics are locked;
 4. task transformations and split policies are documented.
+
+### P6: Tool / Intent semantic rerun
+
+Status as of 2026-06-24:
+
+```text
+SLURP 500 and MInDS-14 en-US 180 tool-intent schema audit completed.
+```
+
+Task:
+
+```text
+spoken command audio -> retrieve the correct intent-as-tool document
+```
+
+This is the third recognized semantic task family in the current frozen cycle,
+after FLEURS transcript-candidate matching and HeySQuAD spoken QA/RAG. It uses
+direct omni audio queries and compares different candidate-side tool schemas.
+
+#### SLURP 500
+
+| Audio Instruction | Tool Schema | Acc@1 | R@3 | MRR |
+|---|---|---:|---:|---:|
+| raw | basic label | 0.522 | 0.754 | 0.652 |
+| raw | tool schema card | 0.550 | 0.778 | 0.677 |
+| tool_specific_intent | basic label | 0.360 | 0.544 | 0.491 |
+| tool_specific_intent | tool schema card | 0.582 | 0.772 | 0.690 |
+| raw | example-augmented tool card | 0.888 | 0.944 | 0.921 |
+| raw | contrastive boundary tool card | 0.894 | 0.946 | 0.926 |
+| tool_specific_intent | example-augmented tool card | 0.858 | 0.928 | 0.896 |
+| tool_specific_intent | contrastive boundary tool card | 0.880 | 0.930 | 0.912 |
+
+Paired evidence:
+
+```text
+raw basic -> raw boundary:
+  Acc@1 delta +0.372, CI95 [0.328, 0.418]
+  fixes 193, regressions 7
+
+raw boundary -> tool_specific boundary:
+  Acc@1 delta -0.014, CI95 [-0.032, 0.004]
+  fixes 8, regressions 15
+```
+
+#### MInDS-14 en-US 180
+
+| Audio Instruction | Tool Schema | Acc@1 | R@3 | MRR |
+|---|---|---:|---:|---:|
+| raw | basic label | 0.856 | 0.956 | 0.907 |
+| raw | tool schema card | 0.883 | 0.972 | 0.931 |
+| raw | example-augmented tool card | 0.950 | 0.989 | 0.971 |
+| raw | contrastive boundary tool card | 0.956 | 0.989 | 0.973 |
+| tool_specific_intent | example-augmented tool card | 0.967 | 0.994 | 0.980 |
+| tool_specific_intent | contrastive boundary tool card | 0.972 | 0.994 | 0.984 |
+
+Paired evidence:
+
+```text
+raw basic -> raw boundary:
+  Acc@1 delta +0.100, CI95 [0.050, 0.156]
+  fixes 22, regressions 4
+
+raw boundary -> tool_specific boundary:
+  Acc@1 delta +0.017, CI95 [0.000, 0.039]
+  fixes 3, regressions 0
+```
+
+Interpretation:
+
+- The stable training-free tool/intent gain comes from candidate-side schema
+  enrichment, especially example cards and contrastive boundary cards.
+- A task-specific audio instruction is not universally beneficial. It hurts on
+  SLURP under the best boundary schema and helps slightly on MInDS.
+- The current safe default for tool semantics is:
+
+```text
+raw audio instruction + contrastive boundary tool cards
+```
+
+Use task-specific audio instructions only behind validation evidence and a
+regression gate.
 
 ## Acceptance Criteria
 
