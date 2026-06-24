@@ -407,3 +407,42 @@ Consequence:
 - The immediate plan should rerun and extend frozen baselines only.
 - LoRA/RL weight updates may resume after the frozen semantic benchmark suite is
   stable, aligned, and reproducible.
+
+## D018: Treat conservative low-margin rerank as a verified policy component
+
+Date: 2026-06-24
+
+Decision:
+
+Use conservative low-margin rerank as a first-class training-free policy
+component for semantic QA/RAG-style retrieval tasks.
+
+The policy is:
+
+```text
+1. run frozen direct omni retrieval with task-appropriate candidate wrappers;
+2. compute top-1/top-2 score margin;
+3. route only low-margin rows to rerank;
+4. keep the embedding top-1 unless the reranker has unambiguous evidence for
+   an override;
+5. report route rate, fixes, regressions, and paired confidence intervals.
+```
+
+Reason:
+
+- URO QA boundary cards raise Acc@1 from 0.380 to 0.715, but leave 57/200
+  errors concentrated in low-margin rows.
+- Standard LLM rerank improves accuracy but introduces regressions.
+- Conservative LLM rerank with `margin <= 0.02` reaches Acc@1 0.845 with 26
+  fixes and 0 observed regressions.
+- The no-regression condition is now Lean-checkable in
+  `docs/lean/conservative_rerank_gate.lean`.
+
+Consequence:
+
+- Rerank is not accepted as a free-form magic step. It is accepted only under a
+  conservative override gate.
+- The proof burden is explicit: accepted overrides must not break rows where
+  the base embedding top-1 was already correct.
+- Next experiments should test whether this policy transfers from URO QA to
+  recognized-source HeySQuAD / Spoken-SQuAD speech RAG.

@@ -527,3 +527,35 @@ Prepare a non-overlapping HeySQuAD validation/test subset, then run:
 3. final-answer evaluation,
 4. low-margin rerank / accept gate.
 ```
+
+### Theory Completeness Audit
+
+Current formal support is enough for the narrow training-free semantic policy
+claim:
+
+```text
+conditioning can expose task-relevant factors;
+candidate/query wrappers change retrieval margins;
+accepted policies require paired gain and bounded regression;
+conservative rerank is no-regression if accepted overrides are correct.
+```
+
+Lean files checked locally:
+
+```text
+docs/lean/conditioning_utility.lean
+docs/lean/unified_policy_surface.lean
+docs/lean/uro_badcase_margin.lean
+docs/lean/conservative_rerank_gate.lean
+```
+
+Remaining proof/evidence gaps:
+
+```text
+1. recognized-source QA/RAG needs larger locked test evidence;
+2. final answer utility is not implied by passage retrieval;
+3. conservative rerank has only been validated on URO QA so far;
+4. utility weights should remain reported as separate metrics until calibrated;
+5. frozen-only semantic policy is supported, but unified learned model / RL
+   claims are not yet supported.
+```

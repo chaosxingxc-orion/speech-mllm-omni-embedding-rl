@@ -180,6 +180,11 @@ The current theory is not yet sufficient in these areas:
 4. Operator A overfits if the arm space grows without regularization.
 5. The current migrated code can plan and audit runs, but the full model-heavy
    runner still bridges to legacy scripts.
+6. Rerank and answer-generation stages introduce an additional verifier
+   premise. A reranker can improve low-margin misses but also regress old hits
+   unless override acceptance is constrained.
+7. Current recognized-source QA/RAG evidence is still a 60-example HeySQuAD
+   smoke. It supports the direction but is not enough for final paper claims.
 
 ## 8. Recommended Experimental Checks
 
@@ -280,3 +285,124 @@ This explains why `policy_grounding` improves URO QA/reasoning from 0.380 to
 candidate-side structure or a task gate.  The oracle subtask-gated diagnostic
 raises `policy_grounding` to 0.540, confirming that cross-subtask distractors
 are a real part of the margin bottleneck.
+
+## 11. Conservative Low-Margin Rerank
+
+The URO boundary-card experiment shows that a strong candidate wrapper can
+raise direct retrieval from an unusable proxy to a usable intermediate state:
+
+```text
+raw target_text                 Acc@1 = 0.380
+target_boundary_card + raw      Acc@1 = 0.715
+```
+
+The residual errors are concentrated in low-margin rows.  For a base ranking
+with top-1 candidate `d1` and top-2 candidate `d2`, define:
+
+```text
+gap(q) = score(q, d1) - score(q, d2)
+route(q) iff gap(q) <= tau
+```
+
+A low-margin reranker chooses whether to override the base top-1:
+
+```text
+base(q)      = d1
+rerank(q)    = argmax_{d in top-k} Judge(q, d)
+deploy(q)    = rerank(q) if route(q) and accept_override(q)
+             = base(q) otherwise
+```
+
+The important proof obligation is not:
+
+```text
+Judge is always correct.
+```
+
+That is too strong and empirically false.  The required condition is narrower:
+
+```text
+If base(q) is correct, then an accepted override must also be correct.
+```
+
+Under that premise, a conservative rerank gate is no-regression on old hits.
+This is Lean-checkable in:
+
+```text
+docs/lean/conservative_rerank_gate.lean
+```
+
+Empirical status on URO QA/reasoning:
+
+| Policy | Route rate | Fixes | Regressions | Acc@1 |
+|---|---:|---:|---:|---:|
+| boundary-card raw | 0.0% | - | - | 0.715 |
+| standard LLM rerank, `tau=0.02` | 44.5% | 25 | 5 | 0.815 |
+| conservative LLM rerank, `tau=0.02` | 44.5% | 26 | 0 | 0.845 |
+
+The standard LLM reranker violates the no-regression premise.  The conservative
+prompt makes the premise closer to true by treating the embedding top-1 as the
+default and requiring strong evidence before overriding.
+
+This result strengthens the overall theory:
+
+```text
+candidate wrapper increases base margin
+margin threshold identifies uncertain rows
+conservative rerank fixes a subset of low-margin errors
+accept-gate premise protects old hits
+```
+
+The next formal step is to turn the prompt-level conservative behavior into an
+explicit accept predicate with features such as:
+
+```text
+LLM confidence
+answer-span support
+candidate task consistency
+base margin
+whether the override is cross-task rescue or same-task neighbor replacement
+```
+
+Only accepted overrides should count as policy changes.
+
+## 12. Evidence Sufficiency Audit
+
+The project has a coherent research mainline, but the evidence is uneven across
+task families.
+
+### Strongest evidence so far
+
+| Claim | Evidence | Status |
+|---|---|---|
+| Task-conditioned interfaces matter | URO QA boundary cards improve Acc@1 by +0.335 over raw target text | strong within URO QA |
+| Margin is a useful policy signal | low-margin conservative rerank improves URO QA boundary-card Acc@1 by +0.130 with 0 observed regressions | strong diagnostic |
+| Recognized-source Speech RAG is feasible | HeySQuAD human spoken question -> passage retrieval: policy_grounding MRR delta +0.045, CI95 [0.0065, 0.0944] | promising smoke |
+| One universal instruction is unsafe | translation instruction damages oracle text-route retrieval in prior unified policy audit | strong guardrail |
+
+### Insufficient evidence
+
+| Gap | Why it matters | Required next step |
+|---|---|---|
+| HeySQuAD is only 60 examples | public dataset evidence is still underpowered | prepare non-overlapping validation/test subsets and rerun |
+| RAG final answer not yet rerun on recognized-source data | passage retrieval is not final task utility | run final-answer evaluation on HeySQuAD/Spoken-SQuAD |
+| Conservative rerank tested only on URO QA | may overfit URO task mixture | test on HeySQuAD passage retrieval and answer utility |
+| Tool/intent evidence partly uses transformed labels | source is recognized but task is project-defined | rerun on SLURP/MInDS with clear transformation protocol |
+| Utility weights are not calibrated | can change accept/reject decisions | report primary metrics and penalties separately before weighted utility |
+
+Therefore the current paper-ready claim should be narrow:
+
+```text
+Frozen speech omni-embedding can be made more usable on semantic agentic tasks
+by task-conditioned candidate/query interfaces and conservative low-margin
+rerank, but final claims must be validated per task family on recognized-source
+benchmarks.
+```
+
+It should not yet claim:
+
+```text
+one unified policy solves all speech agentic tasks
+or
+instruction optimization alone is sufficient for final QA/RAG answer utility.
+```
