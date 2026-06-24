@@ -270,6 +270,12 @@ ar->en full locked test, raw target_text -> raw boundary_card:
   Acc@1 delta +0.117, CI95 [0.099, 0.138]
   MRR delta +0.089, CI95 [0.076, 0.102]
   fixes 251, regressions 52
+
+ar->en full validation-selected margin gate:
+  selected rule = use boundary card when boundary-card top-1 margin >= 0.000113964
+  validation Acc@1 = 0.698, MRR = 0.764, regressions vs raw = 47
+  locked-test Acc@1 = 0.752, MRR = 0.815, regressions vs raw = 48
+  outcome = slightly safer than always-boundary, but not more accurate
 ```
 
 Interpretation:
@@ -283,6 +289,9 @@ Interpretation:
 - On full ar->en, validation selection and locked-test reporting agree, making
   this the current strongest speech-translation evidence for candidate-side
   schema enrichment.
+- A simple margin gate reduces a few regressions but does not beat the
+  always-boundary policy on locked-test Acc@1.  It should be treated as a
+  conservative safety variant, not the main policy.
 
 ### P4: Add speech-RAG from recognized sources
 

@@ -1194,3 +1194,38 @@ score calibration
 route policy over omni outputs
 lightweight policy / LoRA / RL adaptation
 ```
+
+## 2026-06-24: Test CoVoST2 ar->en Margin Gate
+
+Changed:
+- Added `scripts/candidate_policy_gate.py`.
+- Ran a validation-selected gate between raw target text and boundary-card
+  candidates on full CoVoST2 ar->en validation/test outputs.
+
+Reason:
+- Full boundary cards improve strongly but still regress some raw-correct rows.
+- We need to know whether a simple uncertainty gate can keep the gain while
+  reducing regressions.
+
+Evidence:
+- Best validation gate:
+
+```text
+use boundary card if boundary-card top-1 margin >= 0.000113964
+otherwise use raw target text
+```
+
+- Validation:
+  - gate Acc@1 = 0.698, MRR = 0.764.
+  - always-boundary Acc@1 = 0.695, MRR = 0.763.
+  - gate regressions vs raw = 47 vs always-boundary 57.
+- Locked test:
+  - gate Acc@1 = 0.752, MRR = 0.815.
+  - always-boundary Acc@1 = 0.753, MRR = 0.816.
+  - gate regressions vs raw = 48 vs always-boundary 52.
+
+Impact:
+- The gate is a useful conservative variant, but not a better main policy.
+- For CoVoST2 ar->en, always-boundary remains the best current Acc@1 policy.
+- Future gates need richer uncertainty features or downstream answer/utility
+  rewards to justify the added complexity.

@@ -202,11 +202,49 @@ raw target text for high-margin raw rows
 boundary card for low-confidence or hard language-pair rows
 ```
 
+### Full Split Margin-Gate Follow-Up
+
+We tested a validation-selected gate between raw target text and boundary-card
+candidates using only cached row-level retrieval outputs.  The best validation
+policy was:
+
+```text
+use boundary card if boundary-card top-1 margin >= 0.000113964
+otherwise use raw target text
+```
+
+Validation:
+
+| Policy | Acc@1 | MRR | Boundary Rate | Fixes vs Raw | Regressions vs Raw |
+|---|---:|---:|---:|---:|---:|
+| raw target text | 0.579 | 0.678 | 0.000 | 0 | 0 |
+| always boundary card | 0.695 | 0.763 | 1.000 | 261 | 57 |
+| selected margin gate | 0.698 | 0.764 | 0.981 | 256 | 47 |
+
+Locked test:
+
+| Policy | Acc@1 | MRR | Boundary Rate | Fixes vs Raw | Regressions vs Raw |
+|---|---:|---:|---:|---:|---:|
+| raw target text | 0.635 | 0.727 | 0.000 | 0 | 0 |
+| always boundary card | 0.753 | 0.816 | 1.000 | 251 | 52 |
+| selected margin gate | 0.752 | 0.815 | 0.983 | 245 | 48 |
+
+Interpretation:
+
+```text
+margin gating slightly reduces regressions
+but does not improve locked-test Acc@1 over always-boundary
+```
+
+Therefore the current deployable policy for `ar->en` remains always using
+boundary cards, with margin gating recorded as a conservative safety variant
+rather than a stronger policy.
+
 ## Next Actions
 
 - Use raw target text as the default for high-performing language pairs such as
   zh-CN->en.
 - Keep target boundary cards as an optional policy arm for harder language
   pairs such as ar->en.
-- Test low-margin or disagreement gating to reduce boundary-card regressions
-  after the language-pair-specific candidate policy is selected.
+- For ar->en, keep always-boundary as the current best policy; revisit gating
+  only with richer uncertainty features or a true downstream task metric.
