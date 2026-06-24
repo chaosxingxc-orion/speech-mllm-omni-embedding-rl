@@ -471,3 +471,57 @@ Status: `audio_rag_answer_eval.py` has been rewritten as
 `src/omni_embedding_rl/tasks/rag_answer.py`. The answer-key builder is still not
 migrated because its historical Chinese keys are corrupted and should be rebuilt
 from clean source data.
+
+## 2026-06-24: Current Semantic QA/RAG Status
+
+### URO QA / Reasoning
+
+The best deployable training-free URO QA wrapper is currently:
+
+```text
+candidate field: target_boundary_card
+audio instruction: raw
+Acc@1: 0.715
+R@3: 0.825
+MRR: 0.786
+```
+
+Low-margin rerank confirms that score gap is the right next policy variable:
+
+```text
+LLM rerank, margin <= 0.01: Acc@1 0.785, fixes 18, regressions 4
+LLM rerank, margin <= 0.02: Acc@1 0.815, fixes 25, regressions 5
+```
+
+Next action:
+
+```text
+Add a rerank accept gate so LLM overrides require confidence plus answer-span
+evidence. Do not route high-margin correct cases.
+```
+
+### Recognized-Source Speech QA/RAG
+
+Synthetic RAG should not be the primary evidence source. The first public
+replacement is HeySQuAD human spoken-question QA:
+
+```text
+dataset: HeySQuAD human train60 smoke
+task: spoken question audio -> SQuAD passage context retrieval
+best arm: policy_grounding
+raw text Acc@1: 0.833
+policy_grounding text Acc@1: 0.867
+raw MRR: 0.848
+policy_grounding MRR: 0.893
+paired MRR CI95: [0.0065, 0.0944]
+```
+
+Next action:
+
+```text
+Prepare a non-overlapping HeySQuAD validation/test subset, then run:
+1. passage retrieval,
+2. answer candidate retrieval,
+3. final-answer evaluation,
+4. low-margin rerank / accept gate.
+```

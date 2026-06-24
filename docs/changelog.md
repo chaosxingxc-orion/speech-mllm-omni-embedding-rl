@@ -833,3 +833,40 @@ Impact:
   upgrade on URO QA/reasoning.
 - The policy surface should use soft candidate structure by default.
 - Hard task gates require a better gate or confidence rule before deployment.
+
+## 2026-06-24: Add Low-Margin Rerank and Recognized-Source QA/RAG Evidence
+
+Changed:
+- Added `scripts/uro_qa_low_margin_rerank.py`.
+- Added `docs/bugs/issue-004-uro-qa-boundary-card-margin-rerank.md`.
+- Ran low-margin rerank on URO QA/reasoning boundary-card results.
+- Ran HeySQuAD human spoken-question retrieval as the first recognized-source
+  speech QA/RAG smoke beyond synthetic RAG.
+
+Reason:
+- Boundary cards still leave 57/200 URO QA errors and 3 regressions against raw
+  target text.
+- Synthetic RAG is too risky as the main QA/RAG evidence source; we need public
+  spoken QA datasets with recognized provenance.
+
+Evidence:
+- URO boundary-card residual errors are concentrated in the low-margin tail:
+  `margin <= 0.01` covers 31/57 errors, and `margin <= 0.02` covers 45/57.
+- Oracle low-margin rerank upper bounds:
+  - `margin <= 0.01`: Acc@1 0.805, route rate 28.0%, fixes 18, regressions 0.
+  - `margin <= 0.02`: Acc@1 0.860, route rate 44.5%, fixes 29, regressions 0.
+- DeepSeek low-margin rerank:
+  - `margin <= 0.01`: Acc@1 0.785, fixes 18, regressions 4.
+  - `margin <= 0.02`: Acc@1 0.815, fixes 25, regressions 5.
+- HeySQuAD human spoken question -> passage retrieval:
+  - raw direct omni text Acc@1 0.833, R@3 0.833, MRR 0.848.
+  - `policy_grounding` text Acc@1 0.867, R@3 0.900, MRR 0.893.
+  - paired Acc@1 delta +0.033, CI95 [0.000, 0.083]; MRR delta +0.045,
+    CI95 [0.0065, 0.0944]; fixes 2, regressions 0.
+
+Impact:
+- Margin is now an operational routing/rerank signal, not just a diagnostic.
+- Rerank needs an accept gate because the LLM can introduce regressions even
+  when the oracle top-k contains the answer.
+- HeySQuAD should become the main recognized-source QA/RAG path; synthetic RAG
+  should remain a controlled diagnostic rather than the paper's main dataset.

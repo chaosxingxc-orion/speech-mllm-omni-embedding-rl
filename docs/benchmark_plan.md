@@ -65,7 +65,7 @@ project-specific synthetic tasks only as controlled diagnostics
 |---|---|---|
 | URO-Bench mini QA/reasoning subsets | includes OpenbookQA-zh, SQuAD-zh, Gsm8kEval, GaokaoEval, HSK5-zh, TruthfulEval, StoralEval, MuChoEval-en | speech QA/reasoning candidate retrieval and final-answer diagnostics |
 | Spoken-SQuAD | spoken QA dataset derived from SQuAD | speech QA baseline and ASR-error stress |
-| HeySQuAD | spoken QA resource with human-spoken and synthetic spoken questions | human-spoken QA robustness |
+| HeySQuAD | spoken QA resource with human-spoken and synthetic spoken questions; official project reports 76k human-spoken questions and 97k machine-generated questions over SQuAD-style answers | human-spoken QA robustness and recognized-source speech RAG |
 | SQuAD-SRC | multi-accent spoken reading comprehension | accent-sensitive speech QA |
 
 ### Speech RAG
@@ -1061,9 +1061,12 @@ Immediate runs:
 Current caveat:
 
 ```text
-The first HF smoke source is spoken-context QA rather than spoken-question QA.
-Keep it as a pipeline smoke; continue searching for a source that exposes
-spoken question audio with passage ids or align this mirror back to SQuAD.
+The HF Spoken-SQuAD mirror currently prepared in this workspace is spoken-context
+QA, not spoken-question QA. Keep it as a pipeline smoke.
+
+HeySQuAD human is now the preferred recognized-source speech QA/RAG seed because
+the prepared manifest contains human-spoken question audio, noisy transcript,
+gold text question, SQuAD-style passage context, and answer aliases.
 ```
 
 ### Batch C: Tool/intent rerun with existing data
@@ -1104,6 +1107,51 @@ Immediate runs:
 3. direct omni audio retrieval
 4. taxonomy arms
 5. final answer utility
+```
+
+Current first result:
+
+```text
+Dataset: HeySQuAD human, train split, first 60 examples.
+Task: spoken question audio -> passage context retrieval.
+Candidate field: context.
+Model: frozen direct omni audio query -> text document embedding.
+
+raw              text Acc@1 0.833, R@3 0.833, MRR 0.848
+semantic_qa      text Acc@1 0.850, R@3 0.850, MRR 0.863
+policy_grounding text Acc@1 0.867, R@3 0.900, MRR 0.893
+transcript_like  text Acc@1 0.817, R@3 0.817, MRR 0.833
+
+Paired raw -> policy_grounding:
+Acc@1 delta +0.033, bootstrap CI95 [0.000, 0.083]
+MRR delta +0.045, bootstrap CI95 [0.0065, 0.0944]
+fixes 2, regressions 0
+```
+
+Interpretation:
+
+```text
+For recognized-source speech RAG, direct answer retrieval is too hard, but
+spoken question -> passage retrieval is already useful. The policy_grounding
+instruction improves ranking quality without regressions in this 60-example
+smoke. This should replace synthetic-only RAG as the main QA/RAG evidence path.
+```
+
+Relevant public sources:
+
+```text
+HeySQuAD project: https://github.com/yijingjoanna/HeySQuAD
+HeySQuAD human HF dataset: https://huggingface.co/datasets/yijingwu/HeySQuAD_human
+Spoken-SQuAD project: https://github.com/Chia-Hsuan-Lee/Spoken-SQuAD
+```
+
+Important caveat:
+
+```text
+HeySQuAD train60 is still a small smoke, not final evidence. The next formal
+step is to prepare a non-overlapping validation/test subset, then run passage
+retrieval, answer candidate retrieval, and final-answer evaluation with locked
+split discipline.
 ```
 
 ### Batch E: Speech translation
