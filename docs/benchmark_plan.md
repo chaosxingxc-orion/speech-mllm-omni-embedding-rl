@@ -364,6 +364,53 @@ summarization subsets are too easy in the mini set and should be treated as
 sanity checks, not optimization targets.
 ```
 
+### URO-Bench QA/reasoning bad-case diagnosis
+
+Raw vs `policy_grounding` groups:
+
+| Group | Count |
+|---|---:|
+| fixed by `policy_grounding` | 18 |
+| regressed by `policy_grounding` | 1 |
+| still wrong | 106 |
+| correct under both | 75 |
+
+Main error categories:
+
+| Error class | Evidence | Mathematical implication |
+|---|---|---|
+| cross-subtask distractor | 54 still-wrong rows have raw top-1 from another URO subtask | use task gate to reduce top-negative score |
+| under-specified short answer | many targets are only letters or short spans | use candidate answer cards; query instruction alone cannot make weak candidate text discriminative |
+| long-context reasoning/story | GaokaoEval, HSK5-zh, and StoralEval remain hard | use rerank/reasoning stage after retrieval |
+| music/audio attribute answer | MuCho improves from 0.120 to 0.320 in flat pool and 0.360 with subtask gate | use task-specific instruction or candidate schema |
+
+Oracle subtask-gate upper bound:
+
+| Candidate pool | Instruction | Acc@1 | R@3 | MRR |
+|---|---|---:|---:|---:|
+| flat QA/reasoning pool, 200 candidates | raw | 0.380 | 0.580 | 0.488 |
+| flat QA/reasoning pool, 200 candidates | policy_grounding | 0.465 | 0.595 | 0.544 |
+| oracle subtask pool, 25 candidates | raw | 0.475 | 0.645 | 0.587 |
+| oracle subtask pool, 25 candidates | policy_grounding | 0.540 | 0.665 | 0.631 |
+
+Interpretation:
+
+```text
+The first mathematical bottleneck is margin.  Hit@1 requires the gold score to
+exceed the highest negative score.  Audio-side instruction helps only when it
+raises the gold-vs-negative margin.  If the top negative is a cross-subtask
+distractor, task gating can lower the top-negative score.  If the candidate is
+only a short answer such as "B" or "第七条", candidate-side answer cards are
+required because query-side instruction cannot make an under-specified target
+embedding uniquely discriminative.
+```
+
+The Lean-checkable proof skeleton is:
+
+```text
+docs/lean/uro_badcase_margin.lean
+```
+
 ### FLEURS transcript-candidate retrieval
 
 Task:

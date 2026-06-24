@@ -229,3 +229,54 @@ The next optimization path should be:
 4. Never accept a new policy only because it wins selection reward; require
    locked-test utility and regression checks.
 
+## 10. URO-Bench Margin Diagnosis
+
+The URO-Bench QA/reasoning result adds a stricter retrieval-margin view of why
+some training-free policies help and why they stop helping.
+
+For a query `q`, gold candidate `d+`, and negatives `d-`, define:
+
+```text
+score(q, d) = cosine(E_audio(q, instruction), E_text(d))
+margin(q) = score(q, d+) - max_{d-} score(q, d-)
+hit@1(q) iff margin(q) > 0
+```
+
+An audio-side instruction can rescue a row only if:
+
+```text
+Delta_margin =
+  [score_new(q, d+) - score_old(q, d+)]
+  -
+  [score_new(q, d_top_negative) - score_old(q, d_top_negative)]
+
+margin_old(q) + Delta_margin > 0
+```
+
+This separates three intervention types:
+
+| Intervention | Mathematical effect | Example |
+|---|---|---|
+| query instruction | increases gold-vs-negative relative query alignment | `policy_grounding` on URO QA |
+| candidate wrapper | increases discriminative candidate information | answer cards for short targets |
+| task gate | removes high-scoring irrelevant negatives | subtask-gated URO QA |
+
+The key negative result is:
+
+```text
+If candidate text is under-specified and the query instruction does not
+increase the gold score more than the top negative score, ranking cannot
+improve.
+```
+
+The Lean-checkable skeleton is:
+
+```text
+docs/lean/uro_badcase_margin.lean
+```
+
+This explains why `policy_grounding` improves URO QA/reasoning from 0.380 to
+0.465 but cannot make the task fully usable.  Many remaining rows need either
+candidate-side structure or a task gate.  The oracle subtask-gated diagnostic
+raises `policy_grounding` to 0.540, confirming that cross-subtask distractors
+are a real part of the margin bottleneck.

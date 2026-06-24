@@ -771,3 +771,33 @@ Impact:
   larger or harder split shows top-1 improvement.
 - Saturated URO subsets should remain sanity checks; they should not drive
   policy search.
+
+## 2026-06-24: Diagnose URO QA Bad Cases With Margin Theory
+
+Changed:
+- Added `docs/bugs/issue-003-uro-qa-policy-grounding-badcases.md`.
+- Added Lean-checkable margin skeleton at `docs/lean/uro_badcase_margin.lean`.
+- Extended `docs/theory.md` and `docs/benchmark_plan.md` with the margin
+  diagnosis.
+- Ran an oracle subtask-gated URO QA/reasoning diagnostic.
+
+Reason:
+- The project needed to explain why `policy_grounding` improves URO
+  QA/reasoning but still stops at Acc@1 = 0.465.
+- A single global audio instruction cannot solve candidate-side
+  under-specification or cross-subtask distractors.
+
+Evidence:
+- `policy_grounding` fixes 18 raw failures and introduces 1 regression.
+- Remaining errors include 54 cross-subtask distractors and 21
+  under-specified short-answer cases.
+- Oracle subtask-gated retrieval raises:
+  - raw from 0.380 to 0.475.
+  - `policy_grounding` from 0.465 to 0.540.
+
+Impact:
+- The next optimization step should be task gating and candidate answer cards,
+  not another unstructured global instruction search.
+- The mathematical acceptance criterion is margin-based: an intervention must
+  either raise the gold score relative to the top negative, enrich the candidate
+  side, or remove high-scoring irrelevant negatives.

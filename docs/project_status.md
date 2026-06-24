@@ -352,6 +352,15 @@ TODO before paper submission:
   Acc@1 delta (+0.008, CI [-0.040, 0.056]) but improves MRR by +0.039.  Tool,
   ASR-like repeat, and summarization subsets are saturated in URO mini, so they
   are sanity checks rather than current optimization targets.
+- URO QA/reasoning bad-case analysis is complete enough to guide the next
+  experiment.  Remaining failures split into cross-subtask distractors,
+  under-specified short answers, long-context reasoning/story cases, and music
+  attribute answers.  Oracle subtask gating raises `policy_grounding` from
+  0.465 to 0.540, validating the margin analysis: some gains must come from
+  reducing the top-negative score or enriching candidate text, not from another
+  global audio instruction.  See
+  `docs/bugs/issue-003-uro-qa-policy-grounding-badcases.md` and
+  `docs/lean/uro_badcase_margin.lean`.
 
 ## Legacy Code Triage
 
