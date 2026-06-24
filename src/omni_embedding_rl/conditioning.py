@@ -11,16 +11,20 @@ from speechrl_common.models.prompts import instruction_for
 # conditioning name -> task_prompt passed to embed_batch (None = vanilla baseline)
 CONDITIONINGS: dict[str, str | None] = {
     "baseline": None,
-    "content": instruction_for("asr"),   # "Transcribe the spoken audio into text, verbatim."
-    "emotion": instruction_for("ser"),   # "Identify the speaker's emotion from the audio."
-    "speaker": instruction_for("sid"),   # "Identify who is speaking in the audio."
+    "content": instruction_for("asr"),    # "Transcribe the spoken audio into text, verbatim."
+    "emotion": instruction_for("ser"),     # "Identify the speaker's emotion from the audio."
+    "speaker": instruction_for("sid"),     # "Identify who is speaking in the audio."
+    "intent": instruction_for("intent"),   # "Identify the speaker's intent from the audio." (SLU)
+    "lid": instruction_for("lid"),         # "Identify the spoken language in the audio." (language-ID)
 }
 
-# which CREMA-D factor each non-baseline conditioning is meant to elicit
+# which factor each non-baseline conditioning is meant to elicit
 CONDITIONING_FACTOR: dict[str, str] = {
     "content": "content",
     "emotion": "emotion",
     "speaker": "speaker",
+    "intent": "intent",
+    "lid": "lid",
 }
 
 # content = sentence-ID (12 fixed sentences); emotion = 6 classes; speaker = 91 ids.

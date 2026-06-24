@@ -1,0 +1,16 @@
+# MINDS-14 — language+intent (SLU) factor on the frozen omni-embedding (Operator A).
+# The UNTESTED factor family: is "intent" readable from / steerable in the frozen embedding?
+# One language (en-US) so intent is a clean 14-way factor (chance ~= 1/14 = 0.071). Audio lives in the
+# HF parquet; data_minds14 decodes + resamples to 16 kHz. Intent-balanced seeded dev/test.
+name: minds14
+loader: minds14
+root: ${oc.env:SPEECHRL_DATA_DIR,${oc.env:HOME}/speechrl-data}/datasets/minds14
+task: intent
+factors: [intent]
+# baseline + contrasts (content/emotion) + the target intent conditioning — tests the falsifiable
+# inequality A_intent(e_intent) > A_intent(e_baseline) and whether intent-conditioning is best for intent.
+conditionings: [baseline, content, emotion, intent]
+loader_kwargs: { lang: en-US }
+sample_rate: 16000
+dev_size: 280     # 14 intents x ~20
+test_size: 280
