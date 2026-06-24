@@ -491,13 +491,15 @@ Low-margin rerank confirms that score gap is the right next policy variable:
 ```text
 LLM rerank, margin <= 0.01: Acc@1 0.785, fixes 18, regressions 4
 LLM rerank, margin <= 0.02: Acc@1 0.815, fixes 25, regressions 5
+Conservative LLM rerank, margin <= 0.02: Acc@1 0.845, fixes 26, regressions 0
 ```
 
 Next action:
 
 ```text
-Add a rerank accept gate so LLM overrides require confidence plus answer-span
-evidence. Do not route high-margin correct cases.
+Treat conservative low-margin rerank as the current best deployable URO QA
+policy, then test whether the same gate transfers to HeySQuAD final-answer
+evaluation. Do not route high-margin correct cases.
 ```
 
 ### Recognized-Source Speech QA/RAG

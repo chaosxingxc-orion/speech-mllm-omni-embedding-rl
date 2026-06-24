@@ -858,6 +858,9 @@ Evidence:
 - DeepSeek low-margin rerank:
   - `margin <= 0.01`: Acc@1 0.785, fixes 18, regressions 4.
   - `margin <= 0.02`: Acc@1 0.815, fixes 25, regressions 5.
+- Conservative DeepSeek low-margin rerank:
+  - `margin <= 0.02`: Acc@1 0.845, fixes 26, regressions 0.
+  - paired delta against boundary-card raw +0.130, CI95 [0.085, 0.180].
 - HeySQuAD human spoken question -> passage retrieval:
   - raw direct omni text Acc@1 0.833, R@3 0.833, MRR 0.848.
   - `policy_grounding` text Acc@1 0.867, R@3 0.900, MRR 0.893.
@@ -866,7 +869,7 @@ Evidence:
 
 Impact:
 - Margin is now an operational routing/rerank signal, not just a diagnostic.
-- Rerank needs an accept gate because the LLM can introduce regressions even
-  when the oracle top-k contains the answer.
+- Rerank needs conservative override behavior because the LLM can introduce
+  regressions even when the oracle top-k contains the answer.
 - HeySQuAD should become the main recognized-source QA/RAG path; synthetic RAG
   should remain a controlled diagnostic rather than the paper's main dataset.

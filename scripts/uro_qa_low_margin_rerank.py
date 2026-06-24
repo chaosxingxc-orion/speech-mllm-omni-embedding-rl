@@ -65,7 +65,7 @@ def _candidate_label(index: int) -> str:
     return chr(ord("A") + index)
 
 
-def _make_prompt(row: dict[str, Any], top_k: int) -> str:
+def _make_prompt(row: dict[str, Any], top_k: int, prompt_style: str) -> str:
     candidates = []
     for index, candidate in enumerate(row.get("scores", [])[:top_k]):
         candidates.append(
@@ -77,15 +77,30 @@ def _make_prompt(row: dict[str, Any], top_k: int) -> str:
                 "retrieval_score": candidate.get("score", 0.0),
             }
         )
-    return (
+    base_prompt = (
         "You are a rule-constrained reranker for spoken QA retrieval.\n"
         "Choose the candidate that directly answers the spoken question. "
         "Use only the question and candidate cards. Do not prefer a candidate "
-        "just because its retrieval score is higher.\n\n"
-        f"Spoken question transcript:\n{row.get('query_text', '')}\n\n"
-        f"Candidates:\n{json.dumps(candidates, ensure_ascii=False, indent=2)}\n\n"
-        "Return strict JSON only with this schema:\n"
-        "{\"choice\":\"A\", \"confidence\":0.0, \"reason_tags\":[\"...\"]}"
+        "just because its retrieval score is higher.\n"
+    )
+    if prompt_style == "conservative":
+        base_prompt += (
+            "\nCandidate A is the embedding model's current top-1. Keep A unless "
+            "another candidate is unambiguously better. Override A only when the "
+            "other candidate's answer is directly supported by the question text "
+            "and A is clearly wrong or irrelevant. If two candidates are both "
+            "plausible, choose A to avoid regression.\n"
+        )
+    return (
+        base_prompt
+        + "\n"
+        + f"Spoken question transcript:\n{row.get('query_text', '')}\n\n"
+        + f"Candidates:\n{json.dumps(candidates, ensure_ascii=False, indent=2)}\n\n"
+        + "Return strict JSON only with this schema:\n"
+        + (
+            "{\"choice\":\"A\", \"confidence\":0.0, "
+            "\"accept_override\":false, \"reason_tags\":[\"...\"]}"
+        )
     )
 
 
@@ -143,6 +158,7 @@ def _choose_with_llm(
     api_base: str,
     model: str,
     top_k: int,
+    prompt_style: str,
     timeout: int,
     max_retries: int,
     sleep_seconds: float,
@@ -151,7 +167,7 @@ def _choose_with_llm(
         api_key=api_key,
         api_base=api_base,
         model=model,
-        prompt=_make_prompt(row, top_k),
+        prompt=_make_prompt(row, top_k, prompt_style),
         timeout=timeout,
         max_retries=max_retries,
         sleep_seconds=sleep_seconds,
@@ -227,6 +243,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     api_base=args.api_base,
                     model=args.model,
                     top_k=args.top_k,
+                    prompt_style=args.prompt_style,
                     timeout=args.timeout,
                     max_retries=args.max_retries,
                     sleep_seconds=args.sleep_seconds,
@@ -257,6 +274,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "selected_sample_id": selected.get("sample_id", ""),
                 "selected_dataset_config": selected.get("dataset_config", ""),
                 "selected_text": selected.get("text", ""),
+                "hit_at_1": hit,
                 "rerank_hit_at_1": hit,
                 "base_hit_at_1": base_hit,
                 "rerank_detail": rerank_detail.get("llm_result", {}),
@@ -268,6 +286,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "input": str(args.input),
         "rerank_mode": args.rerank_mode,
         "model": args.model if args.rerank_mode == "llm" else "",
+        "prompt_style": args.prompt_style if args.rerank_mode == "llm" else "",
         "top_k": args.top_k,
         "margin_threshold": args.margin_threshold,
         "sample_count": len(output_rows),
@@ -295,6 +314,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-key-file", type=Path, default=None)
     parser.add_argument("--api-base", default="https://api.deepseek.com")
     parser.add_argument("--model", default="deepseek-chat")
+    parser.add_argument("--prompt-style", choices=("standard", "conservative"), default="standard")
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--sleep-seconds", type=float, default=1.0)

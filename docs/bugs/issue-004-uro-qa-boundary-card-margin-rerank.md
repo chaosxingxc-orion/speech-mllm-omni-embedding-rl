@@ -83,10 +83,23 @@ outputs.
 |---|---:|---:|---:|---:|
 | LLM rerank, margin <= 0.01 | 28.0% | 18 | 4 | 0.785 |
 | LLM rerank, margin <= 0.02 | 44.5% | 25 | 5 | 0.815 |
+| conservative LLM rerank, margin <= 0.02 | 44.5% | 26 | 0 | 0.845 |
 
 The LLM reranker captures a large fraction of the oracle gains, but it is not
-regression-free. The best current threshold is `margin <= 0.02` if maximizing
-accuracy, while `margin <= 0.01` is safer.
+regression-free under the standard prompt. A conservative override prompt,
+which tells the reranker to keep the embedding top-1 unless another candidate
+is unambiguously better, removes the observed regressions and becomes the best
+current deployable policy.
+
+Paired Acc@1 comparison against boundary-card raw:
+
+```text
+conservative LLM rerank, margin <= 0.02
+delta +0.130
+CI95 [0.085, 0.180]
+fixes 26
+regressions 0
+```
 
 ## Error Interpretation
 
@@ -110,10 +123,13 @@ embedding scores cannot resolve fine-grained alternatives. It fails when:
   - require LLM confidence and explicit answer-span match;
   - reject override when base top-1 is high-margin or candidate tasks agree but
     answer evidence is weak.
+- Use the conservative override prompt as the default rerank policy:
+  - route only low-margin rows;
+  - keep candidate A unless a non-A candidate is unambiguously better;
+  - report fix and regression counts alongside route rate.
 - Add a second-stage structured prompt for multiple-choice tasks that checks
   option letter and option text separately.
 - Report route-rate / fix-rate / regression-rate together; do not report
   rerank accuracy alone.
 - For paper evidence, prefer recognized-source QA/RAG datasets such as
   HeySQuAD and Spoken-SQuAD over synthetic RAG.
-
