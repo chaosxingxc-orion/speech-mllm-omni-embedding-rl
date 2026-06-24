@@ -1056,3 +1056,37 @@ Impact:
   when the candidate is already a full translation sentence.
 - Translation evaluation should use normalized target-text or semantic
   equivalence rather than exact row-id hit on duplicated FLEURS rows.
+
+## 2026-06-24: Add CoVoST2 Translation Semantic Diagnostics
+
+Changed:
+- Added `scripts/prepare_covost2_manifest.py` for the parquet-backed
+  `fixie-ai/covost2` mirror.
+- Added `docs/bugs/issue-008-covost2-translation-boundary-card-audit.md`.
+- Prepared CoVoST2 fr->en and ar->en 60-row validation manifests under the
+  ignored local data directory.
+- Ran direct-omni speech translation candidate retrieval with raw target text,
+  target boundary cards, and `translation_semantic` audio instruction.
+
+Reason:
+- The small FLEURS en->fr split was too saturated to test whether translation
+  can benefit from training-free policy changes.
+- The original `facebook/covost2` loader is blocked by recent `datasets`
+  loading-script restrictions; `fixie-ai/covost2` provides audio directly in
+  dataset rows.
+
+Evidence:
+- CoVoST2 fr->en 60:
+  - raw target text Acc@1 = 0.983.
+  - raw boundary card Acc@1 = 0.983.
+- CoVoST2 ar->en 60:
+  - raw target text Acc@1 = 0.700.
+  - raw boundary card Acc@1 = 0.767.
+  - paired delta +0.067, CI95 [0.017, 0.133], fixes = 4, regressions = 0.
+  - `translation_semantic` audio instruction regresses to Acc@1 = 0.683.
+
+Impact:
+- Speech translation now has a non-saturated recognized benchmark result.
+- Candidate-side boundary cards transfer beyond tool labels to harder
+  translation retrieval, but not to already-saturated/easy splits.
+- Audio-side task instructions still need validation gates before adoption.

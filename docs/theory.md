@@ -548,10 +548,37 @@ I(card(y); task_boundary | original_candidate(y)) > 0
 ```
 
 Tool labels satisfy this condition because short labels hide boundaries and
-examples.  Translation sentences often do not, because the full target sentence
-already contains the semantic content.  In that case the right fix is not
-another wrapper but a better equivalence relation:
+examples.  Easy translation diagnostics may not, because the full target
+sentence already contains the semantic content.  In that case the right fix is
+not another wrapper but a better equivalence relation:
 
 ```text
 row-id hit  ->  normalized target-text / semantic-equivalence hit
+```
+
+CoVoST2 ar->en is the harder counterexample.  Raw target-text retrieval reaches
+only Acc@1 = 0.700, and target boundary cards improve it to 0.767 with no
+observed regressions:
+
+```text
+raw target_text -> raw boundary_card:
+  delta +0.067, CI95 [0.017, 0.133]
+```
+
+So the refined rule is:
+
+```text
+if candidate text is short, ambiguous, or weakly aligned with the audio model,
+  candidate-side boundary cards can raise useful margins;
+if candidate text is already full and the task is saturated,
+  wrappers add little and evaluation equivalence matters more.
+```
+
+The risky intervention remains unvalidated audio-side instruction.  On CoVoST2
+ar->en, `translation_semantic` reduces Acc@1 from 0.700 to 0.683 under the raw
+candidate field.  This supports the broader acceptance rule:
+
+```text
+prefer candidate-side structure as a default;
+gate audio-side instruction changes by paired validation and regression checks.
 ```

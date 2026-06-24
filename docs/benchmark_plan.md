@@ -182,6 +182,7 @@ Status as of 2026-06-24:
 
 ```text
 FLEURS en->fr 57-row translation-candidate diagnostic completed.
+CoVoST2 fr->en and ar->en 60-row translation diagnostics completed.
 ```
 
 Task:
@@ -207,6 +208,37 @@ Interpretation:
 - The next useful translation experiment should be a larger / less duplicated
   benchmark such as CoVoST 2 or a deduplicated FLEURS subset, not more wrapper
   variants on this small split.
+
+CoVoST2 `fixie-ai/covost2` follow-up:
+
+| Dataset | Audio Instruction | Candidate Field | Acc@1 | R@3 | MRR | Note |
+|---|---|---|---:|---:|---:|---|
+| fr->en 60 | raw | `target_text` | 0.983 | 1.000 | 0.992 | saturated |
+| fr->en 60 | raw | `target_boundary_card` | 0.983 | 1.000 | 0.992 | no change |
+| ar->en 60 | raw | `target_text` | 0.700 | 0.867 | 0.780 | harder multilingual test |
+| ar->en 60 | raw | `target_boundary_card` | 0.767 | 0.817 | 0.805 | +0.067, 0 regressions |
+| ar->en 60 | translation_semantic | `target_text` | 0.683 | 0.800 | 0.755 | audio instruction regresses |
+| ar->en 60 | translation_semantic | `target_boundary_card` | 0.750 | 0.833 | 0.806 | below raw boundary |
+
+Paired evidence on ar->en:
+
+```text
+raw target_text -> raw boundary_card:
+  Acc@1 delta +0.067, CI95 [0.017, 0.133]
+  fixes 4, regressions 0
+
+raw target_text -> translation_semantic target_text:
+  Acc@1 delta -0.017, CI95 [-0.083, 0.050]
+  fixes 2, regressions 3
+```
+
+Interpretation:
+
+- CoVoST2 ar->en gives a non-saturated speech translation semantic task.
+- The same broad lesson repeats: candidate-side boundary cards are safer than
+  unvalidated audio-side task instructions.
+- The next translation step should scale ar->en to 200 rows and optionally add
+  another source language.
 
 ### P4: Add speech-RAG from recognized sources
 
