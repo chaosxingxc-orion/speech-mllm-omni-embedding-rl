@@ -516,3 +516,42 @@ regression gates support them
 
 This is a useful design rule for semantic tool calling because it improves the
 candidate geometry without requiring model training or a learned classifier.
+
+### Boundary Cards Are Task-Conditional
+
+The FLEURS en->fr translation diagnostic provides the complementary negative
+case.  For translation, the candidate is already a full target-language
+sentence:
+
+```text
+s_translation(x, y) = < E_audio(x, raw), E_text(target_translation(y)) >
+```
+
+Adding generic target-language or boundary metadata:
+
+```text
+card(y) = target_language + target_translation(y) + generic preservation rule
+```
+
+does not change the ranking on the 57-row diagnostic:
+
+| Candidate Field | Sample Acc@1 | Text Acc@1 |
+|---|---:|---:|
+| `target_text` | 0.860 | 0.982 |
+| `target_boundary_card` | 0.860 | 0.982 |
+
+So candidate-side enrichment is useful only when the added text increases
+task-relevant discriminative information:
+
+```text
+I(card(y); task_boundary | original_candidate(y)) > 0
+```
+
+Tool labels satisfy this condition because short labels hide boundaries and
+examples.  Translation sentences often do not, because the full target sentence
+already contains the semantic content.  In that case the right fix is not
+another wrapper but a better equivalence relation:
+
+```text
+row-id hit  ->  normalized target-text / semantic-equivalence hit
+```

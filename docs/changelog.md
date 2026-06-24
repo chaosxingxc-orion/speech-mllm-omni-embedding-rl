@@ -1024,3 +1024,35 @@ raw audio instruction + contrastive boundary tool cards
   instruction changes.
 - Task-specific audio instructions should be validation-gated, because the same
   instruction can help one dataset while regressing another.
+
+## 2026-06-24: Audit FLEURS Translation Candidate Cards
+
+Changed:
+- Added `scripts/build_translation_candidate_cards.py`.
+- Added `docs/bugs/issue-007-fleurs-translation-candidate-card-audit.md`.
+- Ran FLEURS en->fr speech translation candidate retrieval with raw target
+  text, target translation cards, and target boundary cards.
+
+Reason:
+- The Tool/Intent audit showed strong gains from candidate-side boundary cards.
+  We needed to test whether the same candidate-side idea transfers to speech
+  translation.
+
+Evidence:
+- Direct omni raw target text:
+  - sample Acc@1 = 0.860.
+  - text Acc@1 = 0.982.
+  - R@3 = 1.000.
+- Raw target boundary card:
+  - sample Acc@1 = 0.860.
+  - text Acc@1 = 0.982.
+  - paired delta = 0.000 with 0 fixes and 0 regressions.
+- `translation_semantic` audio instruction plus boundary card also gives no
+  change.
+
+Impact:
+- Candidate-side boundary cards are not a universal improvement.
+- They help when candidates are under-specified, as in tool labels, but not
+  when the candidate is already a full translation sentence.
+- Translation evaluation should use normalized target-text or semantic
+  equivalence rather than exact row-id hit on duplicated FLEURS rows.

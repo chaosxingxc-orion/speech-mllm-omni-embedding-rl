@@ -178,6 +178,36 @@ audio query -> downstream answer/tool representation
 
 Use standard translation metrics for generation-based baselines where available.
 
+Status as of 2026-06-24:
+
+```text
+FLEURS en->fr 57-row translation-candidate diagnostic completed.
+```
+
+Task:
+
+```text
+English speech audio -> retrieve the equivalent French translation candidate
+```
+
+| Route | Audio Instruction | Candidate Field | Sample Acc@1 | Text Acc@1 | R@3 | MRR |
+|---|---|---|---:|---:|---:|---:|
+| direct omni | raw | `target_text` | 0.860 | 0.982 | 1.000 | 0.930 |
+| direct omni | raw | `target_translation_card` | 0.860 | 0.982 | 1.000 | 0.930 |
+| direct omni | raw | `target_boundary_card` | 0.860 | 0.982 | 1.000 | 0.930 |
+| direct omni | translation_semantic | `target_boundary_card` | 0.860 | 0.982 | 1.000 | 0.930 |
+
+Interpretation:
+
+- Translation target text is already a rich semantic candidate. Unlike tool
+  labels, simple candidate boundary cards do not add discriminative information.
+- The sample/text metric gap is mostly duplicate or equivalent target
+  translations. The correct metric for this diagnostic is therefore normalized
+  target-text hit, not exact row-id hit.
+- The next useful translation experiment should be a larger / less duplicated
+  benchmark such as CoVoST 2 or a deduplicated FLEURS subset, not more wrapper
+  variants on this small split.
+
 ### P4: Add speech-RAG from recognized sources
 
 Construct one recognized-source speech-RAG benchmark:
