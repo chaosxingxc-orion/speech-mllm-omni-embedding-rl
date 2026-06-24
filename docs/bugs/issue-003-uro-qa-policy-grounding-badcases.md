@@ -337,3 +337,53 @@ instruction arm, but it is not sufficient to make the task usable.  The next
 gain must come from candidate-side structure and task gating, not from another
 single global audio instruction.
 ```
+
+## Follow-Up Experiment: Margin-Guided Policy Matrix
+
+The proposed candidate-side fix was tested with several candidate fields:
+
+| Mode | Candidate field | Instruction | Gate acc | Acc@1 | R@3 | MRR |
+|---|---|---|---:|---:|---:|---:|
+| flat pool | `target_text` | raw | n/a | 0.380 | 0.580 | 0.488 |
+| flat pool | `target_text` | policy_grounding | n/a | 0.465 | 0.595 | 0.544 |
+| flat pool | `target_option_expanded` | policy_grounding | n/a | 0.600 | 0.805 | 0.714 |
+| flat pool | `target_answer_card` | policy_grounding | n/a | 0.620 | 0.805 | 0.723 |
+| flat pool | `target_boundary_card` | raw | n/a | 0.715 | 0.825 | 0.786 |
+| oracle subtask gate | `target_boundary_card` | raw | 1.000 | 0.765 | 0.875 | 0.829 |
+| predicted top-1 gate | `target_boundary_card` | raw | 0.570 | 0.395 | 0.445 | 0.448 |
+| predicted top-3 gate | `target_boundary_card` | policy_grounding | 0.860 | 0.620 | 0.715 | 0.683 |
+
+The strongest deployable policy is:
+
+```text
+flat candidate pool + target_boundary_card + raw audio instruction
+```
+
+Paired comparison against the original raw target-text baseline:
+
+| Metric | Value |
+|---|---:|
+| Acc@1 delta | +0.335 |
+| 95% CI | [0.265, 0.405] |
+| MRR delta | +0.298 |
+| fixes | 70 |
+| regressions | 3 |
+
+Updated interpretation:
+
+```text
+The main bottleneck was candidate-side margin.  Candidate boundary cards act as
+a soft task gate and answer schema.  They give the embedding model enough
+candidate-side information to separate short answers and task families without
+the risk of a hard predicted gate deleting the gold candidate.
+```
+
+Updated next steps:
+
+1. Analyze the 3 regressions introduced by `target_boundary_card`.
+2. Build a conservative gate rule:
+   - use flat boundary-card retrieval by default;
+   - use hard/soft task gate only when gate confidence is high;
+   - otherwise keep the flat pool.
+3. Add a low-margin reranker for the remaining 57 wrong rows under the best
+   boundary-card policy.

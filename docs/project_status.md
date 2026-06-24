@@ -361,6 +361,15 @@ TODO before paper submission:
   global audio instruction.  See
   `docs/bugs/issue-003-uro-qa-policy-grounding-badcases.md` and
   `docs/lean/uro_badcase_margin.lean`.
+- The margin-guided URO QA policy matrix has produced the current best
+  training-free semantic result.  A flat candidate pool with
+  `target_boundary_card` documents and raw audio instruction reaches Acc@1 =
+  0.715, R@3 = 0.825, and MRR = 0.786.  Compared with raw `target_text`, the
+  paired Acc@1 delta is +0.335 with 95% CI [0.265, 0.405], 70 fixes, and 3
+  regressions.  Oracle subtask gate plus boundary cards reaches 0.765, but
+  predicted hard/top-k gates underperform because gate accuracy is still too
+  low.  The current deployable policy is therefore soft candidate-side
+  structure, not hard task gating.
 
 ## Legacy Code Triage
 

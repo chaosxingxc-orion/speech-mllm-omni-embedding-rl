@@ -411,6 +411,76 @@ The Lean-checkable proof skeleton is:
 docs/lean/uro_badcase_margin.lean
 ```
 
+### URO-Bench QA/reasoning margin-guided policy matrix
+
+This experiment follows the margin diagnosis above.  It tests whether improving
+candidate-side discriminability and reducing irrelevant negatives is more
+effective than adding another global audio instruction.
+
+Candidate-side variants:
+
+| Candidate field | Meaning |
+|---|---|
+| `target_text` | original answer / target text |
+| `target_option_expanded` | expands letter answers such as `B` to the matched option text where possible |
+| `target_answer_card` | wraps the answer as a candidate answer |
+| `target_task_card` | adds task name and task type |
+| `target_boundary_card` | adds task name, task type, answer, and a boundary-use sentence |
+
+Main matrix:
+
+| Mode | Candidate field | Instruction | Gate acc | Acc@1 | R@3 | MRR | Decision |
+|---|---|---|---:|---:|---:|---:|---|
+| flat pool | `target_text` | raw | n/a | 0.380 | 0.580 | 0.488 | baseline |
+| flat pool | `target_text` | policy_grounding | n/a | 0.465 | 0.595 | 0.544 | query instruction helps |
+| flat pool | `target_option_expanded` | policy_grounding | n/a | 0.600 | 0.805 | 0.714 | option expansion helps |
+| flat pool | `target_answer_card` | policy_grounding | n/a | 0.620 | 0.805 | 0.723 | answer card helps |
+| flat pool | `target_boundary_card` | raw | n/a | 0.715 | 0.825 | 0.786 | best deployable policy so far |
+| flat pool | `target_boundary_card` | policy_grounding | n/a | 0.705 | 0.835 | 0.783 | slightly below raw |
+| oracle subtask gate | `target_boundary_card` | raw | 1.000 | 0.765 | 0.875 | 0.829 | upper bound |
+| predicted top-1 gate | `target_boundary_card` | raw | 0.570 | 0.395 | 0.445 | 0.448 | reject hard gate |
+| predicted top-2 gate | `target_boundary_card` | raw | 0.770 | 0.550 | 0.625 | 0.606 | still below flat |
+| predicted top-3 gate | `target_boundary_card` | policy_grounding | 0.860 | 0.620 | 0.715 | 0.683 | safer but still below flat |
+
+Paired evidence for the best flat deployable policy:
+
+| Comparison | Acc@1 delta | 95% CI | MRR delta | Fixes | Regressions |
+|---|---:|---:|---:|---:|---:|
+| raw `target_text` -> raw `target_boundary_card` | +0.335 | [0.265, 0.405] | +0.298 | 70 | 3 |
+| policy `target_text` -> raw `target_boundary_card` | +0.250 | [0.185, 0.320] | +0.242 | 55 | 5 |
+| policy `target_answer_card` -> raw `target_boundary_card` | +0.095 | [0.045, 0.145] | +0.063 | 24 | 5 |
+
+Interpretation:
+
+```text
+The largest training-free gain comes from candidate-side structure, not from a
+new global audio instruction.  `target_boundary_card` acts as a soft task gate:
+it gives the embedding model task and answer-boundary information without
+irreversibly removing the gold candidate.  Hard predicted gates are currently
+unsafe because the gate accuracy is too low; even top-3 gating underperforms
+the flat boundary-card pool.
+```
+
+Current best URO QA/reasoning policy:
+
+```text
+direct omni audio query + raw audio instruction + flat candidate pool with
+target_boundary_card documents
+```
+
+This moves the task from:
+
+```text
+raw target_text Acc@1 = 0.380
+policy_grounding target_text Acc@1 = 0.465
+```
+
+to:
+
+```text
+target_boundary_card Acc@1 = 0.715
+```
+
 ### FLEURS transcript-candidate retrieval
 
 Task:

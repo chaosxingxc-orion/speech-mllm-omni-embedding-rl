@@ -801,3 +801,35 @@ Impact:
 - The mathematical acceptance criterion is margin-based: an intervention must
   either raise the gold score relative to the top negative, enrich the candidate
   side, or remove high-scoring irrelevant negatives.
+
+## 2026-06-24: Run Margin-Guided URO QA Policy Matrix
+
+Changed:
+- Added `scripts/build_uro_candidate_cards.py` for URO answer-card fields.
+- Added `scripts/uro_qa_task_gate_retrieval.py` for predicted top-k task gates.
+- Ran flat-pool candidate-card, oracle subtask-gate, and predicted-gate
+  experiments on URO QA/reasoning.
+
+Reason:
+- The margin proof predicted that candidate-side structure and task-gating
+  should address the dominant bad-case classes better than another global
+  audio instruction.
+
+Evidence:
+- Flat pool with raw `target_text`: Acc@1 = 0.380, MRR = 0.488.
+- Flat pool with `policy_grounding` over `target_text`: Acc@1 = 0.465, MRR =
+  0.544.
+- Flat pool with `target_boundary_card` and raw audio instruction: Acc@1 =
+  0.715, R@3 = 0.825, MRR = 0.786.
+- Paired delta against raw `target_text`: +0.335, 95% CI [0.265, 0.405],
+  fixes = 70, regressions = 3.
+- Oracle subtask gate plus boundary cards reaches Acc@1 = 0.765.
+- Predicted gates are not ready for hard routing:
+  - top-1 gate accuracy = 0.570, final Acc@1 = 0.395.
+  - top-3 gate accuracy = 0.860, final Acc@1 = 0.620.
+
+Impact:
+- Candidate-side boundary cards are the first clearly usable training-free
+  upgrade on URO QA/reasoning.
+- The policy surface should use soft candidate structure by default.
+- Hard task gates require a better gate or confidence rule before deployment.
