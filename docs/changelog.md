@@ -1090,3 +1090,41 @@ Impact:
 - Candidate-side boundary cards transfer beyond tool labels to harder
   translation retrieval, but not to already-saturated/easy splits.
 - Audio-side task instructions still need validation gates before adoption.
+
+## 2026-06-24: Scale CoVoST2 Translation To 200 Rows
+
+Changed:
+- Prepared CoVoST2 ar->en validation 200 and zh-CN->en validation 200
+  manifests from `fixie-ai/covost2`.
+- Ran direct-omni raw target-text and target-boundary-card retrieval for both
+  language pairs.
+- Updated the CoVoST2 translation audit with paired confidence intervals and
+  regression counts.
+
+Reason:
+- The ar->en 60-row result showed a promising boundary-card gain, but needed a
+  larger check.
+- A different language family / script was needed to test whether the same
+  candidate wrapper generalizes.
+
+Evidence:
+- ar->en 200:
+  - raw target text Acc@1 = 0.605, MRR = 0.653.
+  - boundary card Acc@1 = 0.630, MRR = 0.682.
+  - Acc delta +0.025, CI95 [-0.010, 0.060].
+  - MRR delta +0.029, CI95 [0.0046, 0.0561].
+  - fixes = 9, regressions = 4.
+- zh-CN->en 200:
+  - raw target text Acc@1 = 0.890, MRR = 0.922.
+  - boundary card Acc@1 = 0.865, MRR = 0.905.
+  - Acc delta -0.025, CI95 [-0.055, 0.000].
+  - fixes = 1, regressions = 6.
+
+Impact:
+- Boundary cards should be treated as a translation policy arm, not a universal
+  default.
+- Translation policy needs language-pair-specific validation and regression
+  gates.
+- The broader theory is now sharper: candidate-side enrichment helps when it
+  adds discriminative information, but can hurt when raw target text is already
+  well aligned.

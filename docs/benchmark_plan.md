@@ -219,6 +219,10 @@ CoVoST2 `fixie-ai/covost2` follow-up:
 | ar->en 60 | raw | `target_boundary_card` | 0.767 | 0.817 | 0.805 | +0.067, 0 regressions |
 | ar->en 60 | translation_semantic | `target_text` | 0.683 | 0.800 | 0.755 | audio instruction regresses |
 | ar->en 60 | translation_semantic | `target_boundary_card` | 0.750 | 0.833 | 0.806 | below raw boundary |
+| ar->en 200 | raw | `target_text` | 0.605 | 0.660 | 0.653 | harder scale-up |
+| ar->en 200 | raw | `target_boundary_card` | 0.630 | 0.690 | 0.682 | MRR gain, Acc CI crosses 0 |
+| zh-CN->en 200 | raw | `target_text` | 0.890 | 0.945 | 0.922 | strong raw baseline |
+| zh-CN->en 200 | raw | `target_boundary_card` | 0.865 | 0.940 | 0.905 | boundary card regresses |
 
 Paired evidence on ar->en:
 
@@ -230,15 +234,26 @@ raw target_text -> raw boundary_card:
 raw target_text -> translation_semantic target_text:
   Acc@1 delta -0.017, CI95 [-0.083, 0.050]
   fixes 2, regressions 3
+
+ar->en 200, raw target_text -> raw boundary_card:
+  Acc@1 delta +0.025, CI95 [-0.010, 0.060]
+  MRR delta +0.029, CI95 [0.0046, 0.0561]
+  fixes 9, regressions 4
+
+zh-CN->en 200, raw target_text -> raw boundary_card:
+  Acc@1 delta -0.025, CI95 [-0.055, 0.000]
+  MRR delta -0.017, CI95 [-0.0357, 0.0004]
+  fixes 1, regressions 6
 ```
 
 Interpretation:
 
 - CoVoST2 ar->en gives a non-saturated speech translation semantic task.
-- The same broad lesson repeats: candidate-side boundary cards are safer than
-  unvalidated audio-side task instructions.
-- The next translation step should scale ar->en to 200 rows and optionally add
-  another source language.
+- Candidate-side boundary cards can improve harder translation retrieval, but
+  the effect is language-pair dependent.
+- On zh-CN->en, raw target text is already strong and boundary cards regress.
+- Translation should therefore choose raw target text vs boundary card through
+  validation reward and regression checks rather than use a universal wrapper.
 
 ### P4: Add speech-RAG from recognized sources
 

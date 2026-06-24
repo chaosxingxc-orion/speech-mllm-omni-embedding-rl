@@ -22,6 +22,8 @@ Datasets:
 |---|---:|---|---|---|
 | CoVoST2 fr->en validation | 60 | French audio | English translation | easy / saturated |
 | CoVoST2 ar->en validation | 60 | Arabic audio | English translation | harder multilingual semantic test |
+| CoVoST2 ar->en validation | 200 | Arabic audio | English translation | scale-up check |
+| CoVoST2 zh-CN->en validation | 200 | Mandarin audio | English translation | different language family / script |
 
 All runs are frozen / training-free:
 
@@ -111,8 +113,52 @@ raw audio instruction + target_boundary_card
 This mirrors the Tool/Intent result: candidate-side structure is safer than
 unvalidated audio-side instruction changes.
 
+### Scale-up and Cross-Language Check
+
+The 200-row expansion gives a more nuanced result.
+
+| Dataset | Candidate Field | Acc@1 | R@3 | MRR |
+|---|---|---:|---:|---:|
+| ar->en 200 | `target_text` | 0.605 | 0.660 | 0.653 |
+| ar->en 200 | `target_boundary_card` | 0.630 | 0.690 | 0.682 |
+| zh-CN->en 200 | `target_text` | 0.890 | 0.945 | 0.922 |
+| zh-CN->en 200 | `target_boundary_card` | 0.865 | 0.940 | 0.905 |
+
+Paired comparisons:
+
+```text
+ar->en 200, target_text -> boundary_card:
+  Acc@1 delta +0.025, CI95 [-0.010, 0.060]
+  MRR delta +0.029, CI95 [0.0046, 0.0561]
+  fixes 9, regressions 4
+
+zh-CN->en 200, target_text -> boundary_card:
+  Acc@1 delta -0.025, CI95 [-0.055, 0.000]
+  MRR delta -0.017, CI95 [-0.0357, 0.0004]
+  fixes 1, regressions 6
+```
+
+Interpretation:
+
+- ar->en keeps a positive ranking-quality signal at 200 rows, but the Acc@1
+  confidence interval crosses zero.
+- zh-CN->en is already strong under raw target text, and boundary cards regress.
+- Therefore `target_boundary_card` should not be a universal translation
+  default. It should be treated as a candidate policy arm selected by
+  validation reward.
+
+Updated best practice:
+
+```text
+translation policy = choose raw target text vs boundary card per language pair
+using validation metrics and regression checks
+```
+
 ## Next Actions
 
-- Expand CoVoST2 ar->en to 200 rows if download time allows.
-- Add one more source language with a different script or language family.
-- Test low-margin rerank only after the boundary-card baseline is stable.
+- Use raw target text as the default for high-performing language pairs such as
+  zh-CN->en.
+- Keep target boundary cards as an optional policy arm for harder language
+  pairs such as ar->en.
+- Test low-margin rerank only after language-pair-specific candidate policy is
+  selected.

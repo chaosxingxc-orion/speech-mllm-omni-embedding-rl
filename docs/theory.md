@@ -582,3 +582,28 @@ candidate field.  This supports the broader acceptance rule:
 prefer candidate-side structure as a default;
 gate audio-side instruction changes by paired validation and regression checks.
 ```
+
+The 200-row CoVoST2 extension makes the rule more precise.  Candidate-side
+boundary cards are a policy arm, not a universal default:
+
+| Language Pair | Raw Acc@1 | Boundary Acc@1 | Direction |
+|---|---:|---:|---|
+| ar->en 200 | 0.605 | 0.630 | positive but modest |
+| zh-CN->en 200 | 0.890 | 0.865 | regression |
+
+So the training-free selector should optimize over:
+
+```text
+candidate_policy ∈ {raw_target_text, target_boundary_card, ...}
+```
+
+and accept a wrapper only if:
+
+```text
+Δ_val(metric) > 0
+and
+regression_rate_val <= threshold
+```
+
+This is the same accept-gate principle used for audio-side instructions, but
+applied to candidate-side transformations.
