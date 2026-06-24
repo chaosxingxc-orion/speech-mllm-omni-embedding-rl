@@ -909,3 +909,32 @@ Impact:
 - The next recognized-source RAG experiment should scale HeySQuAD or add
   Spoken-SQuAD, then test conservative low-margin rerank on rows where top-k
   contains the answer but the selected answer still fails.
+
+## 2026-06-24: Test Low-Margin Rerank Transfer on HeySQuAD
+
+Changed:
+- Ran oracle and conservative API low-margin rerank on HeySQuAD
+  `policy_grounding` passage retrieval.
+- Updated the HeySQuAD audit with route rate, fixes, regressions, and the
+  cost profile.
+
+Reason:
+- URO QA showed that conservative low-margin rerank can provide large gains
+  with no observed regressions. We need to know whether this policy transfers
+  to recognized-source spoken QA/RAG.
+
+Evidence:
+- Baseline `policy_grounding` context Acc@1 = 0.867.
+- Oracle rerank with `margin <= 0.02` reaches Acc@1 = 0.917, fixing 3 rows
+  with 0 regressions.
+- Conservative API rerank with `margin <= 0.02` reaches Acc@1 = 0.900, fixing
+  2 rows with 0 regressions.
+- But route rate is 0.950 because 57/60 rows are low-margin under shared
+  passage ties.
+
+Impact:
+- Conservative rerank transfers qualitatively, but margin alone is not a
+  selective trigger for HeySQuAD-style shared-passage QA.
+- The next router should add a second signal, such as candidate diversity,
+  passage-cluster entropy, answer-bearing context absence, or ASR/omni
+  disagreement.

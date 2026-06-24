@@ -85,3 +85,40 @@ The remaining failures split into:
   result transfers to recognized-source speech RAG.
 - Report both context-level grounding and answer-key pass; do not rely on
   exact sample id because shared passages are valid in SQuAD-style QA.
+
+## Follow-Up: Low-Margin Rerank Transfer
+
+The URO QA result suggested that low-margin rerank can be a strong
+training-free repair policy. On HeySQuAD, the same signal behaves differently
+because many rows have tied scores among multiple questions sharing the same
+passage.
+
+Margin distribution for `policy_grounding` passage retrieval:
+
+```text
+top-1 errors = 8/60
+margin <= 0.00 routes 51/60 and covers 6/8 errors
+margin <= 0.01 routes 56/60 and covers 7/8 errors
+margin <= 0.02 routes 57/60 and covers 8/8 errors
+```
+
+Oracle and conservative API rerank:
+
+| Rerank | Margin | Route Rate | Acc@1 | Fixes | Regressions |
+|---|---:|---:|---:|---:|---:|
+| none | - | 0.000 | 0.867 | - | - |
+| oracle | 0.00 | 0.850 | 0.883 | 1 | 0 |
+| oracle | 0.01 | 0.933 | 0.900 | 2 | 0 |
+| oracle | 0.02 | 0.950 | 0.917 | 3 | 0 |
+| conservative API | 0.02 | 0.950 | 0.900 | 2 | 0 |
+
+Interpretation:
+
+- Low-margin rerank does transfer qualitatively: conservative API rerank fixes
+  2 errors without observed regressions.
+- The cost profile is poor on this split because score ties make almost every
+  row low margin.
+- For HeySQuAD-like shared-passage QA, margin alone is not a selective router.
+  It needs an additional trigger, such as answer-key absence in context,
+  candidate diversity, passage-cluster entropy, or disagreement between two
+  independent views.

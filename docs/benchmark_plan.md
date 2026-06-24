@@ -221,6 +221,18 @@ Interpretation:
 - This is a smoke-scale result and should be expanded before being used as a
   main paper claim.
 
+Low-margin rerank transfer check:
+
+| Policy | Margin | Route Rate | Context Acc@1 | Fixes | Regressions |
+|---|---:|---:|---:|---:|---:|
+| policy_grounding | - | 0.000 | 0.867 | - | - |
+| oracle rerank | 0.02 | 0.950 | 0.917 | 3 | 0 |
+| conservative API rerank | 0.02 | 0.950 | 0.900 | 2 | 0 |
+
+The policy transfers qualitatively, but not economically: score ties from
+shared passages make 57/60 rows low-margin. Margin-only rerank is therefore not
+selective enough for HeySQuAD-style shared-passage QA.
+
 ### P5: Keep training-free only in this cycle
 
 Do not run LoRA or weight-changing RL until:
