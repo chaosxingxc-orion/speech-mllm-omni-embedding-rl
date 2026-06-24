@@ -1128,3 +1128,69 @@ Impact:
 - The broader theory is now sharper: candidate-side enrichment helps when it
   adds discriminative information, but can hurt when raw target text is already
   well aligned.
+
+## 2026-06-24: Run Full CoVoST2 ar->en Validation/Test
+
+Changed:
+- Prepared full CoVoST2 ar->en validation and test manifests from
+  `fixie-ai/covost2`.
+- Ran full validation policy selection for raw target text vs target boundary
+  cards.
+- Ran locked-test reporting for the validation-selected boundary-card policy.
+
+Reason:
+- 200-row subsets were useful diagnostics, but paper-grade evidence should use
+  full validation/test splits when available.
+
+Evidence:
+- Validation, 1758 rows:
+  - raw target text Acc@1 = 0.579, MRR = 0.678.
+  - boundary card Acc@1 = 0.695, MRR = 0.763.
+  - Acc delta +0.116, CI95 [0.097, 0.135].
+  - MRR delta +0.085, CI95 [0.073, 0.097].
+  - fixes = 261, regressions = 57.
+- Locked test, 1695 rows:
+  - raw target text Acc@1 = 0.635, MRR = 0.727.
+  - boundary card Acc@1 = 0.753, MRR = 0.816.
+  - Acc delta +0.117, CI95 [0.099, 0.138].
+  - MRR delta +0.089, CI95 [0.076, 0.102].
+  - fixes = 251, regressions = 52.
+
+Impact:
+- CoVoST2 ar->en is now the strongest recognized speech-translation evidence
+  for candidate-side schema enrichment.
+- The validation-selected policy transfers cleanly to locked test.
+- Regressions remain nonzero, so the next optimization should consider
+  low-margin or confidence-gated candidate-policy selection rather than always
+  forcing boundary cards.
+
+## 2026-06-24: Reclassify Candidate-Side Schema Enrichment
+
+Changed:
+- Added decision D019.
+- Updated the benchmark plan to separate omni-side optimization from
+  candidate-side schema baselines.
+
+Reason:
+- Candidate-side schema enrichment improves the retrieval system by rewriting
+  candidate documents, but it does not directly optimize the omni-embedding
+  model or its audio-side interface.
+- The joint research constraint is to systemically improve omni usage and
+  adaptation, not to rely on task-specific candidate rewriting as the main
+  contribution.
+
+Impact:
+- Existing schema-card results remain useful as baselines and diagnostics for
+  candidate under-specification.
+- They should not be reported as the main training-free omni optimization
+  method.
+- Future mainline experiments should focus on omni-side controls:
+
+```text
+audio instruction
+encode method
+pooling / layer choice
+score calibration
+route policy over omni outputs
+lightweight policy / LoRA / RL adaptation
+```

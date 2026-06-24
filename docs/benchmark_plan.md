@@ -6,10 +6,22 @@ Last updated: 2026-06-24
 
 The next experimental cycle is restricted to semantic speech tasks. The goal is
 to evaluate whether frozen omni embedding can be made useful through
-task-conditioned instructions, wrappers, routing, reranking, and evaluation
+omni-side task-conditioned interfaces, routing, reranking, and evaluation
 policy.
 
 No model weights should be modified in this cycle.
+
+Important boundary:
+
+```text
+Candidate-side schema enrichment is system-side task engineering.
+It can be reported as a baseline or diagnostic, but it is not the main
+training-free omni optimization method.
+```
+
+The main method should optimize how the omni model is used, such as audio-side
+instruction, encode method, pooling/layer choice, score calibration, routing
+over omni outputs, or lightweight policy selection around omni signals.
 
 ## Why Semantic-Only
 
@@ -223,6 +235,10 @@ CoVoST2 `fixie-ai/covost2` follow-up:
 | ar->en 200 | raw | `target_boundary_card` | 0.630 | 0.690 | 0.682 | MRR gain, Acc CI crosses 0 |
 | zh-CN->en 200 | raw | `target_text` | 0.890 | 0.945 | 0.922 | strong raw baseline |
 | zh-CN->en 200 | raw | `target_boundary_card` | 0.865 | 0.940 | 0.905 | boundary card regresses |
+| ar->en full validation | raw | `target_text` | 0.579 | 0.758 | 0.678 | policy selection split |
+| ar->en full validation | raw | `target_boundary_card` | 0.695 | 0.820 | 0.763 | selected policy |
+| ar->en full test | raw | `target_text` | 0.635 | 0.801 | 0.727 | locked test baseline |
+| ar->en full test | raw | `target_boundary_card` | 0.753 | 0.869 | 0.816 | locked test confirmation |
 
 Paired evidence on ar->en:
 
@@ -244,6 +260,16 @@ zh-CN->en 200, raw target_text -> raw boundary_card:
   Acc@1 delta -0.025, CI95 [-0.055, 0.000]
   MRR delta -0.017, CI95 [-0.0357, 0.0004]
   fixes 1, regressions 6
+
+ar->en full validation, raw target_text -> raw boundary_card:
+  Acc@1 delta +0.116, CI95 [0.097, 0.135]
+  MRR delta +0.085, CI95 [0.073, 0.097]
+  fixes 261, regressions 57
+
+ar->en full locked test, raw target_text -> raw boundary_card:
+  Acc@1 delta +0.117, CI95 [0.099, 0.138]
+  MRR delta +0.089, CI95 [0.076, 0.102]
+  fixes 251, regressions 52
 ```
 
 Interpretation:
@@ -254,6 +280,9 @@ Interpretation:
 - On zh-CN->en, raw target text is already strong and boundary cards regress.
 - Translation should therefore choose raw target text vs boundary card through
   validation reward and regression checks rather than use a universal wrapper.
+- On full ar->en, validation selection and locked-test reporting agree, making
+  this the current strongest speech-translation evidence for candidate-side
+  schema enrichment.
 
 ### P4: Add speech-RAG from recognized sources
 
@@ -1277,6 +1306,8 @@ Purpose:
 
 ```text
 reuse existing SLURP/MInDS data under the semantic-only framing
+and measure system-side candidate-schema baselines separately from omni-side
+optimization
 ```
 
 Immediate runs:
@@ -1285,6 +1316,7 @@ Immediate runs:
 1. SLURP 500 intent-as-tool: raw label, schema card, example card, boundary card
 2. MInDS-14 banking intent: same schema arms
 3. report tool acc, R@3, MRR, unsafe wrong tool
+4. clearly label schema-card gains as candidate-side/system-side baselines
 ```
 
 ### Batch D: Recognized-source speech RAG
@@ -1378,4 +1410,14 @@ Immediate runs:
 2. audio -> source transcript candidate retrieval
 3. ASR/translation baseline if a frozen model output is available
 4. instruction arms: raw, transcript_like, semantic_qa, translation_semantic
+```
+
+Constraint update:
+
+```text
+Target translation cards / boundary cards are candidate-side baselines.
+They should not be counted as omni optimization gains.  For the main research
+line, translation should focus on audio-side instruction, encode method,
+pooling/layer choice, score calibration, or routing policies that use omni
+outputs without rewriting the candidate task itself.
 ```

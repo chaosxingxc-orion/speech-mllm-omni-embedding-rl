@@ -446,3 +446,58 @@ Consequence:
   the base embedding top-1 was already correct.
 - Next experiments should test whether this policy transfers from URO QA to
   recognized-source HeySQuAD / Spoken-SQuAD speech RAG.
+
+## D019: Do not treat candidate-side schema enrichment as omni optimization
+
+Date: 2026-06-24
+
+Decision:
+
+Candidate-side schema enrichment is a system-level candidate representation
+baseline and diagnostic tool.  It should not be framed as a training-free
+method for improving the omni-embedding model itself.
+
+Allowed framing:
+
+```text
+system baseline
+candidate representation control
+diagnostic for candidate under-specification
+upper bound for task-schema engineering
+```
+
+Not allowed framing:
+
+```text
+training-free omni optimization
+omni model capability improvement
+model-side adaptation
+unified omni policy improvement
+```
+
+Reason:
+
+- The research goal is to make the omni model itself more usable across
+  semantic agentic tasks through model/interface-side optimization.
+- Rewriting task candidates is task-specific system engineering.  It can improve
+  end-to-end retrieval metrics without improving the audio-side omni
+  representation.
+- Treating candidate schema changes as the main contribution would blur the
+  distinction between optimizing the retrieval system and optimizing the frozen
+  omni model interface.
+
+Consequence:
+
+- Candidate-side schema results may remain in docs as baselines and negative /
+  positive diagnostics, but not as the main method claim.
+- Main experiments should prioritize audio-side instruction, encode method,
+  pooling/layer selection, score calibration, routing over omni outputs, and
+  lightweight policy/LoRA/RL adaptations that operate on or around the omni
+  model.
+- Future benchmark tables must separate:
+
+```text
+Omni-side optimization
+System-side candidate/schema baseline
+Downstream LLM/rerank post-processing
+```

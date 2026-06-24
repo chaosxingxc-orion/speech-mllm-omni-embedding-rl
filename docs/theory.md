@@ -607,3 +607,26 @@ regression_rate_val <= threshold
 
 This is the same accept-gate principle used for audio-side instructions, but
 applied to candidate-side transformations.
+
+Full CoVoST2 ar->en validates this policy-selection formulation:
+
+| Split | Raw Acc@1 | Boundary Acc@1 | Delta |
+|---|---:|---:|---:|
+| validation | 0.579 | 0.695 | +0.116 |
+| locked test | 0.635 | 0.753 | +0.117 |
+
+The key methodological point is not merely that boundary cards improve one
+metric.  It is that the intervention can be selected on validation and then
+confirmed on a separate locked test split with nearly identical effect size.
+
+The remaining regressions motivate a finer policy:
+
+```text
+candidate_policy(q) =
+  boundary_card   if validation-calibrated uncertainty says wrapper likely helps
+  raw_target_text otherwise
+```
+
+This turns candidate schema enrichment from a fixed preprocessing trick into a
+system-side, task-conditioned candidate policy.  It remains a baseline and
+diagnostic for candidate representation, not an omni-side optimization claim.

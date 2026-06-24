@@ -24,6 +24,8 @@ Datasets:
 | CoVoST2 ar->en validation | 60 | Arabic audio | English translation | harder multilingual semantic test |
 | CoVoST2 ar->en validation | 200 | Arabic audio | English translation | scale-up check |
 | CoVoST2 zh-CN->en validation | 200 | Mandarin audio | English translation | different language family / script |
+| CoVoST2 ar->en validation | 1758 | Arabic audio | English translation | full validation / policy selection |
+| CoVoST2 ar->en test | 1695 | Arabic audio | English translation | locked test |
 
 All runs are frozen / training-free:
 
@@ -154,11 +156,57 @@ translation policy = choose raw target text vs boundary card per language pair
 using validation metrics and regression checks
 ```
 
+### Full Validation/Test Protocol
+
+The full `ar_en` validation split supports `target_boundary_card` as the
+selected candidate policy.
+
+| Split | Candidate Field | Rows | Acc@1 | R@3 | MRR |
+|---|---|---:|---:|---:|---:|
+| validation | `target_text` | 1758 | 0.579 | 0.758 | 0.678 |
+| validation | `target_boundary_card` | 1758 | 0.695 | 0.820 | 0.763 |
+| test | `target_text` | 1695 | 0.635 | 0.801 | 0.727 |
+| test | `target_boundary_card` | 1695 | 0.753 | 0.869 | 0.816 |
+
+Validation paired comparison:
+
+```text
+target_text -> boundary_card:
+  Acc@1 delta +0.116, CI95 [0.097, 0.135]
+  MRR delta +0.085, CI95 [0.073, 0.097]
+  fixes 261, regressions 57
+```
+
+Locked-test paired comparison:
+
+```text
+target_text -> boundary_card:
+  Acc@1 delta +0.117, CI95 [0.099, 0.138]
+  MRR delta +0.089, CI95 [0.076, 0.102]
+  fixes 251, regressions 52
+```
+
+This is the strongest current speech-translation evidence for candidate-side
+schema enrichment:
+
+```text
+validation selects boundary_card
+locked test confirms nearly the same gain
+```
+
+The remaining caveat is regression count.  Boundary cards are strongly positive
+on aggregate, but they still regress some rows.  A future route can try:
+
+```text
+raw target text for high-margin raw rows
+boundary card for low-confidence or hard language-pair rows
+```
+
 ## Next Actions
 
 - Use raw target text as the default for high-performing language pairs such as
   zh-CN->en.
 - Keep target boundary cards as an optional policy arm for harder language
   pairs such as ar->en.
-- Test low-margin rerank only after language-pair-specific candidate policy is
-  selected.
+- Test low-margin or disagreement gating to reduce boundary-card regressions
+  after the language-pair-specific candidate policy is selected.
