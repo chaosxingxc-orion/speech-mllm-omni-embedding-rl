@@ -1397,6 +1397,32 @@ retrieval, answer candidate retrieval, and final-answer evaluation with locked
 split discipline.
 ```
 
+Follow-up status:
+
+```text
+HeySQuAD validation has 4158 rows, but larger streaming download currently
+fails on both hf-mirror.com and the official Hugging Face endpoint with parquet
+range-read timeout / SSL EOF.
+
+The partial validation-100 subset can be used for passage retrieval only; it is
+not suitable for final-answer evaluation because most early validation rows are
+impossible or empty-answer examples.
+```
+
+Partial validation-100 passage-context retrieval:
+
+| Policy | Text Acc@1 | R@3 | MRR | Paired Acc@1 delta vs raw | Paired MRR delta vs raw |
+|---|---:|---:|---:|---:|---:|
+| raw | 0.730 | 0.780 | 0.785 | - | - |
+| policy_grounding | 0.730 | 0.790 | 0.790 | +0.000 CI95 [-0.060, +0.050] | +0.005 CI95 [-0.0397, +0.0490] |
+
+Implementation note:
+
+```text
+scripts/prepare_spoken_squad_manifest.py now supports --require-answer and
+--skip-impossible. Use these flags for any SQuAD-style final-answer benchmark.
+```
+
 ### Batch E: Speech translation
 
 Purpose:

@@ -140,3 +140,59 @@ route_to_rerank =
 
 This is a sharper condition than URO QA, where low margin alone was already
 selective enough.
+
+## Follow-Up: Validation-100 Passage Retrieval
+
+The project next attempted to scale HeySQuAD from the original train60 smoke to
+a larger recognized-source split.  The public validation split is large enough
+(`4158` rows), but both `hf-mirror.com` and the official Hugging Face endpoint
+were unstable while streaming the parquet shard:
+
+```text
+yijingwu/HeySQuAD_human validation
+mirror/direct HF failure: parquet range-read timeout / SSL EOF
+partial non-filtered validation rows written: 100
+answerable validation rows written: 0
+```
+
+The partial validation-100 manifest is not suitable for final-answer
+evaluation because most early validation rows are impossible / empty-answer
+SQuAD examples.  The preparation script was therefore updated with
+`--require-answer` and `--skip-impossible`; future final-answer runs should use
+those flags.
+
+The partial validation-100 subset remains useful for passage-context retrieval
+because every row has a spoken question and a source passage.  Direct omni
+retrieval over 100 candidate passages gives:
+
+| Split | Policy | Text Acc@1 | R@3 | MRR |
+|---|---|---:|---:|---:|
+| validation partial 100 | raw | 0.730 | 0.780 | 0.785 |
+| validation partial 100 | policy_grounding | 0.730 | 0.790 | 0.790 |
+
+Paired text-mode comparison:
+
+```text
+Acc@1 delta = +0.000, CI95 [-0.060, +0.050]
+MRR delta = +0.005, CI95 [-0.0397, +0.0490]
+fixes = 4
+regressions = 4
+```
+
+Interpretation:
+
+- The larger partial validation split is harder than train60.
+- `policy_grounding` does not provide a significant top-1 improvement here.
+- The effect is closer to a weak ranking-shape change than a usable top-1
+  improvement.
+- This reinforces the accept-gate rule: do not promote an instruction arm from
+  smoke-scale evidence unless it survives a locked split with bounded
+  regressions.
+
+Next fix:
+
+```text
+Acquire a stable answerable HeySQuAD or Spoken-SQuAD subset with >=200 rows,
+then rerun passage retrieval, answer candidate retrieval, final-answer utility,
+and low-margin+diversity rerank.
+```

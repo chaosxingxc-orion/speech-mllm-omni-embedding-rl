@@ -543,6 +543,27 @@ Prepare a non-overlapping HeySQuAD validation/test subset, then run:
 4. low-margin rerank / accept gate.
 ```
 
+Follow-up validation-100 check:
+
+```text
+dataset: HeySQuAD human validation partial 100
+download status: larger answerable subset blocked by HF parquet range-read
+               timeouts / SSL EOF on both mirror and official endpoint
+task: spoken question audio -> SQuAD passage context retrieval
+raw text Acc@1: 0.730
+policy_grounding text Acc@1: 0.730
+raw MRR: 0.785
+policy_grounding MRR: 0.790
+paired Acc@1 delta: +0.000, CI95 [-0.060, +0.050]
+paired MRR delta: +0.005, CI95 [-0.0397, +0.0490]
+fixes/regressions: 4 / 4
+```
+
+This weakens the earlier smoke-only conclusion: `policy_grounding` is promising
+on train60 but not yet accepted for HeySQuAD generally.  The immediate data
+engineering requirement is a stable answerable HeySQuAD/Spoken-SQuAD subset of
+at least 200 rows.
+
 ### Theory Completeness Audit
 
 Current formal support is enough for the narrow training-free semantic policy

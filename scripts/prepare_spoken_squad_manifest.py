@@ -76,8 +76,13 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
     )
     dataset = dataset.cast_column(args.audio_column, Audio(decode=False))
     if args.streaming:
-        dataset = dataset.take(args.max_samples)
-    elif args.max_samples:
+        # Keep streaming unbounded here when filters are active.  We stop after
+        # collecting max_samples valid rows below, so answerable-only manifests
+        # do not accidentally contain far fewer rows just because the first N
+        # source examples are impossible questions.
+        if args.max_samples and not (args.require_answer or args.skip_impossible):
+            dataset = dataset.take(args.max_samples)
+    elif args.max_samples and not (args.require_answer or args.skip_impossible):
         dataset = dataset.select(range(min(args.max_samples, len(dataset))))
 
     output_dir = args.output_dir
@@ -88,11 +93,17 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
     rows = []
     with manifest_path.open("w", encoding="utf-8") as handle:
         for index, example in enumerate(dataset):
-            sample_id = f"{args.sample_prefix}_{index:06d}"
             question = str(example.get(args.question_field, "")).strip()
             transcription = str(example.get(args.transcription_field, question)).strip()
             context = str(example.get(args.context_field, "")).strip()
             answer, raw_answers = _extract_answer(example, args.answer_field)
+            if args.skip_impossible and bool(example.get("is_impossible", False)):
+                continue
+            if args.require_answer and not answer:
+                continue
+            if args.max_samples and len(rows) >= args.max_samples:
+                break
+            sample_id = f"{args.sample_prefix}_{len(rows):06d}"
             audio = example[args.audio_column]
             audio_path = audio_dir / f"{sample_id}{_audio_suffix(audio)}"
             _write_audio(audio, audio_path)
@@ -109,6 +120,7 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "context": context,
                 "answer": answer,
                 "raw_answers": raw_answers,
+                "is_impossible": bool(example.get("is_impossible", False)),
                 "audio_role": args.audio_role,
                 "dataset": args.dataset,
                 "dataset_config": "",
@@ -153,6 +165,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--audio-role", default="spoken_context")
     parser.add_argument("--construction-note", default="")
     parser.add_argument("--streaming", action="store_true")
+    parser.add_argument("--require-answer", action="store_true")
+    parser.add_argument("--skip-impossible", action="store_true")
     return parser
 
 

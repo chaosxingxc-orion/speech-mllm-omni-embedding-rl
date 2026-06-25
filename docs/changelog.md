@@ -1229,3 +1229,42 @@ Impact:
 - For CoVoST2 ar->en, always-boundary remains the best current Acc@1 policy.
 - Future gates need richer uncertainty features or downstream answer/utility
   rewards to justify the added complexity.
+
+## 2026-06-25: HeySQuAD Validation-100 Check And Answerable Filtering
+
+Changed:
+- Added `--require-answer` and `--skip-impossible` to
+  `scripts/prepare_spoken_squad_manifest.py`.
+- Recorded a larger HeySQuAD validation passage-retrieval check in
+  `docs/bugs/issue-005-heysquad-rag-final-answer-audit.md`.
+- Updated `docs/project_status.md` with the new blocker and weak-transfer
+  result.
+
+Reason:
+- The earlier HeySQuAD train60 result was promising but underpowered.
+- The validation split contains many impossible / empty-answer rows, so
+  final-answer evaluation needs explicit answerable filtering.
+- Larger public QA/RAG evidence is still needed before accepting
+  `policy_grounding` as a general HeySQuAD policy.
+
+Evidence:
+
+```text
+HeySQuAD validation partial 100, passage-context retrieval
+raw text Acc@1 = 0.730, MRR = 0.785
+policy_grounding text Acc@1 = 0.730, MRR = 0.790
+paired Acc@1 delta = +0.000, CI95 [-0.060, +0.050]
+paired MRR delta = +0.005, CI95 [-0.0397, +0.0490]
+fixes/regressions = 4 / 4
+```
+
+Blocker:
+- Both `hf-mirror.com` and the official Hugging Face endpoint currently fail
+  while streaming the larger HeySQuAD / Spoken-SQuAD parquet shards.
+
+Impact:
+- `policy_grounding` should remain a smoke-scale HeySQuAD finding rather than
+  an accepted general policy.
+- The next QA/RAG step is to acquire a stable >=200-row answerable public
+  subset, then rerun passage retrieval, answer candidate retrieval,
+  final-answer utility, and low-margin+candidate-diversity rerank.
