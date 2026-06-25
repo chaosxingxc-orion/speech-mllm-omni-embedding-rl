@@ -20,6 +20,13 @@ The outer project is currently a skeleton for RL-based omni embedding research.
 The legacy project contains most of the working experiments, documents, and
 evidence.
 
+For a consolidated inventory of datasets, methods, results, and whether each
+result is an omni-side optimization or a system-side baseline, see:
+
+```text
+docs/experiment_inventory.md
+```
+
 ## What Is Done
 
 ### Outer framework
