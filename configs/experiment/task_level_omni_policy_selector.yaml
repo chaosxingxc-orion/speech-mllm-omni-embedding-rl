@@ -1,0 +1,23 @@
+# @package _global_
+mode: task_level_omni_policy_selector
+run_name: task_level_omni_policy_selector
+
+task_level_omni_policy_selector:
+  task_name: ""
+  task_family: ""
+  baseline: raw
+  # Each candidate is "name:path".
+  candidates: []
+  output: outputs/task_level_omni_policy_selector.json
+  proposal_ratio: 0.2
+  selection_ratio: 0.4
+  split_seed: ${seed}
+  bootstrap_rounds: 5000
+  min_mean_delta: 0.0
+  min_lcb: 0.0
+  max_regression_rate: 0.03
+  min_worst_group_delta: -0.002
+  reward_mrr_weight: 0.1
+  reward_r3_weight: 0.05
+  group_field: dataset_config
+  hit_mode: auto

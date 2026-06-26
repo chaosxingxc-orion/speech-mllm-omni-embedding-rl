@@ -52,6 +52,26 @@ Use the following hierarchy:
 Do not frame the project as only "improve direct omni Acc@1". The goal is
 usable agentic behavior across task families.
 
+## Method Scope
+
+- Before proposing a new optimization method, reread `docs/decisions.md`,
+  especially D019-D024. The current main method is already
+  **dataset/task-level** policy selection, not sample-level routing by default.
+- Keep the main experimental scope fixed to optimizing the use of a chosen
+  frozen omni-embedding model. Do not expand the main claim into model-family
+  selection or model competition unless a decision explicitly reopens that
+  scope.
+- Treat backend payload conventions and endpoint sanity checks as prerequisites
+  for a fair baseline. Do not count fixing an incorrectly called model as a
+  training-free optimization gain.
+- Candidate-side schema enrichment, downstream rerank, and ASR/text routes can
+  be reported as system-side baselines, but they should not be framed as
+  improving the omni-embedding model itself.
+- Natural-language instruction is only one action type. The allowed
+  training-free omni-side action space may also include encode method,
+  score/margin policy, pooling/readout when exposed by the frozen model, and
+  robust accept gates.
+
 ## Repository Layout
 
 Use the outer repository as the main codebase:
@@ -132,6 +152,7 @@ outer framework.
 Read these before proposing new methods:
 
 ```text
+docs/knowledge/README.md
 docs/project_spec.md
 docs/architecture.md
 docs/decisions.md

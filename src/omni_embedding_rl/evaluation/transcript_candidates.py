@@ -39,12 +39,14 @@ class TranscriptRetrievalConfig:
     trust_remote_code: bool = True
     torch_dtype: str = "bfloat16"
     attn_implementation: str = ""
+    model_modality: str = ""
     audio_encode_method: str = "query"
     text_encode_method: str = "document"
     text_as_document_dict: bool = False
     query_field: str = "transcript"
     candidate_field: str = "transcript"
     include_query_text_with_audio: bool = False
+    audio_payload_mode: str = "dict"
     batch_size: int = 16
     audio_max_length: int = 2048000
     score_count: int = 5
@@ -119,6 +121,8 @@ def _load_model(config: TranscriptRetrievalConfig, device: str):
     model_kwargs: dict[str, Any] = {}
     if config.attn_implementation:
         model_kwargs["attn_implementation"] = config.attn_implementation
+    if config.model_modality:
+        model_kwargs["modality"] = config.model_modality
     if config.torch_dtype:
         model_kwargs["torch_dtype"] = getattr(torch, config.torch_dtype)
     model = SentenceTransformer(
@@ -165,7 +169,7 @@ def _audio_payload(
     instruction: str,
     query_field: str,
     include_query_text: bool,
-) -> dict[str, str]:
+) -> Any:
     payload = {"audio": str(row["audio_path"])}
     text_parts = []
     if instruction:
@@ -177,6 +181,25 @@ def _audio_payload(
     if text_parts:
         payload["text"] = "\n".join(text_parts)
     return payload
+
+
+def _format_audio_payload(
+    row: dict[str, Any],
+    instruction: str,
+    query_field: str,
+    include_query_text: bool,
+    payload_mode: str,
+) -> Any:
+    payload = _audio_payload(row, instruction, query_field, include_query_text)
+    text = payload.get("text", "")
+    audio = payload["audio"]
+    if payload_mode == "dict":
+        return payload
+    if payload_mode == "path":
+        return audio
+    if payload_mode == "tuple":
+        return (text, audio) if text else audio
+    raise ValueError("audio_payload_mode must be one of: dict, path, tuple")
 
 
 def _text_payload(text: str, instruction: str) -> str:
@@ -195,11 +218,12 @@ def _encode_queries(
         vectors = []
         for row in rows:
             payload = [
-                _audio_payload(
+                _format_audio_payload(
                     row,
                     instruction,
                     config.query_field,
                     config.include_query_text_with_audio,
+                    config.audio_payload_mode,
                 )
             ]
             vectors.append(
@@ -331,12 +355,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-trust-remote-code", action="store_true")
     parser.add_argument("--torch-dtype", default="bfloat16")
     parser.add_argument("--attn-implementation", default="")
+    parser.add_argument("--model-modality", default="")
     parser.add_argument("--audio-encode-method", choices=["query", "document", "encode"], default="query")
     parser.add_argument("--text-encode-method", choices=["query", "document", "encode"], default="document")
     parser.add_argument("--text-as-document-dict", action="store_true")
     parser.add_argument("--query-field", default="transcript")
     parser.add_argument("--candidate-field", default="transcript")
     parser.add_argument("--include-query-text-with-audio", action="store_true")
+    parser.add_argument("--audio-payload-mode", choices=["dict", "path", "tuple"], default="dict")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--audio-max-length", type=int, default=2048000)
     parser.add_argument("--score-count", type=int, default=5)
@@ -359,12 +385,14 @@ def config_from_args(args: argparse.Namespace) -> TranscriptRetrievalConfig:
         trust_remote_code=not args.no_trust_remote_code,
         torch_dtype=args.torch_dtype,
         attn_implementation=args.attn_implementation,
+        model_modality=args.model_modality,
         audio_encode_method=args.audio_encode_method,
         text_encode_method=args.text_encode_method,
         text_as_document_dict=args.text_as_document_dict,
         query_field=args.query_field,
         candidate_field=args.candidate_field,
         include_query_text_with_audio=args.include_query_text_with_audio,
+        audio_payload_mode=args.audio_payload_mode,
         batch_size=args.batch_size,
         audio_max_length=args.audio_max_length,
         score_count=args.score_count,

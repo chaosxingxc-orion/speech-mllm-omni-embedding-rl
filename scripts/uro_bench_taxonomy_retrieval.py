@@ -77,6 +77,12 @@ def _limit_rows(rows: list[dict[str, Any]], max_samples: int) -> list[dict[str, 
     return rows
 
 
+def _family_name(path: Path) -> str:
+    if path.stem == "manifest" and path.parent.name:
+        return path.parent.name
+    return path.stem
+
+
 def _rank_rows(
     rows: list[dict[str, Any]],
     query_vectors: np.ndarray,
@@ -175,7 +181,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         manifest=Path(""),
         output=Path(""),
         model=args.model,
-        route="direct_omni",
+        route=args.route,
         instruction_arm="raw",
         candidate_count=2,
         max_samples=args.max_samples,
@@ -184,10 +190,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         trust_remote_code=not args.no_trust_remote_code,
         torch_dtype=args.torch_dtype,
         attn_implementation=args.attn_implementation,
+        model_modality=args.model_modality,
         audio_encode_method=args.audio_encode_method,
         text_encode_method=args.text_encode_method,
         query_field=args.query_field,
         candidate_field=args.candidate_field,
+        audio_payload_mode=args.audio_payload_mode,
         batch_size=args.batch_size,
         audio_max_length=args.audio_max_length,
         score_count=args.score_count,
@@ -198,7 +206,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     reports: list[dict[str, Any]] = []
     csv_rows: list[dict[str, Any]] = []
     for family_manifest in args.manifest:
-        family = family_manifest.stem
+        family = _family_name(family_manifest)
         rows = [
             row
             for row in _limit_rows(read_jsonl(family_manifest), args.max_samples)
@@ -291,6 +299,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--manifest", nargs="+", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--model", required=True)
+    parser.add_argument("--route", choices=["direct_omni", "oracle_text"], default="direct_omni")
     parser.add_argument("--arm", action="append")
     parser.add_argument("--max-samples", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
@@ -298,10 +307,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-trust-remote-code", action="store_true")
     parser.add_argument("--torch-dtype", default="bfloat16")
     parser.add_argument("--attn-implementation", default="")
+    parser.add_argument("--model-modality", default="")
     parser.add_argument("--audio-encode-method", choices=["query", "document", "encode"], default="query")
     parser.add_argument("--text-encode-method", choices=["query", "document", "encode"], default="document")
     parser.add_argument("--query-field", default="source_text")
     parser.add_argument("--candidate-field", default="target_text")
+    parser.add_argument("--audio-payload-mode", choices=["dict", "path", "tuple"], default="dict")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--audio-max-length", type=int, default=2048000)
     parser.add_argument("--score-count", type=int, default=5)

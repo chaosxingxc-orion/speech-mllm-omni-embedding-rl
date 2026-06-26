@@ -2,6 +2,101 @@
 
 This is the research-level changelog, not a software release log.
 
+## 2026-06-26: Add Progressive Research Knowledge Cards
+
+Added `docs/knowledge/` as a progressive-loading knowledge base for future
+agents and paper-writing runs.
+
+The new structure separates:
+
+```text
+paper clusters
+dataset cards
+model cards
+method cards
+```
+
+The goal is to preserve useful findings from prior model, dataset, and paper
+surveys without forcing future agents to read long logs first.  `AGENTS.md` now
+points to the knowledge index before legacy PDFs and long-form proposal docs.
+
+## 2026-06-26: Add V3 Margin-Gated Policy Formalization
+
+Changed:
+- Added `docs/knowledge/methods/v3_margin_gated_policy.md`.
+- Added `docs/lean/v3_margin_gate_policy.lean`.
+- Extended the task-level selector theory note with the V3 low-margin
+  decomposition.
+- Recorded V3 status in project status, decisions, and experiment inventory.
+
+Reason:
+- V3 should be a formal training-free method, not just another experiment
+  sweep.
+- Current bad cases show that useful candidate actions often concentrate their
+  fixes in low-margin rows, while high-margin raw rows should be protected.
+
+Evidence:
+- Nemotron URO QA/reasoning and CoVoST2 zh-CN->en show low-margin concentrated
+  fixes and promising locked-test deltas, but selection splits are currently
+  underpowered under the strict accept gate.
+- Jina omni-small mostly falls back to raw over its correct media-path
+  baseline, so current cross-model evidence is conservative rather than a
+  positive-gain claim.
+- A larger-selection power diagnostic accepts Nemotron URO gate75 across
+  repeated splits, but CoVoST2 zh remains unstable and Jina still selects raw
+  in 5/5 split seeds on both tested tasks.
+
+Impact:
+- V3 is now framed as a margin-aware regularizer and diagnostic policy surface.
+- Future claims must still pass selection / locked-test discipline; a positive
+  locked-test result that was not selected remains `underpowered_positive`.
+
+## 2026-06-26: Adopt Story-B Semantic Interface Controller
+
+Changed:
+- Added `docs/knowledge/methods/semantic_interface_controller.md`.
+- Updated project spec and architecture to frame the main method as an
+  automatic layer-wise controller around frozen omni models.
+- Added decision D026.
+
+Reason:
+- Current evidence does not support a simple "one instruction improves all
+  tasks" story.
+- Strong gains exist across the broader interface surface, but must be
+  attributed to omni-side, system-side, route/rerank, or downstream policy
+  layers.
+
+Impact:
+- Future experiments should report layer-wise attribution and accept/reject
+  decisions.
+- The paper story can use strong controller gains without overclaiming that
+  every gain is an omni-embedding model-side improvement.
+
+## 2026-06-26: Add V3 Layer-Wise Effect Report
+
+Changed:
+- Added `src/omni_embedding_rl/evaluation/interface_report.py`.
+- Added `scripts/semantic_interface_effect_report.py`.
+- Generated a current V3 effect report from selector/stability outputs and
+  manually curated aggregate entries.
+
+Reason:
+- Story B needs visible attribution: which gains are omni-side, system-side,
+  hybrid-route, or downstream-final-task.
+
+Evidence:
+- The current V3 report has 12 representative entries:
+  - 7 omni-side rows;
+  - 3 system-side rows;
+  - 1 hybrid-route row;
+  - 1 downstream-final-task row.
+- Accepted omni-side evidence is concentrated on URO; broad controller gains
+  are stronger when system-side, route, and downstream policies are included.
+
+Impact:
+- Future result summaries should use the layer-wise report format instead of
+  mixing all gains into one headline number.
+
 ## 2026-06-23: Merge Into Unified Framework
 
 The project moved under:
@@ -1268,3 +1363,410 @@ Impact:
 - The next QA/RAG step is to acquire a stable >=200-row answerable public
   subset, then rerun passage retrieval, answer candidate retrieval,
   final-answer utility, and low-margin+candidate-diversity rerank.
+
+## 2026-06-25: Acquire HeySQuAD Answerable Validation-200
+
+Changed:
+- Added local-parquet ingestion to `scripts/prepare_spoken_squad_manifest.py`.
+- Prepared a 200-row answerable HeySQuAD human validation manifest from a
+  downloaded parquet shard.
+- Ran direct omni passage-context retrieval for raw and `policy_grounding`.
+- Ran first-document local-rule final-answer audit for both policies.
+
+Reason:
+- Dataset streaming/range-read was unstable, but recognized-source QA/RAG needs
+  more than the earlier 60-row smoke.
+- HeySQuAD is the preferred recognized-source speech QA/RAG seed because it has
+  human-spoken question audio, transcript, text question, passage context, and
+  answer aliases.
+
+Evidence:
+
+```text
+HeySQuAD human validation answerable 200
+
+raw:
+  text Acc@1 = 0.900
+  R@3 = 0.915
+  MRR = 0.917
+  first-doc local-rule answer pass = 0.925
+  grounded context Acc@1 = 0.900
+
+policy_grounding:
+  text Acc@1 = 0.875
+  R@3 = 0.895
+  MRR = 0.899
+  first-doc local-rule answer pass = 0.890
+  grounded context Acc@1 = 0.875
+
+paired raw -> policy_grounding:
+  Acc@1 delta = -0.025, CI95 [-0.050, 0.000]
+  MRR delta = -0.0183, CI95 [-0.0395, 0.0012]
+  fixes/regressions = 1 / 6
+```
+
+Impact:
+- The earlier train60 positive result was a smoke-scale effect and should not
+  be generalized.
+- For HeySQuAD answerable validation, raw direct omni is currently the accepted
+  policy and generic `policy_grounding` must be rejected by the accept gate.
+- The next useful optimization should target low-margin rerank, score
+  calibration, ASR/text comparison, or a more specific QA instruction selected
+  under locked-test discipline.
+
+## 2026-06-25: Add Task-Conditioned Instruction Builder
+
+Changed:
+- Added `docs/semantic_policy_methodology.md` as the canonical unified method
+  note for task cards, policy tuples, margin / utility analysis, accept gates,
+  and bad-case refinement.
+- Added `docs/instruction_construction_theory.md`.
+- Added `docs/lean/instruction_construction_policy.lean`.
+- Added `src/omni_embedding_rl/policies/instruction_builder.py`.
+- Added `scripts/build_instruction_arms.py`.
+- Added `tests/test_instruction_builder.py`.
+- Registered constructed arms in the shared instruction taxonomy.
+- Extended cache taxonomy dry-plan support to translation tasks.
+
+Reason:
+- `policy_grounding` is task-specific, not a universal instruction.
+- The project needs a reproducible method for constructing task-conditioned
+  audio instructions from task structure, then accepting or rejecting them with
+  paired validation evidence.
+
+Evidence:
+
+```text
+Builder V1 generates four deterministic arms:
+  constructed_asr_transcript
+  constructed_rag_grounding
+  constructed_tool_intent
+  constructed_translation
+
+py_compile passed.
+Lean check passed for docs/lean/instruction_construction_policy.lean.
+Manual builder smoke passed.
+Cache taxonomy dry-plan smoke passed for constructed RAG, Tool, ASR-like, and
+Translation arms.
+pytest was not available in the current experiment environment.
+```
+
+First actual smoke:
+
+```text
+FLEURS en_us validation 60:
+  constructed_asr_transcript text Acc@1 = 1.000
+  neutral because raw was already saturated.
+
+HeySQuAD answerable validation first60:
+  raw text Acc@1 = 0.983
+  constructed_rag_grounding text Acc@1 = 0.950
+  delta = -0.033, CI95 [-0.083, 0.000]
+
+MInDS-14 first60:
+  raw + boundary schema Acc@1 = 1.000
+  constructed_tool_intent Acc@1 = 0.983
+
+CoVoST2 ar->en validation 60:
+  raw target text Acc@1 = 0.700
+  constructed_translation Acc@1 = 0.617
+  delta = -0.083, CI95 [-0.167, -0.017]
+```
+
+Impact:
+- Builder V1 is a formal construction mechanism, not an accepted performance
+  policy.
+- The first smoke mostly rejects constructed V1 arms, which strengthens the
+  paper's argument that task instructions require validation and robust accept
+  gates.
+- Next iteration should use observed bad-case/margin features to refine the
+  task card fields instead of assuming the first deterministic wording is
+  optimal.
+
+Story impact:
+- The research story shifts from "find a better prompt" to "formalize task
+  equivalence, construct candidate instructions, and accept only policies with
+  positive margins and bounded regressions."
+- Future instruction experiments should report the task card fields:
+  task role, target object, equivalence relation, boundary condition, and
+  negative warning.
+
+## 2026-06-25: Run V2 Task-Conditioned Instruction Sweep
+
+Changed:
+- Added V2 instruction arms:
+  - `v2_asr_literal_boundary`
+  - `v2_qa_answer_boundary`
+  - `v2_tool_action_boundary`
+  - `v2_translation_argument_boundary`
+- Fixed `scripts/uro_bench_taxonomy_retrieval.py` family naming so multiple
+  `manifest.jsonl` inputs do not overwrite row-level outputs.
+- Connected translation taxonomy plans to an executable evaluator in
+  `cache_taxonomy_runner`.
+
+Datasets:
+
+```text
+FLEURS en-US validation 60
+HeySQuAD human answerable validation subset
+URO-Bench speech QA/reasoning cards
+MInDS-14 en-US balanced 180
+CoVoST2 ar->en val200 and zh-CN->en val200
+```
+
+Main findings:
+
+```text
+FLEURS ASR-like:
+  raw text Acc@1 0.983 -> v2_asr_literal_boundary 1.000
+  safe but saturated.
+
+HeySQuAD QA/RAG:
+  raw text Acc@1 0.917 -> v2_qa_answer_boundary 0.899
+  reject.
+
+URO QA/reasoning:
+  raw boundary-card Acc@1 0.715 -> exact_condition_matching 0.725
+  trend only; v2_qa_answer_boundary rejects.
+
+MInDS-14 tool intent:
+  raw + contrastive boundary schema Acc@1 0.956
+  v2_tool_action_boundary Acc@1 0.967
+  tool_specific_intent Acc@1 0.972, MRR CI positive, 0 regressions
+  accept tool_specific_intent as current tool arm.
+
+CoVoST2 translation:
+  ar->en raw 0.610; v2_translation_argument_boundary 0.495; reject.
+  zh-CN->en raw 0.890; translation_semantic 0.925, CI [0.015, 0.060];
+  accept translation_semantic for this language pair.
+```
+
+Impact:
+- V2 supports the unified methodology but does not support a universal
+  task-card instruction.
+- The next V3 experiment should use margin and bad-case clusters to decide
+  whether to keep raw, apply a task instruction, change encode method, calibrate
+  scores, or route to conservative rerank.
+
+## 2026-06-25: Audit HeySQuAD and CoVoST2 ar Bad-Case Repairs
+
+Changed:
+- Added `docs/bugs/issue-002-heysquad-covost-badcase-repair.md`.
+- Tested HeySQuAD repair candidates:
+  - same-omni oracle text route;
+  - answer-context candidate card;
+  - front-320 context compression.
+- Tested CoVoST2 ar->en repair candidates:
+  - audio encode method `document` / `encode`;
+  - text encode method `query` / `encode`;
+  - `target_boundary_card + text_encode_method=encode`.
+
+Findings:
+
+```text
+HeySQuAD:
+  raw full-context direct omni remains best.
+  v2_qa_answer_boundary: Acc@1 -0.018 vs raw.
+  oracle_text route: Acc@1 0.697, worse than direct audio raw 0.917.
+  answer-context card: Acc@1 -0.385 vs raw.
+  front-320 context: Acc@1 -0.183 vs raw.
+
+CoVoST2 ar->en:
+  audio-side translation instructions regress.
+  text_encode_method=encode: Acc@1 0.610 -> 0.630, trend only.
+  target_boundary_card + text_encode_method=encode:
+    Acc@1 0.610 -> 0.645
+    MRR delta CI95 [0.0093, 0.0629]
+    fixes/regressions 10/3
+```
+
+Impact:
+- HeySQuAD should use raw direct omni plus downstream top-k/final-answer or
+  conservative rerank policies, not more specific audio instructions.
+- CoVoST2 ar->en has a useful system-side repair that should be validated on
+  full validation and locked test.
+- V3 policy search should choose among instruction, encode method, candidate
+  representation, and rerank actions.
+
+## 2026-06-25: Add Task-Level Omni Policy Selector
+
+Changed:
+- Added a conservative dataset/task-level selector for frozen omni-side
+  actions:
+  - `src/omni_embedding_rl/policies/task_level_selector.py`
+  - `scripts/task_level_omni_policy_selector.py`
+  - `configs/experiment/task_level_omni_policy_selector.yaml`
+  - `tests/test_task_level_selector.py`
+- Added theory and Lean guardrails:
+  - `docs/task_level_policy_selector_theory.md`
+  - `docs/lean/task_level_policy_selector.lean`
+
+Reason:
+- The project needs an automatic method to choose task-specific omni usage
+  policy without hand-picking the best full-set result.
+- The selector operates at dataset/task level, not sample level, and uses
+  proposal / selection / locked-test discipline.
+
+Evidence:
+
+```text
+URO QA/reasoning 200:
+  selected exact_condition_matching
+  locked-test raw Acc@1 0.375 -> 0.4625
+  delta +0.0875, CI95 [0.025, 0.150], fixes/regressions 7/0
+
+CoVoST2 zh-CN->en 200:
+  raw fallback because selection split LCB was not positive.
+  locked-test translation_semantic was positive, but locked test is not used
+  for selection.
+
+CoVoST2 ar->en 200:
+  raw fallback; translation_semantic was harmful on selection and locked test.
+```
+
+Impact:
+- URO becomes the strongest accepted task-level omni-side policy result.
+- CoVoST2 zh remains a promising language-pair-specific instruction result,
+  but not accepted by the current conservative selector.
+- CoVoST2 ar is the negative control that demonstrates the selector can reject
+  harmful translation instructions.
+
+## 2026-06-25: Add Stability Diagnostic For Expanded Omni Policy Grids
+
+Changed:
+- Added a second-stage stability summary for repeated task-level selector runs:
+  - `src/omni_embedding_rl/policies/task_level_stability.py`
+  - `scripts/task_level_selector_stability.py`
+- Completed the URO 3x3 audio-side grid:
+  - instructions: raw, `policy_grounding`, `exact_condition_matching`;
+  - audio encode methods: query, document, encode.
+- Ran fixed-schema selector checks for MInDS-14 and SLURP.
+
+Reason:
+- Once the action space includes both instruction and encode-method choices,
+  a single selection split can overfit.
+- The method needs to identify stable task-level actions, not just the best
+  action on one split.
+
+Evidence:
+
+```text
+URO QA/reasoning 3x3 grid:
+  seed42 selected exact_condition_matching_document on selection split
+  locked-test LCB was negative
+  decision selected_not_validated
+
+URO five-seed stability:
+  policy_grounding_encode selected in 4/5 runs
+  locked_pass_rate 0.75
+  mean_locked_delta +0.090625
+  mean_locked_lcb +0.028125
+  mean_locked_regression_rate 0.003125
+
+URO instruction-only taxonomy stability:
+  dialect_robust_semantic selected in 4/5 runs
+  locked_pass_rate 1.0 among selected runs
+  mean_locked_delta +0.071875
+  mean_locked_lcb +0.01875
+  mean_locked_regression_rate 0.0
+
+CoVoST2 zh-CN->en five-seed stability:
+  raw fallback selected in 5/5 runs
+  no stable non-raw policy accepted
+  translation_semantic remains full-set diagnostic evidence only
+
+MInDS-14 fixed contrastive-boundary schema:
+  raw fallback
+  tool_specific_intent positive trend, but selection LCB = 0
+
+SLURP fixed contrastive-boundary schema:
+  raw fallback
+  tool_specific_intent selection delta -0.020, regression rate 0.035
+```
+
+Impact:
+- URO's current strongest stable omni-side action is
+  `policy_grounding_encode`, not the seed42 single-split selection.
+- Tool/intent remains primarily a schema-side success under the current fixed
+  schema comparisons.
+- Future expanded grids should report both single-split selector output and
+  stability summary.
+
+## 2026-06-26: Add Jina Cross-Model Interface Validation
+
+Changed:
+- Added `audio_payload_mode` to the transcript / URO retrieval runner so the
+  same frozen model can be queried through dict, direct media path, or tuple
+  fusion payloads.
+- Ran a Jina omni-small retrieval smoke on FLEURS, URO QA/reasoning, and
+  CoVoST2 zh-CN->en.
+- Recorded cross-model findings in project status, experiment inventory, and
+  the omni model knowledge card.
+
+Reason:
+- Training-free policy search should transfer beyond the original Nemotron
+  embedding backend, but each model must first be evaluated through its
+  correct recommended raw interface.
+
+Evidence:
+
+```text
+FLEURS en-US 60:
+  direct media-path payload text Acc@1 = 1.000
+  dict-style payload was near random, so dict is treated as interface misuse
+
+CoVoST2 zh-CN->en 200:
+  correct media-path raw Acc@1 = 0.845
+  encode-method grid did not improve Acc@1
+  tuple-fusion translation_semantic full-set Acc@1 = 0.850
+  selector falls back to raw because selection split regresses
+
+URO QA/reasoning 200:
+  correct media-path raw Acc@1 = 0.465
+  encode-method grid has only underpowered positives
+  tuple-fusion instructions are rejected or raw-fallback
+```
+
+Impact:
+- Do not claim path-vs-dict as method improvement; it is endpoint validation.
+- Over Jina's correct raw interface, current training-free instruction /
+  encode-method policies do not yet produce robust accepted gains.
+- Future cross-model reports should normalize each backend to its correct raw
+  interface before applying the selector and accept gate.
+
+## 2026-06-26: Check Jina Non-Omni-Side Controller Actions
+
+Changed:
+- Added `audio_payload_mode` support to the tool/intent retrieval evaluator so
+  Jina can use direct media-path audio inputs on tool tasks.
+- Ran system-side boundary/schema checks on Jina for URO, MInDS, SLURP, and
+  CoVoST2 ar->en.
+- Added the Jina system-side rows to the V3 semantic interface effect report.
+
+Evidence:
+
+```text
+URO QA 200:
+  target_text Acc@1 0.465 -> target_boundary_card Acc@1 0.635
+  paired delta +0.170, CI95 [0.105, 0.235]
+
+MInDS-14 180:
+  basic tool text Acc@1 0.711 -> boundary tool card Acc@1 0.867
+  paired delta +0.156, CI95 [0.089, 0.222]
+
+SLURP 500:
+  basic tool text Acc@1 0.502 -> boundary tool card Acc@1 0.772
+  paired delta +0.270, CI95 [0.228, 0.312]
+
+CoVoST2 ar->en 200:
+  target_text Acc@1 0.300 -> target_boundary_card Acc@1 0.305
+  paired delta +0.005, CI95 [-0.050, 0.055]
+```
+
+Impact:
+- Candidate/schema boundary actions transfer strongly to Jina on QA and
+  tool/intent tasks.
+- The same action is rejected on Jina CoVoST2 ar->en, so the controller still
+  needs dataset/task/model-level validation.
+- These are system-side gains, not omni-side instruction or encode-method
+  optimization claims.

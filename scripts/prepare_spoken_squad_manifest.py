@@ -27,6 +27,18 @@ def _require_datasets():
     return Audio, load_dataset
 
 
+def _load_local_parquet_rows(paths: list[Path]) -> list[dict[str, Any]]:
+    try:
+        import pyarrow.parquet as pq
+    except Exception as exc:  # pragma: no cover - depends on local env
+        raise SystemExit("This mode requires `pyarrow`.") from exc
+    rows: list[dict[str, Any]] = []
+    for path in paths:
+        table = pq.read_table(path)
+        rows.extend(table.to_pylist())
+    return rows
+
+
 def _audio_suffix(audio: dict[str, Any]) -> str:
     audio_bytes = audio.get("bytes")
     if isinstance(audio_bytes, bytes):
@@ -66,24 +78,34 @@ def _extract_answer(example: dict[str, Any], answer_field: str) -> tuple[str, An
     return "", value
 
 
+def _text_field(example: dict[str, Any], field: str) -> str:
+    value = example.get(field, "")
+    if isinstance(value, dict):
+        return ""
+    return str(value or "").strip()
+
+
 def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
-    Audio, load_dataset = _require_datasets()
-    dataset = load_dataset(
-        args.dataset,
-        split=args.split,
-        cache_dir=args.cache_dir,
-        streaming=args.streaming,
-    )
-    dataset = dataset.cast_column(args.audio_column, Audio(decode=False))
-    if args.streaming:
-        # Keep streaming unbounded here when filters are active.  We stop after
-        # collecting max_samples valid rows below, so answerable-only manifests
-        # do not accidentally contain far fewer rows just because the first N
-        # source examples are impossible questions.
-        if args.max_samples and not (args.require_answer or args.skip_impossible):
-            dataset = dataset.take(args.max_samples)
-    elif args.max_samples and not (args.require_answer or args.skip_impossible):
-        dataset = dataset.select(range(min(args.max_samples, len(dataset))))
+    if args.local_parquet:
+        dataset = _load_local_parquet_rows(args.local_parquet)
+    else:
+        Audio, load_dataset = _require_datasets()
+        dataset = load_dataset(
+            args.dataset,
+            split=args.split,
+            cache_dir=args.cache_dir,
+            streaming=args.streaming,
+        )
+        dataset = dataset.cast_column(args.audio_column, Audio(decode=False))
+        if args.streaming:
+            # Keep streaming unbounded here when filters are active.  We stop after
+            # collecting max_samples valid rows below, so answerable-only manifests
+            # do not accidentally contain far fewer rows just because the first N
+            # source examples are impossible questions.
+            if args.max_samples and not (args.require_answer or args.skip_impossible):
+                dataset = dataset.take(args.max_samples)
+        elif args.max_samples and not (args.require_answer or args.skip_impossible):
+            dataset = dataset.select(range(min(args.max_samples, len(dataset))))
 
     output_dir = args.output_dir
     audio_dir = output_dir / "audio"
@@ -93,9 +115,9 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
     rows = []
     with manifest_path.open("w", encoding="utf-8") as handle:
         for index, example in enumerate(dataset):
-            question = str(example.get(args.question_field, "")).strip()
-            transcription = str(example.get(args.transcription_field, question)).strip()
-            context = str(example.get(args.context_field, "")).strip()
+            question = _text_field(example, args.question_field)
+            transcription = _text_field(example, args.transcription_field) or question
+            context = _text_field(example, args.context_field)
             answer, raw_answers = _extract_answer(example, args.answer_field)
             if args.skip_impossible and bool(example.get("is_impossible", False)):
                 continue
@@ -150,6 +172,13 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", default="AudioLLMs/spoken_squad_test")
+    parser.add_argument(
+        "--local-parquet",
+        action="append",
+        default=[],
+        type=Path,
+        help="Read one or more local HF parquet shards instead of loading from the Hub.",
+    )
     parser.add_argument("--split", default="test")
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--cache-dir", default=None)

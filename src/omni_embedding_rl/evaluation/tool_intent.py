@@ -44,6 +44,7 @@ class ToolIntentRetrievalConfig:
     query_field: str = "text"
     asr_field: str = "asr_text"
     include_query_text_with_audio: bool = False
+    audio_payload_mode: str = "dict"
     batch_size: int = 16
     audio_max_length: int = 2048000
     score_count: int = 8
@@ -134,8 +135,19 @@ def _instruction(config: ToolIntentRetrievalConfig) -> str:
     return INSTRUCTION_ARMS[config.instruction_arm]
 
 
-def _audio_payload(row: dict[str, Any], instruction: str, query_text: str, include_text: bool) -> dict[str, str]:
-    payload = {"audio": str(row["audio_path"])}
+def _audio_payload(
+    row: dict[str, Any],
+    instruction: str,
+    query_text: str,
+    include_text: bool,
+    payload_mode: str,
+) -> Any:
+    audio_path = str(row["audio_path"])
+    if payload_mode == "path":
+        return audio_path
+    if payload_mode != "dict":
+        raise ValueError("audio_payload_mode must be one of: dict, path")
+    payload = {"audio": audio_path}
     text_parts = []
     if instruction:
         text_parts.append(instruction)
@@ -209,6 +221,7 @@ def _encode_queries(
                     instruction,
                     _query_text(row, config),
                     config.include_query_text_with_audio,
+                    config.audio_payload_mode,
                 )
             ]
             vectors.append(_encode(model, payload, config.audio_encode_method, batch_size=1)[0])
@@ -331,6 +344,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--query-field", default="text")
     parser.add_argument("--asr-field", default="asr_text")
     parser.add_argument("--include-query-text-with-audio", action="store_true")
+    parser.add_argument("--audio-payload-mode", choices=["dict", "path"], default="dict")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--audio-max-length", type=int, default=2048000)
     parser.add_argument("--score-count", type=int, default=8)
@@ -361,6 +375,7 @@ def config_from_args(args: argparse.Namespace) -> ToolIntentRetrievalConfig:
         query_field=args.query_field,
         asr_field=args.asr_field,
         include_query_text_with_audio=args.include_query_text_with_audio,
+        audio_payload_mode=args.audio_payload_mode,
         batch_size=args.batch_size,
         audio_max_length=args.audio_max_length,
         score_count=args.score_count,

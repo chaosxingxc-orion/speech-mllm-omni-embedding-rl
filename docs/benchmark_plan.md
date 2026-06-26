@@ -1,6 +1,6 @@
 # Semantic Speech Benchmark Plan
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ## Scope
 
@@ -124,6 +124,187 @@ evaluation keys
 | SLUE | broader spoken language understanding benchmark suite | optional stronger SLU-style semantic evaluation |
 
 ## Rerun / Supplement Plan
+
+## Instruction Construction Protocol
+
+Canonical methodology:
+
+```text
+docs/semantic_policy_methodology.md
+```
+
+Instruction optimization is task-specific.  The project should not treat
+`policy_grounding` or any other single instruction as a universal upgrade.
+
+For each semantic task, build instruction candidates from an explicit task
+card:
+
+```text
+task_role
+target_object
+equivalence
+boundary_condition
+negative_warning
+```
+
+Canonical V1 constructed arms:
+
+| Arm | Task family | Target |
+|---|---|---|
+| `constructed_asr_transcript` | ASR semantics | literal transcript candidate |
+| `constructed_rag_grounding` | speech QA/RAG | passage or rule that directly supports the answer |
+| `constructed_tool_intent` | tool / intent | most specific executable tool or intent schema |
+| `constructed_translation` | speech translation | equivalent target-language translation |
+
+Implementation:
+
+```text
+src/omni_embedding_rl/policies/instruction_builder.py
+scripts/build_instruction_arms.py
+docs/instruction_construction_theory.md
+docs/lean/instruction_construction_policy.lean
+```
+
+Acceptance rule:
+
+```text
+Only accept a constructed or proposed instruction when paired validation shows
+positive delta, positive bootstrap lower bound, bounded regression, and bounded
+drift from the task card.
+```
+
+## Task-Level Omni Policy Selector
+
+The current selector upgrades isolated instruction positives into a reproducible
+dataset/task-level decision:
+
+```text
+input: row-level retrieval JSONs for the same dataset/task
+actions: audio instruction / encode method / score policy results
+selection: one action for the whole dataset/task, not per sample
+output: leaderboard, selected action, accept/reject reasons, locked-test report
+```
+
+The selector is deliberately conservative:
+
+```text
+proposal split: optional LLM-visible bad cases or examples
+selection split: choose and accept/reject the action
+locked test: report only, never tune
+
+accept if:
+  mean_delta > 0
+  bootstrap_LCB > 0
+  regression_rate <= 0.03
+  worst_group_delta >= -0.002
+```
+
+Canonical implementation:
+
+```text
+src/omni_embedding_rl/policies/task_level_selector.py
+scripts/task_level_omni_policy_selector.py
+docs/task_level_policy_selector_theory.md
+docs/lean/task_level_policy_selector.lean
+```
+
+First selector results:
+
+| Task | Actions | Selector decision | Locked-test effect | Interpretation |
+|---|---|---|---|---|
+| URO QA/reasoning 200 | raw, `policy_grounding`, `exact_condition_matching` | accept `exact_condition_matching` | Acc@1 0.375 -> 0.4625, delta +0.0875 CI95 [0.025, 0.150], 0 regressions | strongest accepted omni-side policy |
+| CoVoST2 zh-CN->en 200 | raw, `translation_semantic` | raw fallback | locked split would favor `translation_semantic`, but selection LCB was not positive | promising full-set result, not selector-accepted yet |
+| CoVoST2 ar->en 200 | raw, `translation_semantic` | raw fallback | locked-test delta -0.025, regression rate 0.05 | negative control; harmful instruction rejected |
+
+Expanded action-space diagnostic:
+
+| Task | Grid | Single split result | Stability result | Interpretation |
+|---|---|---|---|---|
+| URO QA/reasoning 200 | `raw/policy_grounding/exact_condition_matching` x `audio_encode_method=query/document/encode` | seed42 selected `exact_condition_matching_document`, but locked-test LCB was negative, so `selected_not_validated` | five split seeds selected `policy_grounding_encode` in 4/5 runs; locked pass rate 0.75; mean locked delta +0.090625 | larger grids need stability diagnostics before final claims |
+| URO QA/reasoning 200 | instruction-only taxonomy | seed42 accepted `dialect_robust_semantic` with locked delta +0.0875 | five split seeds selected `dialect_robust_semantic` in 4/5 runs; locked pass rate 1.0 among selected runs; mean locked delta +0.071875; 0 regressions | accepted stable omni-side instruction evidence |
+| CoVoST2 zh-CN->en 200 | raw vs `translation_semantic` | full set is positive, but seed42 selector fell back to raw | five split seeds all fell back to raw; no stable non-raw policy | full-set improvement remains diagnostic, not a strict accepted policy |
+
+Tool fixed-schema selector:
+
+| Task | Fixed schema | Selector result | Interpretation |
+|---|---|---|---|
+| MInDS-14 180 | contrastive boundary tool card | raw fallback; `tool_specific_intent` has positive trend but selection LCB = 0 | no accepted omni-side instruction after best schema is fixed |
+| SLURP 500 | contrastive boundary tool card | raw fallback; `tool_specific_intent` regresses on selection and locked test | strong system-side schema result, not audio-instruction gain |
+
+Next selector step:
+
+```text
+Run full finite action grids for instruction x audio encode method x text
+encode method x available score policies, then summarize with both the
+single-split selector and multi-split stability diagnostic.
+```
+
+Bad-case audit follow-up:
+
+```text
+docs/bugs/issue-004-selector-badcase-and-gate-audit.md
+```
+
+The selector now distinguishes:
+
+```text
+accepted: stable positive with locked-test gate.
+underpowered_positive: positive mean and low regression, but selection LCB is
+  not positive.
+harmful_rejected: negative mean, high regression, protected high-margin
+  regression, or bad group delta.
+selected_not_validated: selection accepts but locked-test gate fails.
+raw_fallback: no accepted non-raw action.
+```
+
+First diagnostic-state reruns:
+
+| Task | Candidate | Selector state | Key evidence |
+|---|---|---|---|
+| CoVoST2 zh-CN->en 200 | `translation_semantic` | `underpowered_positive` | selection delta +0.0125, LCB = 0, 0 regressions, 0 protected regressions |
+| CoVoST2 ar->en 200 | `translation_semantic` | `harmful_rejected` | selection delta -0.0875, 7 regressions, 2 protected regressions |
+| SLURP 500 fixed schema | `tool_specific_intent` | `harmful_rejected` | selection delta -0.020, 7 regressions, 6 protected regressions |
+
+When row-level scores exist, use:
+
+```text
+--margin-protect-threshold 0.01
+```
+
+to report whether a candidate breaks baseline-correct high-margin rows.  For
+tool/intent tasks, use:
+
+```text
+--group-field target_prefix
+```
+
+to expose scenario-level regressions such as `email`, `qa`, `calendar`, or
+`alarm`.
+
+This protocol explains the observed split:
+
+```text
+URO QA accepts policy_grounding because it increases QA/reasoning margins.
+HeySQuAD answerable validation rejects policy_grounding because it regresses.
+```
+
+V1 constructed-arm smoke:
+
+| Task | Dataset / split | Baseline | Constructed arm | Result | Decision |
+|---|---|---:|---|---:|---|
+| ASR semantics | FLEURS en_us validation 60 | raw already text Acc@1 1.000 | `constructed_asr_transcript` | text Acc@1 1.000 | neutral / saturated |
+| Speech RAG | HeySQuAD answerable validation first60 | raw text Acc@1 0.983 | `constructed_rag_grounding` | text Acc@1 0.950, delta -0.033 CI [-0.083, 0.000] | reject |
+| Tool / intent | MInDS-14 first60 | raw + boundary schema Acc@1 1.000 | `constructed_tool_intent` | Acc@1 0.983 | reject on this subset |
+| Translation | CoVoST2 ar->en validation 60 | raw target text Acc@1 0.700 | `constructed_translation` | Acc@1 0.617, delta -0.083 CI [-0.167, -0.017] | reject |
+
+Interpretation:
+
+```text
+The deterministic builder makes task assumptions explicit and executable, but
+V1 constructed instructions are not automatically better than raw.  This is
+consistent with the theory: construction produces candidate policies; validation
+and accept gates decide whether they are usable for a dataset.
+```
 
 ### P0: Establish frozen semantic baselines
 
@@ -441,6 +622,86 @@ raw audio instruction + contrastive boundary tool cards
 
 Use task-specific audio instructions only behind validation evidence and a
 regression gate.
+
+### P7: Task-by-task omni-side validation
+
+Status as of 2026-06-25:
+
+The current paper claim should be tested one task at a time with candidate-side
+representation fixed whenever possible. The first clean result is URO-Bench
+QA/reasoning:
+
+```text
+Dataset: URO-Bench mini speech_qa_reasoning, 200 rows
+Candidate field: target_text
+Text encode method: document
+Audio encode method: query
+
+raw:
+  text Acc@1 = 0.380
+  text MRR = 0.488
+
+policy_grounding:
+  text Acc@1 = 0.465
+  text MRR = 0.544
+  Acc@1 delta = +0.085, CI95 [0.045, 0.130]
+  MRR delta = +0.0556, CI95 [0.0313, 0.0806]
+  fixes / regressions = 18 / 1
+
+exact_condition_matching:
+  text Acc@1 = 0.450
+  text MRR = 0.533
+  Acc@1 delta = +0.070, CI95 [0.035, 0.110]
+  MRR delta = +0.0445, CI95 [0.0242, 0.0672]
+  fixes / regressions = 14 / 0
+```
+
+Interpretation:
+
+```text
+This is a genuine omni-side training-free optimization result because the
+candidate text is not enriched. The policy changes only the audio-side
+instruction while keeping the candidate representation fixed.
+```
+
+Next task-by-task checks:
+
+1. test whether tool/intent has any accepted omni-side gain after holding
+   schema fixed;
+2. test ASR-like tasks only on non-saturated candidate sets;
+3. keep SLURP contrastive-boundary gains under the system-side baseline column,
+   not the omni-side optimization column.
+
+Completed follow-up:
+
+```text
+Dataset: CoVoST2 zh-CN->en validation 200
+Candidate field: target_text
+Text encode method: document
+Audio encode method: query
+
+raw:
+  text Acc@1 = 0.890
+  text MRR = 0.922
+
+translation_semantic:
+  text Acc@1 = 0.925
+  text MRR = 0.950
+  Acc@1 delta = +0.035, CI95 [0.010, 0.060]
+  MRR delta = +0.0279, CI95 [0.0118, 0.0461]
+  fixes / regressions = 7 / 0
+```
+
+Interpretation:
+
+```text
+This is a clean full-set omni-side positive because the candidate text is held
+fixed and the policy only changes the audio-side translation instruction.
+It is language-pair conditional: the same class of translation instruction is
+rejected on CoVoST2 ar->en.  It is not yet a strict selector-accepted policy:
+five repeated selector splits all fell back to raw because the selection split
+did not provide a positive lower confidence bound.
+```
 
 ## Acceptance Criteria
 
@@ -1423,6 +1684,42 @@ scripts/prepare_spoken_squad_manifest.py now supports --require-answer and
 --skip-impossible. Use these flags for any SQuAD-style final-answer benchmark.
 ```
 
+Stable answerable validation subset:
+
+```text
+Dataset: HeySQuAD human validation shard.
+Subset: first 200 answerable examples after filtering impossible / empty-answer
+        rows from a locally downloaded parquet shard.
+Task: spoken question audio -> SQuAD passage context retrieval.
+Candidate field: context.
+```
+
+| Policy | Text Acc@1 | R@3 | MRR | Answer pass, first-doc local rule | Grounded context Acc@1 | Error summary |
+|---|---:|---:|---:|---:|---:|---|
+| raw | 0.900 | 0.915 | 0.917 | 0.925 | 0.900 | 13 retrieval miss, 2 generation miss |
+| policy_grounding | 0.875 | 0.895 | 0.899 | 0.890 | 0.875 | 18 retrieval miss, 4 generation miss |
+
+Paired raw -> policy_grounding on text-level retrieval:
+
+```text
+Acc@1 delta -0.025, CI95 [-0.050, 0.000]
+MRR delta -0.0183, CI95 [-0.0395, 0.0012]
+fixes 1, regressions 6
+```
+
+Interpretation:
+
+```text
+The earlier train60 positive result does not transfer to answerable validation
+200.  Raw direct omni is already strong on this recognized-source spoken
+question RAG task, while the generic policy_grounding instruction over-focuses
+the query and should be rejected by the robust accept gate for this split.
+
+This is an important negative result: task-conditioned instruction is a real
+control surface, but it must be selected per task / split with locked-test
+regression checks. It is not a universal prompt upgrade.
+```
+
 ### Batch E: Speech translation
 
 Purpose:
@@ -1455,4 +1752,117 @@ They should not be counted as omni optimization gains.  For the main research
 line, translation should focus on audio-side instruction, encode method,
 pooling/layer choice, score calibration, or routing policies that use omni
 outputs without rewriting the candidate task itself.
+```
+
+### V2 task-conditioned instruction sweep
+
+Purpose:
+
+```text
+Test whether more explicit task-card / boundary-condition instructions improve
+frozen direct omni usage across the existing semantic task families.
+```
+
+New V2 arms:
+
+```text
+v2_asr_literal_boundary
+v2_qa_answer_boundary
+v2_tool_action_boundary
+v2_translation_argument_boundary
+```
+
+Result location:
+
+```text
+outputs/v2_instruction_sweep/
+```
+
+Summary:
+
+| Task / dataset | Baseline | V2 candidate | Paired delta | Fix / regression | Decision |
+|---|---:|---:|---:|---:|---|
+| FLEURS en-US ASR-like 60 | raw text Acc@1 0.983 | `v2_asr_literal_boundary` 1.000 | +0.017 CI95 [0.000, 0.050] | 1 / 0 | safe but saturated |
+| HeySQuAD answerable validation | raw text Acc@1 0.917 on 109 usable rows | `v2_qa_answer_boundary` 0.899 | -0.018 CI95 [-0.046, 0.000] | 0 / 2 | reject |
+| URO QA/reasoning boundary-card | raw Acc@1 0.715 | `v2_qa_answer_boundary` 0.710 | -0.005 CI95 [-0.035, 0.025] | 4 / 5 | reject |
+| URO QA/reasoning boundary-card | raw Acc@1 0.715 | `exact_condition_matching` 0.725 | +0.010 CI95 [-0.015, 0.035] | 4 / 2 | trend only |
+| MInDS-14 intent 180 | raw + boundary schema Acc@1 0.956 | `v2_tool_action_boundary` 0.967 | +0.011 CI95 [-0.011, 0.033] | 3 / 1 | trend only |
+| MInDS-14 intent 180 | raw + boundary schema Acc@1 0.956 | `tool_specific_intent` 0.972 | +0.017 CI95 [0.000, 0.039], MRR CI95 [0.002, 0.021] | 3 / 0 | accept as current tool arm |
+| CoVoST2 ar->en 200 | raw Acc@1 0.610 | `v2_translation_argument_boundary` 0.495 | -0.115 CI95 [-0.165, -0.065] | 3 / 26 | reject |
+| CoVoST2 ar->en 200 | raw Acc@1 0.610 | `translation_semantic` 0.560 | -0.050 CI95 [-0.090, -0.015] | 2 / 12 | reject |
+| CoVoST2 zh-CN->en 200 | raw Acc@1 0.890 | `v2_translation_argument_boundary` 0.910 | +0.020 CI95 [-0.010, 0.050] | 7 / 3 | trend only |
+| CoVoST2 zh-CN->en 200 | raw Acc@1 0.890 | `translation_semantic` 0.925 | +0.035 CI95 [0.015, 0.060] | 7 / 0 | full-set positive; selector not accepted |
+
+Interpretation:
+
+```text
+V2 confirms the central methodology: instruction is a real control surface, but
+the correct instruction is task- and dataset-conditional.
+
+Positive or useful cases:
+- ASR-like literal matching is safe on FLEURS, but the task is saturated.
+- MInDS tool intent accepts the shorter existing `tool_specific_intent`, not
+  the longer V2 wording.
+- CoVoST2 zh-CN->en has a full-set positive `translation_semantic` result, but
+  strict repeated selector splits currently keep it as diagnostic evidence.
+
+Rejected cases:
+- HeySQuAD and URO reject the generic V2 QA answer-boundary instruction.
+- CoVoST2 ar->en strongly rejects audio-side translation instructions; raw
+  direct omni or system-side target boundary cards remain better there.
+
+This means the next V3 step should not be "make the instruction longer."  It
+should use margin/bad-case clusters to decide whether to apply an instruction,
+keep raw, change encode method, calibrate scores, or route to conservative
+rerank.
+```
+
+### Bad-case repair audit: HeySQuAD and CoVoST2 ar->en
+
+Detailed report:
+
+```text
+docs/bugs/issue-002-heysquad-covost-badcase-repair.md
+```
+
+HeySQuAD result:
+
+```text
+Raw full-context direct omni remains the best tested policy.
+V2 QA instruction, same-omni oracle-text route, answer-context cards, and
+front-context compression all regress.
+
+Remaining errors are same-topic long-passage confusions. Only 3 / 9 raw misses
+have the gold context in top-5, so low-margin rerank can repair only a small
+subset unless candidate diversity / retrieval recall is improved first.
+```
+
+CoVoST2 ar->en result:
+
+```text
+Audio-side translation instructions strongly regress.
+The useful repair is system-side:
+  target_boundary_card + text_encode_method=encode
+  Acc@1 0.610 -> 0.645
+  MRR delta CI95 [0.0093, 0.0629]
+  fixes / regressions = 10 / 3
+
+This should be framed as candidate representation + encode-policy repair, not
+as audio-side instruction optimization.
+```
+
+V3 policy implication:
+
+```text
+V3 should treat instruction as one action among several:
+  raw instruction
+  concise task instruction
+  candidate representation
+  audio encode method
+  text encode method
+  low-margin rerank
+  top-k final-answer context
+
+The policy selector should be trained/selected on validation reward and should
+not automatically prefer longer task-card instructions.
 ```

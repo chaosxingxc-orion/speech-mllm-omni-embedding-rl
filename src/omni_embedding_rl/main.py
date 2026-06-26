@@ -42,6 +42,8 @@ from omni_embedding_rl.policies.accept_gate import AcceptGateConfig
 from omni_embedding_rl.policies.accept_gate import run as run_accept_gate
 from omni_embedding_rl.policies.strict_selection import StrictSelectionConfig
 from omni_embedding_rl.policies.strict_selection import run as run_strict_selection
+from omni_embedding_rl.policies.task_level_selector import TaskLevelSelectorConfig
+from omni_embedding_rl.policies.task_level_selector import run as run_task_level_omni_policy_selector
 from omni_embedding_rl.tasks.rag_answer import RAGAnswerEvalConfig
 from omni_embedding_rl.tasks.rag_answer import run as run_rag_answer_eval
 from omni_embedding_rl.training.offline_policy import OfflinePolicyConfig
@@ -212,6 +214,30 @@ def strict_selection_config(cfg: DictConfig) -> StrictSelectionConfig:
     )
 
 
+def task_level_omni_policy_selector_config(cfg: DictConfig) -> TaskLevelSelectorConfig:
+    section = cfg.task_level_omni_policy_selector
+    return TaskLevelSelectorConfig(
+        candidates=_list_cfg(section.get("candidates", ())),
+        output=_path(section.output),
+        baseline=section.get("baseline", "raw"),
+        task_name=section.get("task_name", ""),
+        task_family=section.get("task_family", ""),
+        proposal_ratio=section.get("proposal_ratio", 0.2),
+        selection_ratio=section.get("selection_ratio", 0.4),
+        split_seed=section.get("split_seed", cfg.seed),
+        bootstrap_rounds=section.get("bootstrap_rounds", 5_000),
+        seed=cfg.seed,
+        min_mean_delta=section.get("min_mean_delta", 0.0),
+        min_lcb=section.get("min_lcb", 0.0),
+        max_regression_rate=section.get("max_regression_rate", 0.03),
+        min_worst_group_delta=section.get("min_worst_group_delta", -0.002),
+        reward_mrr_weight=section.get("reward_mrr_weight", 0.1),
+        reward_r3_weight=section.get("reward_r3_weight", 0.05),
+        group_field=section.get("group_field", "dataset_config"),
+        hit_mode=section.get("hit_mode", "auto"),
+    )
+
+
 def offline_policy_config(cfg: DictConfig) -> OfflinePolicyConfig:
     section = cfg.offline_policy
     return OfflinePolicyConfig(
@@ -326,6 +352,8 @@ def main(cfg: DictConfig) -> None:
         report = run_accept_gate(accept_gate_config(cfg))
     elif mode == "strict_selection":
         report = run_strict_selection(strict_selection_config(cfg))
+    elif mode == "task_level_omni_policy_selector":
+        report = run_task_level_omni_policy_selector(task_level_omni_policy_selector_config(cfg))
     elif mode == "offline_policy":
         report = run_offline_policy(offline_policy_config(cfg))
     else:

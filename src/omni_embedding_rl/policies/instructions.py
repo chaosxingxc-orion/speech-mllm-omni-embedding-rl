@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from omni_embedding_rl.policies.instruction_builder import built_instruction_arms
+
 
 INSTRUCTION_ARMS: dict[str, str] = {
     "raw": "",
@@ -44,7 +46,33 @@ INSTRUCTION_ARMS: dict[str, str] = {
         "equivalent translation in another language. Preserve named entities, "
         "numbers, negation, and core predicate-argument meaning."
     ),
+    "v2_asr_literal_boundary": (
+        "Represent the spoken audio for transcript-candidate retrieval. Match the "
+        "candidate that preserves the literal utterance, including function words, "
+        "numbers, names, negation, and word-level distinctions. Do not choose a "
+        "candidate that is merely on the same topic."
+    ),
+    "v2_qa_answer_boundary": (
+        "Represent the spoken question for answer-bearing evidence retrieval. Match "
+        "the passage or rule that entails the answer to the question. Preserve the "
+        "question focus, entities, quantities, constraints, exceptions, and answer "
+        "type. Reject same-topic passages that cannot directly answer the question."
+    ),
+    "v2_tool_action_boundary": (
+        "Represent the spoken command for executable tool selection. Match the tool "
+        "whose domain, requested action, object, and user goal are all correct. "
+        "Reject nearby tools that share words or domain but would execute a "
+        "different action."
+    ),
+    "v2_translation_argument_boundary": (
+        "Represent the spoken source sentence for translation matching. Match the "
+        "target-language sentence with the same proposition: who did what to whom, "
+        "with the same entities, numbers, polarity, tense, and constraints. Reject "
+        "translations that only share broad topic or scene."
+    ),
 }
+
+INSTRUCTION_ARMS.update(built_instruction_arms())
 
 
 TASK_DEFAULT_ARMS: dict[str, tuple[str, ...]] = {
@@ -52,12 +80,16 @@ TASK_DEFAULT_ARMS: dict[str, tuple[str, ...]] = {
         "raw",
         "exact_condition_matching",
         "policy_grounding",
+        "v2_qa_answer_boundary",
+        "constructed_rag_grounding",
         "negation_exception_sensitive",
         "dialect_robust_semantic",
     ),
     "tool": (
         "raw",
         "tool_specific_intent",
+        "v2_tool_action_boundary",
+        "constructed_tool_intent",
         "exact_condition_matching",
         "negation_exception_sensitive",
         "dialect_robust_semantic",
@@ -65,6 +97,8 @@ TASK_DEFAULT_ARMS: dict[str, tuple[str, ...]] = {
     "asr_like": (
         "raw",
         "transcript_like",
+        "v2_asr_literal_boundary",
+        "constructed_asr_transcript",
         "semantic_qa",
         "dialect_robust_semantic",
         "exact_condition_matching",
@@ -78,6 +112,8 @@ TASK_DEFAULT_ARMS: dict[str, tuple[str, ...]] = {
     "translation": (
         "raw",
         "translation_semantic",
+        "v2_translation_argument_boundary",
+        "constructed_translation",
         "semantic_qa",
         "transcript_like",
     ),

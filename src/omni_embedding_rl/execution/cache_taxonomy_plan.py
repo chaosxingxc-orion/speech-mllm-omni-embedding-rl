@@ -39,6 +39,7 @@ class CacheTaxonomyPlanConfig:
     candidate_count: int = 8
     same_intent_negatives: int = 2
     same_domain_negatives: int = 2
+    translation_target_field: str = "target_text"
 
 
 def result_name(config: CacheTaxonomyPlanConfig, arm: str) -> str:
@@ -146,6 +147,29 @@ def asr_like_steps(config: CacheTaxonomyPlanConfig, arm: str, instruction: str) 
     ]
 
 
+def translation_steps(
+    config: CacheTaxonomyPlanConfig, arm: str, instruction: str
+) -> list[dict[str, Any]]:
+    result = result_name(config, arm)
+    return [
+        {
+            "step": "evaluate_translation_omni_selection",
+            "output": result_path(config, result),
+            "manifest": config.manifest,
+            "omni_model": config.omni_model,
+            "instruction_arm": arm,
+            "audio_encode_method": "query",
+            "text_encode_method": "document",
+            "audio_instruction": instruction,
+            "candidate_field": config.translation_target_field,
+            "candidate_count": config.candidate_count,
+            "max_samples": config.max_samples,
+            "score_count": config.score_count,
+            "seed": config.seed,
+        }
+    ]
+
+
 def build_plan(config: CacheTaxonomyPlanConfig) -> dict[str, Any]:
     arms = arm_items(config.task, config.arms or None)
     rows = []
@@ -156,6 +180,8 @@ def build_plan(config: CacheTaxonomyPlanConfig) -> dict[str, Any]:
             steps = tool_steps(config, arm, instruction)
         elif config.task == "asr_like":
             steps = asr_like_steps(config, arm, instruction)
+        elif config.task == "translation":
+            steps = translation_steps(config, arm, instruction)
         else:
             raise ValueError(f"Unsupported cache taxonomy task: {config.task}")
         rows.append(
@@ -186,7 +212,7 @@ def run(config: CacheTaxonomyPlanConfig) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--task", choices=["rag", "tool", "asr_like"], required=True)
+    parser.add_argument("--task", choices=["rag", "tool", "asr_like", "translation"], required=True)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--dataset-name", default="")
@@ -195,6 +221,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--test-size", type=float, default=0.35)
     parser.add_argument("--results-dir", default="outputs")
+    parser.add_argument("--translation-target-field", default="target_text")
     return parser
 
 
@@ -209,6 +236,7 @@ def config_from_args(args: argparse.Namespace) -> CacheTaxonomyPlanConfig:
         seed=args.seed,
         test_size=args.test_size,
         results_dir=args.results_dir,
+        translation_target_field=args.translation_target_field,
     )
 
 

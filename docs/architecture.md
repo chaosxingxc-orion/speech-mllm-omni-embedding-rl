@@ -22,6 +22,20 @@ mined and migrated gradually.
 
 ## Conceptual System Architecture
 
+The current methodology is:
+
+```text
+task model
+  -> task card
+  -> policy candidates
+  -> frozen execution
+  -> paired utility / margin analysis
+  -> accept gate
+  -> bad-case refinement
+```
+
+The canonical description is `docs/semantic_policy_methodology.md`.
+
 ```text
 audio input
   |
@@ -40,8 +54,12 @@ candidate side
   -> text or omni document embeddings
 
 policy layer
+  task model / task card
   task family detector
   instruction selector
+  encode-method selector
+  margin gate
+  candidate-system policy
   route policy
   fusion policy
   rerank trigger
@@ -50,6 +68,33 @@ policy layer
 final task
   retrieval / RAG answer / tool call / transcript match
 ```
+
+## Semantic Interface Controller
+
+The controller is the deployable unit for the current Story-B direction.  It is
+not a new model and it does not update weights in the current cycle.
+
+```text
+task card
+  -> layer-tagged action bank
+  -> frozen model execution
+  -> layer-wise attribution
+  -> robust accept gate
+  -> locked-test report
+```
+
+Layer tags:
+
+```text
+omni_side
+system_side_candidate
+hybrid_route_rerank
+downstream_final_task
+diagnostic
+```
+
+This lets the project use strong system-side gains without blurring the claim
+boundary around omni-side optimization.
 
 ## Outer Framework Components
 

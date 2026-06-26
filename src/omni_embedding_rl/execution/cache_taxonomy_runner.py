@@ -23,6 +23,7 @@ SUPPORTED_STEPS = {
     "evaluate_hybrid_from_cache",
     "evaluate_tool_omni_audio",
     "evaluate_asr_like_omni_selection",
+    "evaluate_translation_omni_selection",
 }
 
 
@@ -60,6 +61,15 @@ def _add_arg(command: list[str], name: str, value: Any) -> None:
 
 def _legacy_path(script: str) -> str:
     return f"mainline/{script}"
+
+
+def _repo_relative_from_legacy(value: Any) -> Any:
+    if not isinstance(value, str) or not value:
+        return value
+    item = Path(value)
+    if item.is_absolute():
+        return value
+    return str(Path("../..") / item)
 
 
 def command_for_step(step: dict[str, Any], config: CacheTaxonomyRunnerConfig) -> list[str]:
@@ -142,6 +152,21 @@ def command_for_step(step: dict[str, Any], config: CacheTaxonomyRunnerConfig) ->
         _add_arg(command, "--score-count", step.get("score_count"))
         _add_arg(command, "--seed", step.get("seed"))
         _add_arg(command, "--include-rows", True)
+    elif step_name == "evaluate_translation_omni_selection":
+        command = [config.python, "../../scripts/transcript_candidate_retrieval.py"]
+        _add_arg(command, "--manifest", _repo_relative_from_legacy(step.get("manifest")))
+        _add_arg(command, "--output", _repo_relative_from_legacy(step.get("output")))
+        _add_arg(command, "--model", _repo_relative_from_legacy(step.get("omni_model")))
+        _add_arg(command, "--route", "direct_omni")
+        _add_arg(command, "--instruction-arm", step.get("instruction_arm"))
+        _add_arg(command, "--audio-encode-method", step.get("audio_encode_method"))
+        _add_arg(command, "--text-encode-method", step.get("text_encode_method"))
+        _add_arg(command, "--query-field", "source_text")
+        _add_arg(command, "--candidate-field", step.get("candidate_field"))
+        _add_arg(command, "--candidate-count", step.get("candidate_count"))
+        _add_arg(command, "--max-samples", step.get("max_samples"))
+        _add_arg(command, "--score-count", step.get("score_count"))
+        _add_arg(command, "--seed", step.get("seed"))
     return command
 
 

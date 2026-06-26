@@ -33,6 +33,29 @@ through task-conditioned interfaces, robust training-free policy search, and
 lightweight RL / LoRA adaptation?
 ```
 
+## Current Story: Semantic Interface Controller
+
+The accepted research story is now:
+
+```text
+Frozen omni models are useful but under-specified.  The main problem is not to
+find one universal instruction, but to automatically choose a validated
+semantic task interface around the frozen model.
+```
+
+The controller may choose:
+
+```text
+omni-side interface: audio instruction, encode method, payload mode, margin gate
+system-side interface: candidate schema / boundary cards
+hybrid route: ASR, direct omni, RRF, low-margin rerank
+final-task policy: context k, answer prompt, tool-call parser
+```
+
+Every result must report which layer produced the gain.  Only omni-side
+interface changes count as optimizing the frozen omni-embedding usage itself;
+candidate schema and rerank remain system/controller gains.
+
 ## Non-Goals
 
 - Do not train a new omni-embedding model from scratch.
@@ -94,6 +117,30 @@ Dialect     -> semantic intent under ASR failure
 A finite, structured policy space with robust acceptance can improve usability
 without training the base embedding model or LLM.
 
+Current evidence boundary:
+
+```text
+Accepted omni-side evidence:
+  URO-Bench QA/reasoning accepts task-conditioned audio instructions under
+  locked-test and multi-split stability diagnostics.
+
+Diagnostic but not accepted omni-side evidence:
+  CoVoST2 zh-CN->en translation_semantic improves the full 200-row diagnostic,
+  but strict repeated selector splits fall back to raw.  It remains a promising
+  task/language-pair signal, not a deployable accepted policy claim.
+
+Rejected or non-primary omni-side evidence:
+  CoVoST2 ar->en rejects audio-side translation instructions;
+  SLURP and MInDS fixed-schema tool settings do not yet accept audio-side
+  instruction gains after the best candidate schema is fixed;
+  HeySQuAD rejects generic QA/RAG instructions on validation.
+
+System-side evidence:
+  Candidate schema / boundary cards and conservative rerank can strongly
+  improve end-to-end utility, but they are baselines or controller components,
+  not claims that the frozen omni embedding itself was optimized.
+```
+
 ### H3: Lightweight RL/LoRA is a deferred upper-bound adaptation layer
 
 If training-free methods hit a ceiling, audio-side LoRA or an offline policy
@@ -111,6 +158,44 @@ success + auxiliary gain - unsafe penalty - regression - cost - complexity
 not only accuracy.
 
 ## Method Overview
+
+The canonical methodology is maintained in:
+
+```text
+docs/semantic_policy_methodology.md
+```
+
+Use that document as the source of truth for:
+
+```text
+task model
+task card
+policy definition
+margin / utility objective
+accept gate
+bad-case refinement loop
+```
+
+The Story-B controller is summarized in:
+
+```text
+docs/knowledge/methods/semantic_interface_controller.md
+```
+
+The controller loop is:
+
+```text
+task card
+  -> finite layer-tagged action bank
+  -> frozen execution
+  -> layer-wise attribution
+  -> validation selection / robust accept gate
+  -> locked-test report
+```
+
+Actions may be proposed by deterministic task-card templates, LLM proposal
+under a fixed schema, or margin/bad-case analysis tools.  The LLM may propose
+candidate policies, but it must not judge success or see locked-test bad cases.
 
 ### Operator View
 
@@ -222,6 +307,10 @@ The project should produce:
 - a benchmark plan that separates controlled synthetic diagnostics from
   community-recognized datasets, so final paper claims are not supported only by
   self-constructed tasks.
+- a layer-wise attribution table that separates omni-side, system-side,
+  route/rerank, and downstream final-task gains.
+- an automatic action-bank and selector workflow, so the method is not
+  presented as manual prompt engineering.
 
 ## Dataset Credibility Plan
 
