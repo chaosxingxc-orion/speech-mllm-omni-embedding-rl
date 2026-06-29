@@ -53,6 +53,37 @@ project-specific synthetic tasks only as controlled diagnostics
 | Speech translation | map spoken source language to target-language meaning | BLEU/chrF/COMET, translation candidate rank |
 | Tool / intent | select semantic action from spoken command | tool accuracy, R@3, MRR, unsafe wrong tool |
 
+## Omni Memory Use-Stage Extension
+
+Following the PlanRAG-Audio reading, the benchmark plan now includes an
+agentic memory-use layer.  The immediate goal is not to reproduce all
+PlanRAG-Audio tasks, but to borrow recognized semantic datasets and test how
+retrieved text/audio memories should be used by a frozen main model.
+
+First memory-use targets:
+
+| Task | Dataset | Memory-use focus |
+|---|---|---|
+| Translation memory | CoVoST2 / FLEURS | text summary vs raw audio memory vs dual memory |
+| SLU/tool memory | SLURP / MInDS | task card and example memory use |
+| Spoken QA/RAG | LibriSQA, Spoken-SQuAD, HeySQuAD | evidence memory use and final answer grounding |
+| Long-form stress | LibriSpeech+LibriSQA, AMI | query-driven memory planning and context reduction |
+
+The concrete dataset and execution matrix is now fixed in:
+
+```text
+docs/omni_memory_dataset_matrix.md
+```
+
+Use that file as the current source of truth for which datasets should be run
+next.  In short, CoVoST2 is only the first translation target; the minimum
+complete semantic set also includes SLURP/MInDS, HeySQuAD/Spoken-SQuAD,
+URO-Bench mini, and AISHELL/WenetSpeech-Wu.
+
+PlanRAG-Audio also covers speaker, emotion, and sound-event streams.  These
+are useful future memory fields, but the current benchmark cycle remains
+semantic-first.
+
 ## Recommended Public Datasets
 
 ### Multi-task spoken agentic benchmark

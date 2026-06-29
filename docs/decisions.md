@@ -968,3 +968,659 @@ Task | Dataset | Baseline | Layer | Action | Delta | CI | Fixes | Regressions | 
 ```text
 docs/knowledge/methods/semantic_interface_controller.md
 ```
+
+## D027: Limit the AutoRound int4 Qwen3-Omni vLLM path to text-only smoke
+
+Date: 2026-06-26
+
+Decision:
+
+Do not use the Intel AutoRound safetensors int4 Qwen3-Omni checkpoint as an
+audio or multimodal backend candidate under vLLM.  It may be retained only as
+a minimal text-only vLLM smoke fallback.
+
+Reason:
+
+```text
+vLLM 0.23.0 can start this checkpoint only with text-only startup,
+max_model_len=512, max_num_seqs=1, tiny KV cache, no multimodal profiling, and
+no CPU offload.
+
+CPU offload is unreliable for this AutoRound MoE quantized model:
+  cpu_offload_gb=20 + multimodal profile fails with a CUDA placement error;
+  cpu_offload_gb=20 + text-only fails with a GPU scale-tensor error;
+  cpu_offload_gb=0 + text-only + tiny KV cache succeeds.
+```
+
+Consequence:
+
+- Do not use this vLLM route for speech/audio task tables.
+- Do not claim CPU offload works for this model/backend pair.
+- Treat the successful run as text-only backend readiness, not model quality.
+- Prefer the GGUF / llama.cpp route for Qwen3-Omni audio policy experiments.
+- The reusable backend note is:
+
+```text
+docs/knowledge/models/qwen3_omni_vllm_hf_int4.md
+```
+
+## D028: Use Qwen3-Omni GGUF plus llama.cpp as the active generative backend candidate
+
+Date: 2026-06-27
+
+Decision:
+
+Use the Qwen3-Omni GGUF checkpoint plus its matching multimodal projector
+through llama.cpp as the active frozen generative omni backend candidate.
+
+This does not replace the embedding experiments.  It only gives the project a
+usable whole-model generative backend for future cross-model policy tests.
+
+Reason:
+
+```text
+The HF-format int4 / vLLM route failed before task evaluation.
+The GGUF / llama.cpp route passes text smoke, audio smoke, and server health.
+```
+
+Observed smoke evidence:
+
+```text
+text smoke:
+  short greeting prompt produced a normal greeting
+
+audio smoke:
+  Arabic speech gold: Do you have a pen?
+  model output: Do you have a pencil?
+
+server smoke:
+  llama-server /health returned {"status":"ok"}
+```
+
+Required operating constraints:
+
+```text
+keep MoE experts on CPU for laptop-scale runs
+use small context during smoke tests
+disable warmup for controlled startup checks
+prefer llama-mtmd-cli or llama-server over plain llama-cli for audio
+```
+
+Consequence:
+
+- Qwen3-Omni can now enter interface-readiness experiments through a working
+  backend.
+- It still cannot be used as formal semantic evidence until a deterministic
+  wrapper is implemented.
+- The next task is candidate-choice policy evaluation, not backend debugging.
+- The reusable recipe is documented in:
+
+```text
+docs/knowledge/models/qwen3_omni_llamacpp_gguf.md
+```
+
+## D029: Treat Voxtral Mini 3B and Gemma 4 E4B as first small generative-omni transfer targets
+
+Date: 2026-06-27
+
+Decision:
+
+Use smaller recent generative/audio-language models before scaling more
+Qwen3-Omni experiments.
+
+First candidates:
+
+```text
+Voxtral Mini 3B:
+  first-choice small speech/audio-language backend because it is recent,
+  small, and vLLM-oriented.
+
+Gemma 4 E4B:
+  second-choice small multimodal/audio-capable backend because GGUF /
+  llama.cpp routes exist, but local audio smoke is still required.
+```
+
+Reason:
+
+- Qwen3-Omni GGUF is usable but heavy.
+- The HF int4 / vLLM route is text-only and not suitable for audio task tables.
+- V3 should be tested as a whole-model interface method across model families,
+  not only on one large generative omni backend.
+
+Consequence:
+
+- Start with candidate-choice semantic tasks rather than open-ended chat.
+- For Gemma 4 E4B, verify audio input through the local backend before formal
+  V3 policy experiments.
+- Treat both models as frozen black boxes.  The policy controls prompts,
+  candidate formatting, decoding, parsers, and fallbacks.
+- See:
+
+```text
+docs/knowledge/models/recent_small_omni_models.md
+docs/knowledge/methods/generative_omni_v3_policy_transfer.md
+```
+
+## D030: Treat generative V3 as whole-call policy selection
+
+Date: 2026-06-27
+
+Decision:
+
+For frozen generative omni models, V3 controls the complete call recipe rather
+than only an embedding instruction.
+
+Policy components include:
+
+```text
+task instruction
+candidate formatting
+decoding budget
+fallback / invalid-output handling
+```
+
+Before comparing these policies, each backend must pass an interface validity
+layer:
+
+```text
+backend flags
+output protocol
+parser
+```
+
+Reason:
+
+- Gemma 4 E4B can process audio through llama.cpp, but its useful answer may
+  appear after model-specific channel markers.
+- On CoVoST2 ar->en first 12 rows, `translation_boundary + anti_answer`
+  improves over `raw + anti_answer` mainly by reducing no-final outputs.
+- A shorter letter-only prompt performs worse, showing that output validity is
+  a real experimental prerequisite rather than a trivial formatting detail.
+
+Consequence:
+
+- Generative omni experiments must report parser / invalid-output rates, not
+  only final accuracy.
+- A backend flag such as `--jinja`, together with the parser and output
+  protocol, is part of the reproducible interface prerequisite.
+- Formal claims still require selection / locked-test discipline; the current
+  Gemma 4 E4B result is a smoke-level positive signal.
+- See:
+
+```text
+docs/knowledge/models/gemma4_e4b_llamacpp_v3_smoke.md
+docs/knowledge/methods/generative_omni_v3_policy_transfer.md
+```
+
+## D031: Define V3 as training-free RL-style interface policy selection
+
+Date: 2026-06-27
+
+Decision:
+
+V3 should be described as:
+
+```text
+training-free policy optimization over a frozen omni model interface
+```
+
+not as:
+
+```text
+manual prompt tuning
+model fine-tuning
+gradient RL over model weights
+```
+
+Reason:
+
+- The same abstraction covers frozen omni-embedding models and frozen
+  generative omni models.
+- The state is the task card and dataset-level diagnostics.
+- The action is a bounded interface policy.
+- The reward is validation task utility with penalties.
+- The accept gate prevents overfit, regression, and invalid-output policies.
+
+Consequence:
+
+- New policies must come from a finite or bounded action bank.
+- Locked-test bad cases cannot be used to propose or select policies.
+- Formal claims require paired metrics, confidence intervals, and regression
+  counts.
+- System-side schema gains and omni-side usage gains must remain separated.
+- See:
+
+```text
+docs/knowledge/methods/v3_training_free_rl_unified_system.md
+```
+
+## D032: Treat output protocol as a validity prerequisite for generative omni
+
+Date: 2026-06-29
+
+Decision:
+
+For frozen generative omni models, output protocol and parser policy are
+validity prerequisites, not the main optimization target.
+
+Evidence:
+
+```text
+Gemma 4 E4B, CoVoST2 ar->en first 24 rows, candidate_count=4:
+  raw + anti_answer: Acc@1 0.208
+  translation_boundary + anti_answer: Acc@1 0.750
+  translation_boundary + explicit_final: Acc@1 0.167
+  translation_boundary + json: Acc@1 0.208
+  semantic_boundary + anti_answer: Acc@1 0.667
+```
+
+Reason:
+
+- A task-matched instruction can only be evaluated when paired with a
+  compatible output protocol.
+- Explicit-final and JSON instructions did not automatically improve
+  finalization for this backend/model pair.
+- Parser failures and no-final outputs are part of the task utility because
+  agentic systems need a consumable decision, not only plausible reasoning.
+- However, repairing output validity should be treated as backend/interface
+  stabilization.  The research claim should focus on how memory is selected,
+  packed, routed, and used once parseable output is available.
+
+Consequence:
+
+- Generative experiments must record the fixed output protocol, parser, and
+  backend flags as reproducibility metadata.
+- Formal memory-use comparisons should hold the output protocol and parser
+  fixed whenever possible.
+- Formal runs must report invalid/no-final rate beside task accuracy.
+- The 24-row matrix is still smoke-level evidence; locked-test claims require
+  split discipline and paired confidence intervals.
+
+See:
+
+```text
+docs/knowledge/models/gemma4_e4b_llamacpp_v3_smoke.md
+docs/knowledge/methods/v3_training_free_rl_unified_system.md
+```
+
+## D033: Make V3 accept gates small-sample aware
+
+Date: 2026-06-29
+
+Decision:
+
+Keep regression-aware accept gates, but do not rely only on a fixed regression
+rate threshold for small locked splits.
+
+New gate candidates should report both:
+
+```text
+absolute regression count
+regression rate
+paired CI / bootstrap lower bound
+fixes vs regressions
+invalid-output reduction
+```
+
+Reason:
+
+The first Gemma 4 E4B selection / locked run selected
+`semantic_boundary + anti_answer`.
+
+Locked result:
+
+```text
+raw + anti_answer: Acc@1 0.067
+semantic_boundary + anti_answer: Acc@1 0.533
+paired delta: +0.467
+CI95: [0.267, 0.667]
+fixes: 15
+regressions: 1
+regression rate: 0.033
+```
+
+The old fixed threshold `regression_rate <= 0.03` rejects this policy by one
+discrete sample at `n=30`, despite a large positive paired delta and many more
+fixes than regressions.
+
+Consequence:
+
+- For small splits, report gate status explicitly instead of hiding near-miss
+  policies.
+- Prefer larger locked splits for formal claims.
+- Consider an accept rule such as:
+
+```text
+bootstrap_LCB > 0
+fixes >> regressions
+regressions <= 1 for small smoke splits
+regression_rate <= rho for larger formal splits
+invalid_output_rate improves or does not regress materially
+```
+
+This keeps the no-regression spirit while avoiding a brittle decimal threshold.
+
+## D034: Reframe the next stage as an omni agentic memory system
+
+Date: 2026-06-29
+
+Decision:
+
+The next research stage should not be limited to instruction optimization of a
+single omni-embedding model.  It should be framed as a training-free
+**omni agentic memory system**:
+
+```text
+collect -> compress -> retrieve -> use
+```
+
+The immediate research focus is the `use` stage:
+
+```text
+How should retrieved text/audio memories be injected into a speech-capable main
+model for semantic tasks?
+```
+
+Reason:
+
+- Instruction-only optimization on frozen omni-embedding models has limited
+  headroom.
+- Prior evidence suggests omni models are most useful for semantic tasks, not
+  speaker or emotion tasks in this cycle.
+- A speech-capable main model can use raw audio memory evidence, which a
+  text-only memory system cannot do.
+- This gives a larger but still training-free policy surface:
+
+```text
+text_summary_only
+audio_clip_only
+dual_summary_plus_audio
+conflict_aware_asr_audio
+task_card_plus_audio
+two_stage_audio_verify_then_answer
+```
+
+Consequence:
+
+- V3 remains useful, but its action space expands from embedding instruction to
+  memory retrieval and memory-use policies.
+- New experiments should report whether gains come from retrieval, use-stage
+  packing, parser/final-answer policy, or downstream rerank.
+- The active task scope remains semantic: SLU, QA/RAG, translation, ASR-like
+  meaning, and tool/intent.  Speaker and emotion remain outside the main claim.
+
+See:
+
+```text
+docs/omni_agentic_memory_proposal.md
+docs/knowledge/methods/omni_agentic_memory_usage.md
+```
+
+## D035: Use PlanRAG-Audio as a planning template, not as a task clone
+
+Date: 2026-06-29
+
+Decision:
+
+Borrow PlanRAG-Audio's query-driven planning and dataset strategy, but focus
+our contribution on **memory use planning**.
+
+PlanRAG-Audio optimizes:
+
+```text
+long audio -> structured streams -> retrieval plan -> compact evidence -> LLM
+```
+
+Our target is:
+
+```text
+omni memory -> retrieval plan + use plan -> speech-capable main model receives
+text/audio memory evidence
+```
+
+Reason:
+
+- PlanRAG-Audio is comprehensive on collection, compression, and retrieval.
+- Its Stage 4 mostly injects retrieved structured/text evidence.
+- It does not deeply study when retrieved raw audio memory should be passed to
+  the main model, or when audio should be rejected as too costly/distracting.
+- This gap matches our new system story and previous evidence that semantic
+  tasks are the current safe scope.
+
+Consequence:
+
+- The first experiments should not try to reproduce all PlanRAG tasks.
+- Use PlanRAG datasets selectively:
+
+```text
+LibriSpeech + LibriSQA for semantic QA/MCQA
+AMI for optional summarization/long-form stress
+CoVoST2/FLEURS for translation memory
+SLURP/MInDS for SLU/tool memory
+```
+
+- Speaker/emotion/event streams can be cited as future multimodal memory
+  fields, but they are not main experimental claims in this cycle.
+- The first implementation target is:
+
+```text
+docs/omni_memory_system_experiment_design.md
+```
+
+## D036: Derive memory-use experiments from finite-plan theory
+
+Date: 2026-06-29
+
+Decision:
+
+Future omni memory experiments should be derived from the query-driven
+memory-plan theory:
+
+```text
+Theta(q) = query-driven memory plan
+Theta(q) = retrieval plan + use plan + output format + cost budget
+```
+
+The first experiments must isolate memory use by fixing retrieval candidates:
+
+```text
+candidate_memories = gold + hard negatives
+```
+
+Then vary only finite use policies:
+
+```text
+text_summary_only
+audio_clip_only
+dual_summary_plus_audio
+conflict_aware_asr_audio
+task_card_plus_audio
+two_stage_audio_verify_then_answer
+```
+
+Reason:
+
+- A finite policy bank gives a uniform-convergence guarantee under bounded
+  utility:
+
+```text
+P( sup_theta |R_hat(theta)-R(theta)| > eps )
+  <= 2 |Pi| exp(-2 n eps^2)
+```
+
+- Fixing retrieval lets us attribute improvements to memory use rather than
+  better retrieval.
+- Cost and regression terms prevent the system from always injecting audio.
+
+Consequence:
+
+- No unrestricted prompt search in the first omni-memory experiments.
+- Every row-level result must include task success, grounded memory use,
+  wrong memory, invalid output, text cost, audio cost, latency, and regression.
+- The deterministic accept-gate core is documented in:
+
+```text
+docs/omni_memory_plan_theory.md
+docs/lean/omni_memory_plan.lean
+```
+
+## D037: Use a multi-dataset semantic matrix, not a CoVoST2-only story
+
+Date: 2026-06-29
+
+Decision:
+
+The omni agentic memory stage must run across a small but diverse semantic
+speech matrix.  CoVoST2 remains the first translation smoke, but it is not
+enough to support the research story.
+
+Minimum complete set:
+
+```text
+CoVoST2 ar->en / zh-CN->en:
+  speech translation memory use
+
+SLURP + MInDS-14:
+  spoken tool / intent memory use
+
+HeySQuAD human + Spoken-SQuAD:
+  recognized-source spoken QA / RAG memory use
+
+URO-Bench mini:
+  mixed semantic policy stress
+
+AISHELL-1 + WenetSpeech-Wu:
+  clean Mandarin vs dialect route reliability
+```
+
+Reason:
+
+- The project needs evidence that `Theta(q)` and finite memory-use policies are
+  useful beyond one translation dataset.
+- The current scope is semantic speech, so the matrix should cover translation,
+  QA/RAG, tool/intent, ASR-like semantics, and reliability routing.
+- Synthetic RAG and saturated diagnostics remain useful for debugging but
+  should not carry the main claim.
+
+Consequence:
+
+- Use `docs/omni_memory_dataset_matrix.md` as the source of truth for the next
+  dataset queue.
+- Every new memory-use experiment should identify which task family it supports
+  and whether it tests retrieval quality, memory-use quality, or final
+  generation/tool utility.
+- Long-form PlanRAG-style experiments with LibriSpeech+LibriSQA and AMI are
+  Tier C: important but after the Tier A fixed-candidate memory-use matrix is
+  stable.
+
+## D038: Separate omni-embedding backends from omni main-model backends
+
+Date: 2026-06-29
+
+Decision:
+
+Model selection must distinguish two roles:
+
+```text
+omni-embedding model:
+  encodes query audio / memory audio / text memories for retrieval and routing.
+
+omni main model:
+  consumes query audio plus retrieved text/audio memories and produces a
+  decision, answer, or tool call.
+```
+
+Current recommended matrix:
+
+```text
+omni-embedding:
+  primary: nvidia/omni-embed-nemotron-3b
+  cross-check: jinaai/jina-embeddings-v5-omni-small
+
+omni main model:
+  primary fast: Gemma 4 E4B GGUF
+  second fast: Voxtral Mini 3B
+  heavy reference: Qwen3-Omni GGUF
+```
+
+Reason:
+
+- Embedding models and generative omni models expose different policy surfaces.
+- The same V3 principle applies to both, but the actions differ:
+
+```text
+embedding V3:
+  instruction + encode method + score/margin policy + route gate
+
+main-model V3:
+  prerequisite: backend flags + output protocol + parser
+  action: task prompt + memory packing / memory-use policy + candidate format
+          + route / fallback policy
+```
+
+- Cross-model claims require at least one second embedding backend and one
+  second main-model backend, but broad model-zoo testing is not the current
+  priority.
+
+Consequence:
+
+- Use `docs/omni_model_selection.md` as the current model-selection source of
+  truth.
+- First stabilize Gemma 4 E4B with Nemotron/Jina retrieval before scaling
+  Qwen3-Omni GGUF.
+- Use Qwen3-Omni GGUF as a selected heavy reference, not as the broad grid
+  search backend.
+
+## D039: Treat output protocol as a prerequisite, not the memory-use optimization target
+
+Date: 2026-06-29
+
+Decision:
+
+For omni main-model experiments, output protocol, parser, and backend flags are
+validity prerequisites.  They must be fixed or explicitly audited before the
+system compares memory-use policies.
+
+The actual training-free optimization target is:
+
+```text
+memory view:
+  text summary, audio clip, dual evidence, conflict-aware evidence
+
+memory packing:
+  how retrieved memories are arranged and exposed to the main model
+
+task prompt:
+  how the model is asked to use the memory for translation, QA/RAG, or tool use
+
+candidate representation:
+  how candidate memories are presented once the protocol is fixed
+
+route / fallback:
+  when to use ASR/text, direct audio, dual memory, rerank, or abstain
+```
+
+Reason:
+
+- A parseable output protocol is necessary for measurement, but improving parse
+  rate is not the same claim as improving memory use.
+- Prior Gemma 4 E4B smoke results showed that output finalization can dominate
+  metrics.  That finding is useful for backend stabilization, but formal
+  research claims should not count protocol repair as the main optimization.
+
+Consequence:
+
+- Experimental tables should separate:
+
+```text
+interface validity:
+  format pass, parser pass, invalid/no-final rate
+
+task policy utility:
+  answer pass, tool accuracy, grounded memory use, regression, cost
+```
+
+- Once a valid output protocol is chosen, keep it fixed across memory-use
+  policies whenever possible.
+- If two output protocols must be compared, report that as an interface
+  readiness ablation, not as a memory-use optimization result.

@@ -96,6 +96,64 @@ diagnostic
 This lets the project use strong system-side gains without blurring the claim
 boundary around omni-side optimization.
 
+## Omni Agentic Memory Architecture
+
+The expanded system architecture treats omni embedding as one operator inside
+an agentic memory system:
+
+```text
+raw speech / interaction
+  -> collect
+  -> compress into semantic note + keep raw audio pointer
+  -> retrieve by ASR text, omni audio, text embedding, or hybrid policy
+  -> use policy packs memory into the main model input
+  -> final semantic task output
+```
+
+Memory item:
+
+```text
+raw_audio_clip
+transcript_or_asr
+semantic_summary
+task_card
+embeddings
+provenance
+reliability_signals
+links
+```
+
+Use-stage policies:
+
+```text
+text_summary_only
+audio_clip_only
+dual_summary_plus_audio
+conflict_aware_asr_audio
+task_card_plus_audio
+two_stage_audio_verify_then_answer
+```
+
+The main model may receive:
+
+```text
+current query audio/text
+retrieved memory summaries
+retrieved memory audio clips
+reliability or disagreement notes
+structured task card
+```
+
+This is the key architectural difference from text-only memory.  A text-only
+agent pastes retrieved text; an omni agent can decide when to re-use raw audio
+evidence.
+
+The first implementation target is documented in:
+
+```text
+docs/omni_memory_system_experiment_design.md
+```
+
 ## Outer Framework Components
 
 Current outer skeleton:

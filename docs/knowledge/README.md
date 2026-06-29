@@ -11,10 +11,20 @@ Start here, then load the narrowest card that matches the task.
 | Need | Load |
 |---|---|
 | Choosing a dataset or checking dataset credibility | `datasets/semantic_speech_benchmarks.md` |
+| Choosing omni-embedding and omni main model roles | `../omni_model_selection.md` |
 | Comparing omni / ASR / text embedding model roles | `models/omni_model_landscape.md` |
+| Choosing smaller recent generative omni models | `models/recent_small_omni_models.md` |
+| Running Gemma 4 E4B through llama.cpp for V3 smoke | `models/gemma4_e4b_llamacpp_v3_smoke.md` |
+| Running Qwen3-Omni GGUF through llama.cpp | `models/qwen3_omni_llamacpp_gguf.md` |
+| Checking Qwen3-Omni HF int4 through vLLM | `models/qwen3_omni_vllm_hf_int4.md` |
 | Designing training-free policy search | `methods/task_conditioned_policy_search.md` |
+| Explaining V3 as a unified training-free RL-style system | `methods/v3_training_free_rl_unified_system.md` |
+| Transferring V3 policies to generative omni models | `methods/generative_omni_v3_policy_transfer.md` |
+| Designing omni-memory use policies | `methods/omni_agentic_memory_usage.md` |
+| Proving query-driven memory-plan selection logic | `../omni_memory_plan_theory.md` and `../lean/omni_memory_plan.lean` |
 | Explaining V3 margin-gated selector logic | `methods/v3_margin_gated_policy.md` |
 | Explaining the unified Story-B controller | `methods/semantic_interface_controller.md` |
+| Borrowing PlanRAG-Audio ideas for omni memory | `papers/planrag_audio_2605_20414.md` |
 | Writing related work on speech RAG / audio retrieval | `papers/audio_retrieval_and_speech_rag.md` |
 | Writing related work on prompt / instruction optimization | `papers/instruction_policy_optimization.md` |
 | Discussing overfitting, GRPO-style search, or skill optimization | `papers/anti_overfitting_and_training_free_rl.md` |

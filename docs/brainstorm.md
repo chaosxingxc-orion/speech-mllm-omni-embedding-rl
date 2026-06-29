@@ -186,3 +186,42 @@ Potential improvements:
 - Training a new omni-embedding model from scratch.
 - Large-scale codec-to-LLM prefix training.
 - Slot filling, until tool selection is stable.
+
+## Omni Agentic Memory Ideas
+
+Core shift:
+
+```text
+from optimizing direct omni retrieval
+to optimizing how an omni agent collects, compresses, retrieves, and uses
+multimodal memories
+```
+
+Use-stage ideas:
+
+- inject only memory text summary for easy semantic tasks;
+- inject raw memory audio when ASR text and omni retrieval disagree;
+- ask the main model to verify a compressed memory note against the original
+  audio clip;
+- use memory cards with boundary conditions for SLU/tool tasks;
+- distinguish current-query audio from retrieved-memory audio in the prompt;
+- let the controller choose whether audio memory is worth the latency cost.
+
+Potential task stories:
+
+- Speech QA: retrieved passage text plus original spoken question or prior
+  spoken evidence.
+- SLU/tool: memory examples as text cards plus audio examples when boundary is
+  acoustically ambiguous.
+- Translation: retrieved bilingual memory plus source audio evidence.
+- ASR-like semantic matching: retrieve transcript-like memories, then use audio
+  clip only when lexical preservation matters.
+
+Open risks:
+
+- injecting audio may confuse the main model if the prompt does not clearly
+  separate query audio and memory audio;
+- audio memory is expensive, so improvements must justify latency/token cost;
+- raw audio does not automatically help speaker/emotion, and those are outside
+  the current semantic claim;
+- final-answer gains must be separated from retrieval gains.

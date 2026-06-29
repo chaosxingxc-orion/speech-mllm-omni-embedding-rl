@@ -1,6 +1,6 @@
 ﻿# Project Status
 
-Last updated: 2026-06-26
+Last updated: 2026-06-29
 
 ## Current State
 
@@ -19,6 +19,66 @@ omni_embedding/
 The outer project is currently a skeleton for RL-based omni embedding research.
 The legacy project contains most of the working experiments, documents, and
 evidence.
+
+## Current Omni Agentic Memory V0 Status
+
+Implemented V0 fixed-candidate memory-use infrastructure:
+
+- `scripts/build_memory_use_manifest.py` builds canonical manifests with
+  query audio/text, fixed candidate memories, gold memory ids, gold answers,
+  task family, and source metadata.
+- `scripts/omni_memory_use_eval.py` evaluates memory-use policies with row-level
+  outputs, aggregate metrics, resume support, parser validity flags, cost
+  fields, latency, and regression against a text-only baseline.
+
+Smoke coverage:
+
+```text
+CoVoST2 ar->en:
+  text_summary_only, audio_clip_only, dual_summary_plus_audio
+
+MInDS-14:
+  text_summary_only, task_card_plus_audio
+
+HeySQuAD human:
+  text_summary_only, dual_summary_plus_audio
+```
+
+The smoke used a deterministic local oracle backend, so it validates manifest
+shape, policy plumbing, output fields, baseline-regression accounting, and cost
+tracking. It is not a model-quality result. Formal V0 runs still need frozen
+generative omni backends over the same manifests.
+
+## Current Generative Omni Backend Status
+
+Working smoke candidates:
+
+```text
+Qwen3-Omni GGUF + llama.cpp:
+  text/audio/server health smoke passed; heavy but usable for interface tests.
+
+Gemma 4 E4B QAT GGUF + llama.cpp:
+  CoVoST2 ar->en candidate-choice smoke passed through llama-mtmd-cli.
+  Requires --jinja.
+```
+
+Gemma 4 E4B smoke result:
+
+```text
+CoVoST2 ar->en first 12 rows, candidate_count=4:
+  raw + anti_answer: Acc@1 0.250
+  translation_boundary + anti_answer: Acc@1 0.667
+  translation_boundary + letter: Acc@1 0.167
+```
+
+Interpretation:
+
+```text
+This is not a formal benchmark yet.  It shows that Gemma 4 E4B is usable for
+speech/text input -> text output smoke tests, and that generative V3 should
+first stabilize the output interface, then optimize task prompt and memory-use
+policy under that fixed parseable protocol.
+```
 
 For a consolidated inventory of datasets, methods, results, and whether each
 result is an omni-side optimization or a system-side baseline, see:
@@ -867,4 +927,302 @@ System-side boundary/schema methods transfer strongly to Jina on QA and
 tool/intent tasks, but not on this translation pair.  They support the V3
 semantic interface controller story, while remaining separate from omni-side
 instruction / encode-method optimization claims.
+```
+
+### Qwen3-Omni GGUF Backend Readiness
+
+The GGUF Qwen3-Omni route is now usable for smoke testing through llama.cpp:
+
+```text
+backend: llama.cpp multimodal CLI / server
+model format: Qwen3-Omni GGUF Q4
+projector: matching multimodal projector GGUF
+critical setting: keep MoE experts on CPU during laptop-scale runs
+```
+
+Smoke results:
+
+```text
+text smoke:
+  prompt: short greeting
+  result: model generated a normal greeting
+
+audio smoke:
+  task: Arabic speech translation
+  gold: Do you have a pen?
+  output: Do you have a pencil?
+  interpretation: semantically close audio-conditioned output
+
+server smoke:
+  /health returned {"status":"ok"}
+```
+
+Conclusion:
+
+```text
+This resolves the immediate GGUF startup blocker.  It is not yet formal
+cross-model task evidence.  The next step is a deterministic wrapper for
+candidate-choice tasks with format/pass and parser diagnostics.
+```
+
+HF-format int4 / vLLM follow-up:
+
+```text
+vLLM 0.23.0 can start the HF AutoRound int4 Qwen3-Omni checkpoint only in a
+minimal text-only mode:
+  max_model_len 512
+  max_num_seqs 1
+  tiny KV cache
+  multimodal profiling disabled
+  audio/image/video per prompt set to zero
+  no CPU offload
+
+Measured smoke:
+  load time 268.6 seconds
+  post-load VRAM 17084 MiB
+  8-token generation 67.9 seconds
+  output "22222222"
+
+CPU offload did not help:
+  offload + multimodal profile failed with CUDA placement error
+  offload + text-only failed with GPU scale-tensor error
+```
+
+Conclusion:
+
+```text
+The HF int4 / vLLM route is a text-only backend readiness probe, not a usable
+audio backend.  Use GGUF / llama.cpp for Qwen3-Omni audio experiments.
+```
+
+### Gemma 4 E4B Generative V3 Matrix
+
+Gemma 4 E4B has passed both a small frozen generative-omni V3 candidate-choice
+matrix and a first selection / locked split on CoVoST2 ar->en:
+
+```text
+Rows: first 24 validation rows
+candidate_count: 4
+task: audio speech -> English translation candidate
+backend: llama.cpp multimodal CLI
+```
+
+Results:
+
+```text
+raw + anti_answer: Acc@1 0.208, 19/24 no-final outputs
+translation_boundary + anti_answer: Acc@1 0.750, 6/24 no-final outputs
+translation_boundary + explicit_final: Acc@1 0.167
+translation_boundary + json: Acc@1 0.208
+semantic_boundary + anti_answer: Acc@1 0.667, 2/24 no-final outputs
+```
+
+Current interpretation:
+
+```text
+This is smoke-level evidence that V3 can optimize the use of a frozen
+generative omni model through whole-call policy selection.  The policy includes
+task instruction, output protocol, parser, and backend flags.  It is not yet a
+formal locked-test result.
+```
+
+Selection / locked split:
+
+```text
+selection rows 0-29:
+  raw + anti_answer: Acc@1 0.167
+  translation_boundary + anti_answer: Acc@1 0.600
+  semantic_boundary + anti_answer: Acc@1 0.633
+
+locked rows 30-59:
+  raw + anti_answer: Acc@1 0.067
+  translation_boundary + anti_answer: Acc@1 0.400
+  semantic_boundary + anti_answer: Acc@1 0.533
+```
+
+Paired locked-test result for the selection winner:
+
+```text
+semantic_boundary + anti_answer vs raw:
+  delta: +0.467
+  CI95: [0.267, 0.667]
+  fixes: 15
+  regressions: 1
+  regression rate: 0.033
+```
+
+Status:
+
+```text
+This is the first split-disciplined positive generative-omni V3 result.  The
+strict <=0.03 regression-rate gate rejects the winner by one discrete sample at
+n=30, so the next methodological fix is a small-sample-aware accept gate.
+```
+
+Gemma 4 12B Q4 GGUF status:
+
+```text
+model and projector are available for later testing
+tiny smoke completed on 4 CoVoST2 ar->en rows
+raw + anti_answer: Acc@1 0.250
+translation_boundary + anti_answer: Acc@1 0.250
+semantic_boundary + anti_answer: Acc@1 0.000
+dominant issue: no-final / parser failure
+```
+
+Recommendation:
+
+```text
+Do not scale 12B until finalization is improved.  Use E4B for faster policy
+iteration and treat 12B as a later robustness/backend comparison.
+```
+
+### Omni Agentic Memory Direction
+
+The next-stage research direction has been reframed:
+
+```text
+from: optimize direct omni-embedding top-1 through instruction
+to: design a training-free omni agentic memory system
+```
+
+System stages:
+
+```text
+collect -> compress -> retrieve -> use
+```
+
+Immediate focus:
+
+```text
+memory use policies:
+  text_summary_only
+  audio_clip_only
+  dual_summary_plus_audio
+  conflict_aware_asr_audio
+  task_card_plus_audio
+  two_stage_audio_verify_then_answer
+```
+
+Reason:
+
+```text
+Frozen omni-embedding instruction optimization has limited headroom.  The more
+agentic question is how retrieved text/audio memories should be injected into a
+speech-capable main model for semantic tasks.
+```
+
+Current docs:
+
+```text
+docs/omni_agentic_memory_proposal.md
+docs/omni_memory_dataset_matrix.md
+docs/omni_model_selection.md
+docs/omni_memory_system_experiment_design.md
+docs/omni_memory_plan_theory.md
+docs/lean/omni_memory_plan.lean
+docs/knowledge/methods/omni_agentic_memory_usage.md
+docs/knowledge/papers/planrag_audio_2605_20414.md
+```
+
+Current modeling boundary:
+
+```text
+output protocol / parser / backend flags are validity prerequisites.
+They must be fixed or explicitly audited before comparing task policies.
+
+The actual memory-use optimization target is:
+  which memories are packed,
+  whether text/audio/dual memory is used,
+  how candidates are represented,
+  when to route or fall back.
+```
+
+PlanRAG-Audio reading update:
+
+```text
+The full 17-page PlanRAG-Audio paper has been read and summarized.  Its main
+lesson for this project is that query-driven planning over modality streams,
+time spans, and output format may matter more than the retriever itself.  This
+supports adding Theta(q), a memory plan, before retrieval and use.
+```
+
+Next implementation target:
+
+```text
+scripts/omni_memory_use_eval.py
+```
+
+Dataset roadmap:
+
+```text
+docs/omni_memory_dataset_matrix.md
+```
+
+The next cycle should not depend on CoVoST2 alone.  The minimum complete
+semantic set is:
+
+```text
+1. CoVoST2 ar->en / zh-CN->en: translation memory use.
+2. SLURP + MInDS-14: tool / intent memory use.
+3. HeySQuAD human + Spoken-SQuAD: spoken QA / RAG memory use.
+4. URO-Bench mini: mixed semantic policy stress.
+5. AISHELL-1 + WenetSpeech-Wu: clean Mandarin vs dialect route reliability.
+```
+
+Model roadmap:
+
+```text
+docs/omni_model_selection.md
+```
+
+The current role split is:
+
+```text
+omni-embedding models:
+  primary: nvidia/omni-embed-nemotron-3b
+  cross-check: jinaai/jina-embeddings-v5-omni-small
+
+omni main models:
+  primary fast: Gemma 4 E4B GGUF
+  second fast: Voxtral Mini 3B
+  heavy reference: Qwen3-Omni GGUF
+```
+
+Do not conflate embedding-model policy with whole-model call policy.  For
+embedding models, V3 selects instruction / encode / score / route policy.  For
+main models, output protocol / parser / backend flags are prerequisites; V3
+then selects prompt / memory packing / candidate format / route or fallback
+policy.
+
+First implementation smoke:
+
+```text
+dataset: CoVoST2 ar->en
+task: translation memory candidate choice
+main model: frozen speech/text-capable model
+policies:
+  text_summary_only
+  audio_clip_only
+  dual_summary_plus_audio
+  conflict_aware_asr_audio
+  two_stage_audio_verify_then_answer
+```
+
+Theory-derived experiment constraints:
+
+```text
+1. Use a finite memory-plan bank.
+2. Fix retrieval candidates first to isolate use-policy effects.
+3. Select on validation and report once on locked test.
+4. Report task success, grounded memory use, invalid output, text/audio cost,
+   latency, and regression.
+5. Accept audio-inclusive policies only if utility gain beats cost and
+   regression penalties.
+```
+
+Lean verification:
+
+```text
+docs/lean/omni_memory_plan.lean checked with Lean 4.12.
 ```

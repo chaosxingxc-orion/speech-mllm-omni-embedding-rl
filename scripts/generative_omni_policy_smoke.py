@@ -93,6 +93,13 @@ def option_content_match(text: str, options: list[str]) -> tuple[str, str, float
 
 
 def parse_prediction(text: str, options: list[str]) -> tuple[str, str, float]:
+    if "<|channel>final" in text:
+        text = text.rsplit("<|channel>final", 1)[-1]
+    elif "<channel|>" in text:
+        text = text.rsplit("<channel|>", 1)[-1]
+    elif "<|channel>thought" in text:
+        return "", "no_final_channel", 0.0
+
     letter = normalize_answer(text)
     if letter:
         return letter, "letter", 1.0
@@ -127,6 +134,8 @@ def run_llama(
     gpu_layers: str,
     no_warmup: bool,
     log_disable: bool,
+    jinja: bool,
+    extra_llama_args: list[str],
     capture_backend: str,
 ) -> tuple[int, str, list[str]]:
     cmd = [
@@ -152,6 +161,9 @@ def run_llama(
         cmd.append("--no-warmup")
     if log_disable:
         cmd.append("--log-disable")
+    if jinja:
+        cmd.append("--jinja")
+    cmd.extend(extra_llama_args)
     if capture_backend == "subprocess":
         proc = subprocess.run(
             cmd,
@@ -223,6 +235,10 @@ def build_prompt(policy: str, options: list[str], prompt_mode: str, flatten: boo
     strict = {
         "letter": "Choose exactly one option. Answer with only the option letter.",
         "json": 'Choose exactly one option. Output exactly this JSON shape: {"answer":"A"}.',
+        "explicit_final": (
+            "You may reason if needed. At the very end, output exactly one "
+            "capital option letter on its own final line."
+        ),
         "anti_answer": (
             "This is a multiple-choice benchmark. Do not answer the spoken question. "
             "Do not translate or explain. Select the option that best matches the audio. "
@@ -233,6 +249,28 @@ def build_prompt(policy: str, options: list[str], prompt_mode: str, flatten: boo
     if flatten:
         return " ".join(line.strip() for line in prompt.splitlines() if line.strip())
     return prompt
+
+
+def make_result(args: argparse.Namespace, out_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    accuracy = (
+        sum(1 for r in out_rows if r["correct"]) / len(out_rows) if out_rows else 0.0
+    )
+    return {
+        "experiment": "generative_omni_policy_smoke",
+        "policy": args.policy,
+        "prompt_mode": args.prompt_mode,
+        "start_index": args.start_index,
+        "n": len(out_rows),
+        "accuracy": accuracy,
+        "rows": out_rows,
+    }
+
+
+def write_result(path: Path, result: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def main() -> None:
@@ -247,16 +285,24 @@ def main() -> None:
     parser.add_argument("--label-field", default="intent")
     parser.add_argument("--text-field", default="text")
     parser.add_argument("--max-samples", type=int, default=8)
+    parser.add_argument("--start-index", type=int, default=0)
     parser.add_argument("--candidate-count", type=int, default=4)
     parser.add_argument("--timeout-s", type=int, default=180)
     parser.add_argument("--max-tokens", type=int, default=16)
     parser.add_argument("--ctx-size", type=int, default=1024)
     parser.add_argument("--gpu-layers", default="auto")
-    parser.add_argument("--prompt-mode", choices=["letter", "json", "anti_answer"], default="anti_answer")
+    parser.add_argument(
+        "--prompt-mode",
+        choices=["letter", "json", "anti_answer", "explicit_final"],
+        default="anti_answer",
+    )
     parser.add_argument("--flatten-prompt", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--capture-backend", choices=["pty", "shell_file", "subprocess"], default="pty")
     parser.add_argument("--no-warmup", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--log-disable", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--jinja", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--extra-llama-arg", action="append", default=[])
+    parser.add_argument("--resume", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -264,11 +310,23 @@ def main() -> None:
     rows = [r for r in rows if r.get(args.audio_field) and r.get(args.label_field)]
     universe = sorted({str(r[args.label_field]) for r in rows})
     rng = random.Random(args.seed)
-    selected = rows[: args.max_samples]
+    if args.start_index < 0:
+        raise ValueError("--start-index must be non-negative")
+    selected = rows[args.start_index : args.start_index + args.max_samples]
 
+    output_path = Path(args.output)
     out_rows = []
+    completed: set[str] = set()
+    if args.resume and output_path.exists():
+        existing = json.loads(output_path.read_text(encoding="utf-8"))
+        out_rows = list(existing.get("rows", []))
+        completed = {str(r.get("sample_id")) for r in out_rows if r.get("sample_id")}
+
     labels = "ABCDEFGH"
     for row in selected:
+        sample_id = str(row.get("sample_id"))
+        if sample_id in completed:
+            continue
         gold = str(row[args.label_field])
         options, gold_letter = build_options(
             gold=gold,
@@ -290,6 +348,8 @@ def main() -> None:
                 gpu_layers=args.gpu_layers,
                 no_warmup=args.no_warmup,
                 log_disable=args.log_disable,
+                jinja=args.jinja,
+                extra_llama_args=args.extra_llama_arg,
                 capture_backend=args.capture_backend,
             )
             option_texts = [o.split(". ", 1)[1] for o in options]
@@ -306,7 +366,7 @@ def main() -> None:
 
         out_rows.append(
             {
-                "sample_id": row.get("sample_id"),
+                "sample_id": sample_id,
                 "policy": args.policy,
                 "gold": gold,
                 "gold_letter": gold_letter,
@@ -323,20 +383,9 @@ def main() -> None:
                 "source_text": row.get(args.text_field),
             }
         )
+        write_result(output_path, make_result(args, out_rows))
 
-    accuracy = (
-        sum(1 for r in out_rows if r["correct"]) / len(out_rows) if out_rows else 0.0
-    )
-    result = {
-        "experiment": "generative_omni_policy_smoke",
-        "policy": args.policy,
-        "n": len(out_rows),
-        "accuracy": accuracy,
-        "rows": out_rows,
-    }
-    output_path = Path(args.output)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_result(output_path, make_result(args, out_rows))
 
 
 if __name__ == "__main__":

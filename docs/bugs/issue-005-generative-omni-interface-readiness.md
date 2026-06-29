@@ -136,6 +136,80 @@ cosine scores to the query.  Therefore this route is useful as a deployment
 readiness probe, but it should not be used as formal evidence until the model's
 native vLLM registration works or an endpoint-level sanity benchmark passes.
 
+### HF Safetensors Int4 AutoRound Probe
+
+An Intel AutoRound safetensors int4 Qwen3-Omni checkpoint was tested as the
+next low-memory HF-format candidate for vLLM.  The goal was to avoid the GGUF
+architecture blocker while staying within a single-laptop memory budget.
+
+Observed behavior:
+
+```text
+backend: vLLM / vLLM-Omni family
+checkpoint format: HF safetensors int4 produced by AutoRound
+vLLM version: 0.23.0
+model architecture: Qwen3OmniMoeForConditionalGeneration
+quantization recognition: AutoRound / AutoGPTQ, internally inc + Marlin
+formal task metrics: none
+```
+
+Usable minimal configuration:
+
+```bash
+vllm serve "${HF_INT4_MODEL_DIR}" \
+  --trust-remote-code \
+  --dtype bfloat16 \
+  --runner generate \
+  --max-model-len 512 \
+  --max-num-seqs 1 \
+  --max-num-batched-tokens 512 \
+  --gpu-memory-utilization 0.90 \
+  --kv-cache-memory-bytes 268435456 \
+  --enforce-eager \
+  --skip-mm-profiling \
+  --limit-mm-per-prompt image=0,video=0,audio=0
+```
+
+Measured smoke:
+
+```text
+load status: success
+load time: 268.6 seconds
+post-load VRAM: 17084 MiB
+8-token generation time: 67.9 seconds
+observed output: 22222222
+```
+
+CPU offload result:
+
+```text
+cpu_offload_gb=20 + default multimodal profile:
+  fails with "cu_seqlens_q must be on CUDA"
+
+cpu_offload_gb=20 + text-only + skip multimodal profile:
+  fails with "b_scales is not on GPU"
+
+cpu_offload_gb=0 + text-only + tiny KV cache:
+  succeeds
+```
+
+Conclusion:
+
+```text
+This checkpoint/backend combination can be started only as a constrained
+text-only vLLM endpoint.  It is not currently a usable multimodal or audio
+backend, and CPU offload is not reliable for this AutoRound MoE quantized
+checkpoint under vLLM 0.23.0.
+```
+
+Interpretation:
+
+```text
+This is a backend capability result, not semantic capability evidence for
+Qwen3-Omni.  Keep it as a minimal text-only fallback and do not enter it into
+audio task tables.
+```
+
 Operational notes:
 
 ```text
@@ -326,4 +400,72 @@ Before a formal cross-model experiment, implement one of:
 
 ## Status
 
-Open.
+Open, but the GGUF / llama.cpp backend is no longer blocked at startup.
+
+## 2026-06-27 Update: GGUF llama.cpp Backend Smoke Passed
+
+The HF-format int4 / vLLM path remains unusable, but the GGUF checkpoint can be
+run through llama.cpp's multimodal tooling.
+
+Tested backend:
+
+```text
+model format: GGUF Q4_K_M
+multimodal projector: matching GGUF Q8_0 projector
+runtime: llama.cpp multimodal CLI and server
+weight updates: none
+```
+
+Important launch controls:
+
+```text
+--cpu-moe       keep MoE experts on CPU to fit laptop-scale GPU memory
+--ctx-size 512  use small context for text/server smoke
+--ctx-size 1024 use small context for audio smoke
+--fit off       avoid automatic context expansion during controlled checks
+--no-warmup     avoid warmup being confused with task failure
+-ngl auto       let the backend offload what fits
+```
+
+Smoke results:
+
+```text
+Text smoke:
+  input: Say hello in five words.
+  observed output: Hello! How are you today?
+  status: passed
+
+Audio smoke:
+  task: Arabic speech translation
+  gold: Do you have a pen?
+  observed output: Do you have a pencil?
+  status: passed as interface readiness; not a formal metric
+
+Server smoke:
+  endpoint: /health
+  observed response: {"status":"ok"}
+  status: passed
+```
+
+Interpretation:
+
+```text
+The model can load, accept audio, produce semantically related audio-conditioned
+text, and run behind a health-checked server.  This resolves the immediate
+startup blocker for the GGUF route.
+```
+
+Remaining issue:
+
+```text
+This is not yet evidence that Qwen3-Omni can follow candidate-set policies.
+The next step is to build a deterministic wrapper over llama-server or
+llama-mtmd-cli and evaluate complete call policies on CoVoST2, URO, and
+SLURP/MInDS candidate-choice tasks.
+```
+
+Detailed recipe:
+
+```text
+docs/knowledge/models/qwen3_omni_llamacpp_gguf.md
+```

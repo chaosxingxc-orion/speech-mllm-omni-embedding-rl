@@ -2,6 +2,88 @@
 
 This is the research-level changelog, not a software release log.
 
+## 2026-06-29: Add Omni Agentic Memory V0 Runner
+
+Changed:
+- Added `scripts/build_memory_use_manifest.py`.
+- Added `scripts/omni_memory_use_eval.py`.
+- Updated project status with V0 runner and smoke coverage.
+
+Reason:
+- The research direction has moved from direct omni-embedding top-1
+  optimization toward a training-free omni agentic memory system.
+- V0 keeps candidate memories fixed so experiments can isolate how a frozen
+  speech/text main model uses text summaries, audio clips, dual memory, and
+  task-aware memory policies.
+
+Evidence:
+- Static compilation passes for the new scripts and the current `scripts/` and
+  `src/` trees.
+- Small deterministic smoke manifests were built for CoVoST2 ar->en, MInDS-14,
+  and HeySQuAD human.
+- Local oracle smoke evaluation verifies row-level fields:
+  `prediction`, `gold_memory_id`, `policy_id`, `invalid_output`, `latency_ms`,
+  `text_cost`, `audio_cost`, and `regression_vs_text_only`.
+
+Impact:
+- Formal V0 experiments can now run the same policy bank with frozen generative
+  omni backends.
+- Output protocol and parser validity remain prerequisites; the optimization
+  object is the memory-use policy under fixed, parseable output.
+
+## 2026-06-27: Add Recent Small Generative Omni Survey
+
+Changed:
+- Added `docs/knowledge/models/recent_small_omni_models.md`.
+- Added `docs/knowledge/methods/generative_omni_v3_policy_transfer.md`.
+- Updated model landscape, knowledge index, and decisions.
+
+Reason:
+- Qwen3-Omni GGUF is runnable but heavy, and the HF int4 vLLM route is only a
+  constrained text-only fallback.
+- The V3 method should be tested on smaller recent frozen audio-language /
+  omni models before claiming cross-model transfer.
+
+Current priority:
+- Voxtral Mini 3B is the first small audio-language target.
+- Gemma 4 E4B is a strong second target because it is recent, small, and has a
+  GGUF / llama.cpp path; local audio smoke is still required.
+
+Impact:
+- Generative V3 is now framed as a whole-model call-policy selector over
+  prompt, candidate formatting, decoding, parser, and fallback.
+- Backend readiness remains separate from formal semantic task evidence.
+
+## 2026-06-27: Run Gemma 4 E4B Generative V3 Smoke
+
+Changed:
+- Downloaded the Gemma 4 E4B QAT GGUF model and multimodal projector into the
+  local model directory.
+- Extended `scripts/generative_omni_policy_smoke.py` with `--jinja` and
+  `--extra-llama-arg`.
+- Updated the parser to avoid reading answers from thought-channel text or
+  backend logs, and to parse Gemma-style `<channel|>` answer suffixes.
+- Added `docs/knowledge/models/gemma4_e4b_llamacpp_v3_smoke.md`.
+
+Reason:
+- The project now focuses on speech/text input and text output, which makes
+  Gemma 4 E4B a suitable small frozen generative omni candidate.
+- V3 must be tested beyond embedding models as a whole-call policy selector.
+
+Evidence:
+- `--jinja` is required for Gemma 4 E4B through llama.cpp.
+- CoVoST2 ar->en first 12 rows, candidate_count=4:
+  - `raw + anti_answer`: Acc@1 0.250, 9/12 no-final outputs.
+  - `translation_boundary + anti_answer`: Acc@1 0.667, 4/12 no-final outputs.
+  - `translation_boundary + letter`: Acc@1 0.167, 10/12 no-final outputs.
+
+Impact:
+- Gemma 4 E4B is now a working small generative omni backend candidate.
+- The positive signal is smoke-level only, but it supports the method shift:
+  generative V3 must first stabilize output protocol, parser, and backend
+  flags, then compare task instruction and memory-use policies under that
+  fixed valid interface.
+
 ## 2026-06-26: Add Progressive Research Knowledge Cards
 
 Added `docs/knowledge/` as a progressive-loading knowledge base for future
@@ -1770,3 +1852,336 @@ Impact:
   needs dataset/task/model-level validation.
 - These are system-side gains, not omni-side instruction or encode-method
   optimization claims.
+
+## 2026-06-26: Limit AutoRound Int4 Qwen3-Omni vLLM Candidate
+
+Changed:
+- Recorded the Intel AutoRound safetensors int4 Qwen3-Omni checkpoint as an
+  extremely constrained vLLM backend candidate.
+- Updated the generative omni readiness issue, model landscape, and decisions.
+
+Reason:
+- vLLM 0.23.0 can start the checkpoint only as text-only generation with small
+  model length, single sequence, tiny KV cache, no multimodal profiling, and no
+  CPU offload.
+- CPU offload does not rescue this model/backend pair: offload paths fail with
+  CUDA placement or GPU scale-tensor errors.
+- The observed text-only generation output is not useful as model-quality
+  evidence; it only proves minimal backend startup.
+
+Impact:
+- The checkpoint can remain as a minimal text-only vLLM fallback.
+- Do not use this route for audio or multimodal semantic task tables.
+- Prefer the GGUF / llama.cpp route for Qwen3-Omni audio policy experiments.
+
+## 2026-06-27: Validate Qwen3-Omni GGUF llama.cpp Backend
+
+Changed:
+- Added a dedicated knowledge card for running Qwen3-Omni GGUF with
+  llama.cpp:
+  `docs/knowledge/models/qwen3_omni_llamacpp_gguf.md`.
+- Updated the model landscape and generative omni readiness issue.
+
+Reason:
+- HF-format int4 plus vLLM/vLLM-Omni did not become a usable backend.
+- The GGUF checkpoint and matching multimodal projector are available locally,
+  and llama.cpp exposes multimodal CLI/server support.
+
+Evidence:
+
+```text
+Text smoke:
+  Qwen3-Omni GGUF + projector loaded through llama-mtmd-cli.
+  A short greeting prompt produced a normal greeting.
+
+Audio smoke:
+  A CoVoST2 Arabic speech sample with gold "Do you have a pen?"
+  produced "Do you have a pencil?"
+  This confirms audio-conditioned semantic output, but not formal accuracy.
+
+Server smoke:
+  llama-server loaded the same model/projector pair.
+  /health returned {"status":"ok"}.
+```
+
+Operational lesson:
+
+```text
+Use llama-mtmd-cli or llama-server, not plain llama-cli, for multimodal smoke.
+Use small context, disable warmup during smoke, and keep MoE experts on CPU for
+laptop-scale memory safety.
+```
+
+Impact:
+- Qwen3-Omni is back on the active backend candidate list through GGUF /
+  llama.cpp.
+- The next work item is not more backend debugging; it is a deterministic
+  candidate-choice wrapper and formal semantic task smoke.
+
+## 2026-06-29: Extend Gemma 4 E4B Generative V3 Matrix
+
+Changed:
+- Extended the Gemma 4 E4B CoVoST2 ar->en V3 smoke from 12 rows to 24 rows.
+- Added `explicit_final`, `json`, and `semantic_boundary` policy variants to
+  the same candidate-choice protocol.
+- Recorded the result in the model card, method card, decisions, and project
+  status.
+- Confirmed that the Gemma 4 12B Q4 GGUF model and projector are available for
+  later smoke testing.
+
+Evidence:
+
+```text
+CoVoST2 ar->en first 24 rows, candidate_count=4:
+  raw + anti_answer: Acc@1 0.208
+  translation_boundary + anti_answer: Acc@1 0.750
+  translation_boundary + explicit_final: Acc@1 0.167
+  translation_boundary + json: Acc@1 0.208
+  semantic_boundary + anti_answer: Acc@1 0.667
+```
+
+Impact:
+- V3 appears to transfer from omni-embedding policy selection to frozen
+  generative omni whole-call policy selection at smoke level.
+- The gain is not a generic prompt effect: instruction and output protocol must
+  be selected together.
+- The next formal step is a selection / locked-test run with paired confidence
+  intervals, regression counts, and no-final/invalid-output accounting.
+
+Follow-up:
+
+```text
+Gemma 4 12B Q4 GGUF can execute the same resumable runner, but the first 4-row
+smoke did not reproduce the E4B trend:
+  raw + anti_answer: 0.250 Acc@1
+  translation_boundary + anti_answer: 0.250 Acc@1
+  semantic_boundary + anti_answer: 0.000 Acc@1
+
+The dominant issue is still no-final / parser failure.  Use E4B for fast V3
+iteration and revisit 12B after stricter finalization controls are tested.
+```
+
+## 2026-06-29: Run First E4B Selection / Locked V3 Split
+
+Changed:
+- Added `--start-index` to the generative omni smoke/matrix runners so that
+  validation and locked-test slices can be evaluated reproducibly.
+- Ran CoVoST2 ar->en with selection rows 0-29 and locked rows 30-59.
+- Recorded paired deltas, bootstrap intervals, regressions, and parse behavior.
+
+Evidence:
+
+```text
+Selection rows 0-29:
+  raw + anti_answer: 0.167 Acc@1
+  semantic_boundary + anti_answer: 0.633 Acc@1
+  translation_boundary + anti_answer: 0.600 Acc@1
+
+Locked rows 30-59:
+  raw + anti_answer: 0.067 Acc@1
+  semantic_boundary + anti_answer: 0.533 Acc@1
+  translation_boundary + anti_answer: 0.400 Acc@1
+
+Locked semantic_boundary vs raw:
+  delta +0.467
+  CI95 [0.267, 0.667]
+  fixes 15
+  regressions 1
+```
+
+Impact:
+- The selection winner also wins on the locked split, so the generative E4B V3
+  signal is no longer only a first-N smoke artifact.
+- The result exposes a small-sample accept-gate problem: one regression at
+  n=30 is 0.033, just above the previous 0.03 threshold.
+- Next experiments should either use larger splits or a gate that combines
+  absolute regression count with regression-rate confidence.
+
+## 2026-06-29: Reframe Next Stage Around Omni Agentic Memory
+
+Changed:
+- Added `docs/omni_agentic_memory_proposal.md`.
+- Added `docs/knowledge/methods/omni_agentic_memory_usage.md`.
+- Updated project spec, architecture, knowledge index, and decisions.
+
+Reason:
+- The group concluded that frozen omni-embedding instruction optimization alone
+  has limited headroom.
+- The more interesting research object is an omni agentic system that uses an
+  omni embedding model to manage and use multimodal memories.
+- The immediate focus is memory `use`: how retrieved text/audio memories should
+  be injected into a speech-capable main model.
+
+Impact:
+- The project story becomes:
+
+```text
+omni memory = collect + compress + retrieve + use
+```
+
+- V3 remains the training-free policy framework, but the policy surface expands
+  from embedding instruction to retrieval/use/context-packing actions.
+- The active experimental scope remains semantic speech tasks.
+
+## 2026-06-29: Add PlanRAG-Audio Full-Paper Reading Notes
+
+Changed:
+- Added `docs/knowledge/papers/planrag_audio_2605_20414.md`.
+- Linked the card from `docs/knowledge/README.md`.
+- Updated the omni agentic memory proposal and usage-method card with the
+  PlanRAG-inspired query-driven planning view.
+
+Reason:
+- PlanRAG-Audio is closely aligned with the new memory-system direction:
+  long-form audio is converted into structured streams, a planner selects
+  modalities/time spans/output format, and compact retrieved evidence is passed
+  to the model.
+- The paper strongly supports our shift away from "better embedding only":
+  Appendix G shows keyword vs vector retrieval is not consistently decisive
+  when the planning layer is strong.
+
+Impact:
+- Our next system should include `Theta(q)`, a query-driven memory plan that
+  controls retrieval views and memory-use packing.
+- Our novelty should focus on training-free use policies for multimodal memory
+  views, especially when to inject raw audio memory versus text summaries.
+
+## 2026-06-29: Design Omni Memory Use-Stage Experiments
+
+Changed:
+- Added `docs/omni_memory_system_experiment_design.md`.
+- Added D035 to clarify that PlanRAG-Audio is a planning template, not a task
+  clone.
+
+Reason:
+- The concrete experimental object should be memory use, not only retrieval.
+- We need a path that borrows recognized datasets while preserving our novelty:
+  training-free use policies for text/audio memory evidence.
+
+Impact:
+- First experiment target:
+
+```text
+CoVoST2 translation memory use:
+  text_summary_only
+  audio_clip_only
+  dual_summary_plus_audio
+  conflict_aware_asr_audio
+  two_stage_audio_verify_then_answer
+```
+
+- Next recognized QA/RAG target:
+
+```text
+LibriSQA if accessible, otherwise Spoken-SQuAD / HeySQuAD.
+```
+
+## 2026-06-29: Add Query-Driven Memory-Plan Theory
+
+Changed:
+- Added `docs/omni_memory_plan_theory.md`.
+- Added `docs/lean/omni_memory_plan.lean`.
+- Added D036.
+
+Reason:
+- The new system needs a rigorous argument that training-free memory-plan
+  selection is feasible and statistically meaningful.
+- The theory separates retrieval planning from use planning and justifies the
+  first experiments by fixing retrieval candidates and varying only use policy.
+
+Impact:
+- Experiments should use a finite policy bank and selection / locked split.
+- Row-level outputs must report utility components, regressions, invalid
+  outputs, and costs.
+- Audio memory injection is accepted only when final utility improves after
+  cost and regression penalties.
+
+## 2026-06-29: Fix The Semantic Dataset Matrix For Omni Memory
+
+Changed:
+- Added `docs/omni_memory_dataset_matrix.md`.
+- Updated `docs/benchmark_plan.md`, `docs/project_status.md`, and
+  `docs/decisions.md`.
+
+Reason:
+- The next research stage should not be planned around CoVoST2 alone.
+- The paper story needs a compact but diverse semantic matrix covering
+  translation, tool/intent, spoken QA/RAG, mixed semantic policy stress, and
+  clean-vs-dialect route reliability.
+
+Impact:
+- The minimum complete next set is now:
+
+```text
+CoVoST2 ar->en / zh-CN->en
+SLURP + MInDS-14
+HeySQuAD human + Spoken-SQuAD
+URO-Bench mini
+AISHELL-1 + WenetSpeech-Wu
+```
+
+- LibriSpeech+LibriSQA and AMI are kept as Tier C long-form memory-planning
+  targets after fixed-candidate memory use is stable.
+
+## 2026-06-29: Separate Omni-Embedding And Omni Main-Model Selection
+
+Changed:
+- Added `docs/omni_model_selection.md`.
+- Linked the model-selection note from `docs/knowledge/README.md`.
+- Updated `docs/project_status.md` and added D038 in `docs/decisions.md`.
+
+Reason:
+- The omni memory system has two model roles:
+  retrieval/routing embedding backends and speech-capable main-model backends.
+- The policy surface differs between the two roles, so they should not be
+  selected or evaluated as if they were the same model class.
+
+Impact:
+- Current embedding matrix:
+
+```text
+primary: nvidia/omni-embed-nemotron-3b
+cross-check: jinaai/jina-embeddings-v5-omni-small
+```
+
+- Current main-model matrix:
+
+```text
+primary fast: Gemma 4 E4B GGUF
+second fast: Voxtral Mini 3B
+heavy reference: Qwen3-Omni GGUF
+```
+
+- V3 remains unified at the principle level, but the actions are role-specific:
+  embedding models use instruction/encode/score/route policies, while main
+  models use prompt/memory-packing/output-protocol/parser/backend policies.
+
+## 2026-06-29: Reclassify Output Protocol As An Interface Prerequisite
+
+Changed:
+- Updated `docs/omni_model_selection.md`.
+- Updated `docs/knowledge/methods/v3_training_free_rl_unified_system.md`.
+- Updated `docs/knowledge/methods/generative_omni_v3_policy_transfer.md`.
+- Updated `docs/knowledge/models/omni_model_landscape.md`.
+- Updated `docs/project_status.md` and added D039 in `docs/decisions.md`.
+
+Reason:
+- Output protocol and parser behavior determine whether an experiment is
+  measurable, but they are not the core memory-use optimization target.
+- The project should avoid claiming that format repair is the same as better
+  use of omni memory.
+
+Impact:
+- For omni main-model experiments:
+
+```text
+prerequisite:
+  backend flags + output protocol + parser
+
+optimization target:
+  task prompt + memory packing / memory-use policy + candidate representation
+  + route / fallback policy
+```
+
+- Future tables should separate interface validity metrics from task utility
+  metrics.

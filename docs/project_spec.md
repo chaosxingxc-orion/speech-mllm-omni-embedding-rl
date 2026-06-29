@@ -56,6 +56,60 @@ Every result must report which layer produced the gain.  Only omni-side
 interface changes count as optimizing the frozen omni-embedding usage itself;
 candidate schema and rerank remain system/controller gains.
 
+## Expanded Story: Omni Agentic Memory System
+
+The next research framing is broader than direct omni-embedding optimization:
+
+```text
+An omni agentic system should use an omni embedding model as one component for
+managing and using multimodal memories.
+```
+
+The memory pipeline is:
+
+```text
+collect -> compress -> retrieve -> use
+```
+
+The immediate focus is the `use` stage:
+
+```text
+Given retrieved text/audio memories, decide how to inject them into a
+speech-capable main model for semantic downstream tasks.
+```
+
+This changes the optimization target from:
+
+```text
+best raw omni top-1 retrieval
+```
+
+to:
+
+```text
+best agentic utility under a bounded training-free memory policy
+```
+
+Candidate use policies include:
+
+```text
+text_summary_only
+audio_clip_only
+dual_summary_plus_audio
+conflict_aware_asr_audio
+task_card_plus_audio
+two_stage_audio_verify_then_answer
+```
+
+The detailed proposal is maintained in:
+
+```text
+docs/omni_agentic_memory_proposal.md
+docs/omni_memory_system_experiment_design.md
+docs/omni_memory_plan_theory.md
+docs/knowledge/methods/omni_agentic_memory_usage.md
+```
+
 ## Non-Goals
 
 - Do not train a new omni-embedding model from scratch.
