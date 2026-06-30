@@ -1,0 +1,124 @@
+{
+  "summary": {
+    "n_seeds": 5,
+    "mean_acc_base": 0.4213,
+    "mean_acc_sel": 0.458,
+    "mean_delta": 0.0367,
+    "delta_across_seed_std": 0.0642,
+    "delta_min": -0.0533,
+    "delta_max": 0.0967,
+    "n_seeds_paired_CI_excludes_0_positive": 2,
+    "mean_content_acc": 0.376,
+    "verdict": "emotion gain is FRAGILE: paired CI excludes 0 in only 2/5 seeds"
+  },
+  "per_seed": [
+    {
+      "seed": 42,
+      "base_pool": "audio",
+      "base_layer": 0,
+      "base_devval_acc": 0.3867,
+      "sel_pool": "audio_attn",
+      "sel_layer": 16,
+      "sel_devval_acc": 0.4067,
+      "acc_base": 0.4,
+      "acc_sel": 0.4967,
+      "delta": 0.0967,
+      "delta_ci95": [
+        0.0267,
+        0.1667
+      ],
+      "delta_ci_excludes_0": true,
+      "content_acc": 0.2667
+    },
+    {
+      "seed": 7,
+      "base_pool": "audio",
+      "base_layer": 0,
+      "base_devval_acc": 0.4133,
+      "sel_pool": "audio_attn",
+      "sel_layer": 0,
+      "sel_devval_acc": 0.4067,
+      "acc_base": 0.4233,
+      "acc_sel": 0.37,
+      "delta": -0.0533,
+      "delta_ci95": [
+        -0.1167,
+        0.01
+      ],
+      "delta_ci_excludes_0": false,
+      "content_acc": 0.76
+    },
+    {
+      "seed": 123,
+      "base_pool": "audio",
+      "base_layer": 0,
+      "base_devval_acc": 0.4267,
+      "sel_pool": "audio_attn",
+      "sel_layer": 16,
+      "sel_devval_acc": 0.4667,
+      "acc_base": 0.39,
+      "acc_sel": 0.4733,
+      "delta": 0.0833,
+      "delta_ci95": [
+        0.0133,
+        0.15
+      ],
+      "delta_ci_excludes_0": true,
+      "content_acc": 0.3067
+    },
+    {
+      "seed": 2024,
+      "base_pool": "audio",
+      "base_layer": 0,
+      "base_devval_acc": 0.3467,
+      "sel_pool": "audio_attn",
+      "sel_layer": 16,
+      "sel_devval_acc": 0.4067,
+      "acc_base": 0.4933,
+      "acc_sel": 0.4867,
+      "delta": -0.0067,
+      "delta_ci95": [
+        -0.0767,
+        0.0633
+      ],
+      "delta_ci_excludes_0": false,
+      "content_acc": 0.2633
+    },
+    {
+      "seed": 31337,
+      "base_pool": "audio",
+      "base_layer": 0,
+      "base_devval_acc": 0.3667,
+      "sel_pool": "audio_attn",
+      "sel_layer": 16,
+      "sel_devval_acc": 0.4133,
+      "acc_base": 0.4,
+      "acc_sel": 0.4633,
+      "delta": 0.0633,
+      "delta_ci95": [
+        -0.01,
+        0.13
+      ],
+      "delta_ci_excludes_0": false,
+      "content_acc": 0.2833
+    }
+  ],
+  "config": {
+    "model": "omni-embed-nemotron-3b",
+    "k": 5,
+    "layers": [
+      0,
+      8,
+      16,
+      24,
+      32,
+      36
+    ],
+    "dev": 600,
+    "test": 300,
+    "devval": 150,
+    "nboot": 2000,
+    "method": "dev-selected layer per pool; paired bootstrap on per-clip delta"
+  },
+  "elapsed_s": 204.9
+}
