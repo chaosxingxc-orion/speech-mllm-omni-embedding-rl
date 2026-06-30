@@ -9,7 +9,12 @@
     "delta_max": 0.0967,
     "n_seeds_paired_CI_excludes_0_positive": 2,
     "mean_content_acc": 0.376,
-    "verdict": "emotion gain is FRAGILE: paired CI excludes 0 in only 2/5 seeds"
+    "verdict": "no significant across-seed emotion gain (NULL): mean +0.037, 95% t-CI [-0.043, 0.116] spans 0; per-seed paired CI excludes 0 in only 2/5 seeds. The single-seed +0.097 was an oracle-test-layer-selection artifact.",
+    "across_seed_ci95_t": [
+      -0.043,
+      0.1163
+    ],
+    "across_seed_significant": false
   },
   "per_seed": [
     {
