@@ -1,0 +1,125 @@
+{
+  "summary": {
+    "speaker": {
+      "mean_test_acc": 0.0333,
+      "acc_range": [
+        0.0233,
+        0.0467
+      ],
+      "chance": 0.011,
+      "mean_ratio_over_chance": 3.03,
+      "n_classes": 91
+    },
+    "emotion": {
+      "mean_test_acc": 0.4045,
+      "acc_range": [
+        0.3867,
+        0.42
+      ],
+      "chance": 0.1667,
+      "mean_ratio_over_chance": 2.43,
+      "n_classes": 6
+    },
+    "verdict": "Frozen omni-embed content read-out on CREMA-D: SPEAKER near-chance (mean acc 0.033 vs chance 0.011, 3.03x); EMOTION real-but-modest (mean acc 0.405 vs chance 0.167, 2.43x). The content encoder carries little exploitable paralinguistic spread \u2014 consistent with the null training-free paralinguistic gain."
+  },
+  "per_seed": [
+    {
+      "seed": 42,
+      "speaker": {
+        "sel_layer": 0,
+        "devval_acc": 0.0533,
+        "test_acc": 0.0233,
+        "acc_ci95": [
+          0.0067,
+          0.0433
+        ],
+        "chance": 0.011,
+        "ratio_over_chance": 2.12,
+        "n_classes": 91
+      },
+      "emotion": {
+        "sel_layer": 0,
+        "devval_acc": 0.3867,
+        "test_acc": 0.4067,
+        "acc_ci95": [
+          0.3533,
+          0.4633
+        ],
+        "chance": 0.1667,
+        "ratio_over_chance": 2.44,
+        "n_classes": 6
+      }
+    },
+    {
+      "seed": 7,
+      "speaker": {
+        "sel_layer": 16,
+        "devval_acc": 0.0267,
+        "test_acc": 0.03,
+        "acc_ci95": [
+          0.0133,
+          0.05
+        ],
+        "chance": 0.011,
+        "ratio_over_chance": 2.73,
+        "n_classes": 91
+      },
+      "emotion": {
+        "sel_layer": 0,
+        "devval_acc": 0.42,
+        "test_acc": 0.42,
+        "acc_ci95": [
+          0.3633,
+          0.4767
+        ],
+        "chance": 0.1667,
+        "ratio_over_chance": 2.52,
+        "n_classes": 6
+      }
+    },
+    {
+      "seed": 123,
+      "speaker": {
+        "sel_layer": 0,
+        "devval_acc": 0.0533,
+        "test_acc": 0.0467,
+        "acc_ci95": [
+          0.0267,
+          0.07
+        ],
+        "chance": 0.011,
+        "ratio_over_chance": 4.25,
+        "n_classes": 91
+      },
+      "emotion": {
+        "sel_layer": 0,
+        "devval_acc": 0.4267,
+        "test_acc": 0.3867,
+        "acc_ci95": [
+          0.3333,
+          0.44
+        ],
+        "chance": 0.1667,
+        "ratio_over_chance": 2.32,
+        "n_classes": 6
+      }
+    }
+  ],
+  "config": {
+    "model": "omni-embed-nemotron-3b",
+    "k": 5,
+    "layers": [
+      0,
+      8,
+      16,
+      24,
+      32,
+      36
+    ],
+    "dev": 600,
+    "test": 300,
+    "devval": 150,
+    "method": "dev-selected layer per factor; kNN; bootstrap CI on test acc vs chance"
+  },
+  "elapsed_s": 112.2
+}
