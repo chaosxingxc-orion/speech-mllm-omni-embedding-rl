@@ -130,19 +130,35 @@ def main():
               f"CI[{r['delta_ci95'][0]:+.3f},{r['delta_ci95'][1]:+.3f}] "
               f"{'SIG' if r['delta_ci_excludes_0'] else 'n.s.'}  content={r['content_acc']:.3f}")
 
+    from scipy import stats as _sps
     deltas = np.array([r["delta"] for r in per_seed])
     accs_b = np.array([r["acc_base"] for r in per_seed]); accs_s = np.array([r["acc_sel"] for r in per_seed])
     n_sig = sum(r["delta_ci_excludes_0"] and r["delta"] > 0 for r in per_seed)
+    # across-seed inference: a one-sample t-CI on the 5 per-seed deltas (the HEADLINE statistic).
+    n = len(SEEDS)
+    md = float(deltas.mean()); sd = float(deltas.std(ddof=1)); se = sd / (n ** 0.5)
+    tcrit = float(_sps.t.ppf(0.975, n - 1))
+    ci_lo = round(md - tcrit * se, 4); ci_hi = round(md + tcrit * se, 4)
+    across_sig = bool(ci_lo > 0 or ci_hi < 0)
+    across_verdict = (
+        f"no significant across-seed emotion gain (NULL): mean {md:+.3f}, 95% t-CI [{ci_lo}, {ci_hi}] "
+        f"spans 0; per-seed paired CI excludes 0 in only {n_sig}/{n} seeds. "
+        f"The single-seed +0.097 was an oracle-test-layer-selection artifact."
+        if not across_sig else
+        f"significant across-seed emotion gain: mean {md:+.3f}, 95% t-CI [{ci_lo}, {ci_hi}] excludes 0."
+    )
     summary = {
         "n_seeds": len(SEEDS),
         "mean_acc_base": round(float(accs_b.mean()), 4), "mean_acc_sel": round(float(accs_s.mean()), 4),
-        "mean_delta": round(float(deltas.mean()), 4),
-        "delta_across_seed_std": round(float(deltas.std(ddof=1)), 4),
+        "mean_delta": round(md, 4),
+        "delta_across_seed_std": round(sd, 4),
         "delta_min": round(float(deltas.min()), 4), "delta_max": round(float(deltas.max()), 4),
         "n_seeds_paired_CI_excludes_0_positive": int(n_sig),
         "mean_content_acc": round(float(np.mean([r["content_acc"] for r in per_seed])), 4),
-        "verdict": ("emotion gain SURVIVES dev-selection + paired CI" if n_sig == len(SEEDS)
-                    else f"emotion gain is FRAGILE: paired CI excludes 0 in only {n_sig}/{len(SEEDS)} seeds"),
+        "verdict": across_verdict,
+        # HEADLINE across-seed inferential statistic (emitted by THIS script, not hand-inserted):
+        "across_seed_ci95_t": [ci_lo, ci_hi],
+        "across_seed_significant": across_sig,
     }
     out = {"summary": summary, "per_seed": per_seed,
            "config": {"model": "omni-embed-nemotron-3b", "k": K, "layers": LAYERS,
