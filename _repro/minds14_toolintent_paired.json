@@ -1,0 +1,24 @@
+{
+  "summary": {
+    "task": "MInDS-14 en-US tool/intent identification via FROZEN bi-encoder verifiable-reward selection",
+    "mechanism": "SentenceTransformer(omni-embed-nemotron-3b) cosine Acc@1 selection over static text candidate-cards; NO weight updates, NO generation/decoding, NO remote API. Training-free verifiable-reward SELECTION (Operator-A-class embedding reranking), not generative best-of-N.",
+    "model": "omni-embed-nemotron-3b",
+    "n": 182,
+    "per_class": 13,
+    "lang": "en-US",
+    "seed": 42,
+    "arms_acc_at_1": {
+      "naive (raw / basic label)": 0.720,
+      "raw-schema (raw / tool_schema_card)": 0.857,
+      "policy (tool_specific_intent / contrastive_boundary_tool)": 0.984
+    },
+    "paired_deltas": {
+      "policy_vs_raw_schema": {"delta": 0.126, "ci95": [0.077, 0.181], "fixes": 24, "regressions": 1, "n": 182, "significant": true},
+      "policy_vs_naive": {"delta": 0.264, "ci95": [0.198, 0.335], "fixes": 49, "regressions": 1, "n": 182, "significant": true}
+    },
+    "verdict": "REAL, LOCAL, reproducible content/intent gain from a single frozen model under a verifiable reward: the candidate-card policy arm reaches Acc@1=0.984, +0.126 [0.077,0.181] over the raw-schema baseline (paired bootstrap, CI excludes 0). This corroborates the paper's 0.852->0.984 (~+0.13) MInDS number with a committed artifact and a paired CI. It is a FROZEN BI-ENCODER SELECTION result, NOT a generative Operator-B best-of-N result.",
+    "provenance_note": "Regenerated in the POMDP restructure (Step 1 provenance pilot) to (a) commit a reproducible artifact where none existed and (b) verify the flagged MInDS number. The paper must re-attribute the mechanism (bi-encoder verifiable selection, not generative best-of-N) and label the baseline as the raw-schema arm (0.857), not 'bare intent-name'."
+  },
+  "config": {"route": "direct_omni", "task": "intent", "k_metric": "accuracy_at_1", "bootstrap": "paired per-clip, seed 42"},
+  "reproduce": "SPEECHRL_DATA_DIR=<repo>/speechrl-data HF_HUB_OFFLINE=1 ~/.venvs/speechrl/bin/python projects/speech-mllm-omni-embedding-rl/scripts/repro_minds14_toolintent.py"
+}
