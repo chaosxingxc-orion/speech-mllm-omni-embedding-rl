@@ -1,6 +1,474 @@
-﻿# Project Status
+# Project Status
 
-Last updated: 2026-06-29
+Last updated: 2026-07-03
+
+## Current Synthesis
+
+The current consolidated research story is maintained in:
+
+```text
+docs/research_synthesis.md
+```
+
+The current paper-facing evidence table is maintained in:
+
+```text
+docs/main_evidence_table.md
+```
+
+The compact paper-table draft is maintained in:
+
+```text
+docs/paper_evidence_tables.md
+```
+
+The current paper-table freeze manifest is:
+
+```text
+docs/paper_table_freeze_manifest.md
+```
+
+The current query-audio deployability audit is:
+
+```text
+docs/query_audio_gate_deployability.md
+outputs/query_audio_gate_deployability_summary.json
+```
+
+The current writing-oriented paper story outline is:
+
+```text
+docs/paper_story_outline.md
+```
+
+The current claim-to-evidence boundary map is:
+
+```text
+docs/claim_evidence_map.md
+```
+
+The current claim-readiness audit is:
+
+```text
+docs/paper_readiness_audit.md
+```
+
+The current paper-table number audit is:
+
+```text
+scripts/verify_paper_evidence.py
+outputs/paper_evidence_verification.json
+```
+
+Latest audit result:
+
+```text
+66 / 66 checks passed
+0 mismatches
+0 missing source artifacts
+```
+
+The current experiment-block coverage audit is maintained in:
+
+```text
+docs/experiment_coverage_summary.md
+outputs/experiment_coverage_summary.json
+```
+
+The current experiment completion checklist is:
+
+```text
+docs/experiment_completion_checklist.md
+```
+
+The current remaining-experiment triage is:
+
+```text
+docs/remaining_experiment_triage.md
+```
+
+Use this triage before adding any new broad experiment.  The current status is:
+
+```text
+No additional broad semantic-task experiment is required before drafting.
+```
+
+Latest coverage result:
+
+```text
+9 / 11 experiment blocks have verified evidence coverage
+8 blocks are ready or ready-with-caveat
+0 blocks are partial
+1 block is a documented blocker: stable second generative backend
+1 block is out of scope: non-semantic speaker/emotion
+1 block is deferred: LoRA/RL weight updates
+```
+
+The cost and failure-mode table is maintained in:
+
+```text
+docs/cost_failure_table.md
+```
+
+The controller cost-budget summary is maintained in:
+
+```text
+docs/controller_cost_budget.md
+outputs/controller_cost_budget_summary.json
+```
+
+The current qualitative bad-case audit sample is maintained in:
+
+```text
+docs/badcase_audit_samples.md
+outputs/badcase_audit_samples.json
+```
+
+The runtime latency/cost summary is maintained in:
+
+```text
+docs/runtime_latency_summary.md
+outputs/runtime_latency_summary.json
+```
+
+The cross-model/backend readiness summary is maintained in:
+
+```text
+docs/cross_model_backend_readiness.md
+outputs/cross_model_backend_readiness_summary.json
+```
+
+The translation order-gate repair summary is maintained in:
+
+```text
+docs/translation_order_gate_repair.md
+outputs/translation_order_gate_summary.json
+```
+
+The stricter translation multivote gate repair summary is maintained in:
+
+```text
+docs/translation_multivote_gate_repair.md
+outputs/translation_multivote_gate_summary.json
+```
+
+The URO task-family final-task breakdown is maintained in:
+
+```text
+docs/uro_family_breakdown.md
+outputs/uro_family_breakdown_summary.json
+```
+
+The controller component ablation table is maintained in:
+
+```text
+docs/controller_component_ablation.md
+outputs/controller_component_summary.json
+```
+
+The CoVoST2 translation order-robustness summary is maintained in:
+
+```text
+docs/translation_order_robustness.md
+outputs/translation_order_robustness_summary.json
+```
+
+The current regression / bad-case taxonomy appendix is:
+
+```text
+docs/bugs/issue-011-regression-taxonomy.md
+outputs/failure_taxonomy_summary.json
+```
+
+Short version:
+
+- The cost-budget summary now turns the controller into a utility/cost story:
+  SLURP tau=0.01 is the lower-cost verifier operating point, tau=0.02 buys
+  more accuracy with weak marginal benefit, memory packing improves HeySQuAD
+  use while reducing prompt text cost, and order self-consistency plus the
+  partial 12B backend remain diagnostics rather than deployable policies.
+- The bad-case audit sample now provides 35 concrete rows for human review:
+  SLURP verifier fixes, CoVoST2 ar verifier fixes/regressions, and HeySQuAD
+  memory-packing fixes/regressions.
+- The runtime summary confirms that candidate audio memory is a costly
+  negative baseline on CoVoST2 and MInDS, while HeySQuAD packing improves
+  success and reduces both prompt text budget and mean latency.
+- The cross-model/backend readiness summary now separates Jina raw fallback,
+  Jina system-side boundary-card positives, Gemma 4 E4B main-backend evidence,
+  and larger/alternative backend status.  Qwen3-Omni chat-mode
+  candidate-choice timed out on 2/2 rows.  Voxtral Mini 3B 2507 GGUF now has a
+  valid/parseable 60-row chat-mode run with Acc@1 0.617, but it is still too
+  weak and slow to count as a stable second paper-ready main backend.  This
+  keeps the paper from overclaiming cross-model instruction transfer.
+- The translation order-gate repair summary now shows that a retrieval-rank /
+  generic-deviation gate weakly repairs CoVoST2 ar->en and zh-CN->en order
+  sensitivity.  Ar->en reaches mean delta +0.039 with min delta +0.020 and
+  max regression rate 0.005 across evaluated orders; zh-CN->en remains weakly
+  order-robust with zero regressions.  Direct retrieval-top1 fallback remains
+  language-pair-specific system-side evidence.
+- The stricter translation multivote gate summary now shows that the remaining
+  order-stability issue can be repaired at higher cost: use the four-order
+  multivote translation prediction only when it selects the original retrieval
+  top-1 memory, otherwise keep generic memory-use output.  This gives ar->en
+  +0.025 with CI95 [0.005, 0.050] and zh-CN->en +0.065 with CI95
+  [0.035, 0.100], with zero regressions in both datasets.
+- The URO family breakdown shows that the low-margin verifier improvement is
+  not a single-family artifact: 7/8 URO families improve, one saturated family
+  is unchanged, and no family has a negative delta.
+- A larger public HeySQuAD answerable validation-shard supplement is now
+  audited as a deterministic local first-document proxy: direct omni passage
+  retrieval / first-document answer reaches answer pass 0.983 on 422 rows,
+  versus 0.943 for oracle-question-text retrieval, paired delta +0.040 with
+  CI95 [0.017, 0.064], 21 fixes and 4 regressions.  This strengthens scale for
+  public spoken QA/RAG retrieval-to-answer utility, but it does not replace the
+  200-row LLM evidence-then-answer final-answer rows.
+- The corresponding 422-row LLM evidence-then-answer run is also audited:
+  direct omni improves grounded exact memory selection by +0.043 with CI95
+  [0.021, 0.066], but final answer pass improves only from 0.950 to 0.955,
+  paired delta +0.005 with CI95 [-0.009, 0.019].  This is a useful caveat:
+  retrieval/grounding gains do not automatically become significant final-answer
+  gains after generation.
+
+```text
+Frozen omni models are useful but under-specified.  The accepted direction is
+not universal prompt/instruction search, but a training-free task-level
+controller over frozen omni outputs: validated instructions where they pass,
+raw fallback where they do not, low-margin top-k verification for ambiguous
+rows, and selective query-audio memory use.
+```
+
+Latest final-answer update:
+
+```text
+HeySQuAD answerable validation-200 now has LLM prompt controls.  Raw top-3
+default LLM answer pass is 0.790.  ASR-robust prompting reaches 0.815 but the
+paired CI crosses zero.  Extractive-short prompting regresses to 0.735.
+Evidence-then-answer reaches 0.885 with paired CI [0.045, 0.145], and the
+first-document local-rule control reaches 0.925.  This confirms that QA/RAG
+final-answer quality is bottlenecked by memory-use/generation, and that a
+structured evidence-bound protocol is the accepted next interface.
+Follow-up controls show that `policy_grounding` retrieval still regresses under
+the accepted evidence protocol (0.855, CI [-0.055, -0.010] vs raw evidence),
+while raw top-5 evidence context is only a weak trend (0.895, CI
+[-0.010, 0.030] vs raw top-3 evidence).
+
+Spoken-SQuAD test60 now provides a small transfer probe.  Direct omni top-3
+default LLM answer pass is 0.900, and the same evidence-then-answer protocol
+reaches 0.950, delta +0.050 with CI95 [0.000, 0.117] and 3/0
+fixes/regressions.  This supports the memory-use protocol direction but should
+remain supplementary because the sample size is small and the CI lower bound
+touches zero.
+
+Spoken-SQuAD test200 upgrades this transfer probe.  Direct omni top-3 default
+LLM answer pass is 0.870, and evidence-then-answer reaches 0.925, delta +0.055
+with CI95 [0.020, 0.090] and 12/1 fixes/regressions.  Context gold rate is
+1.000 for both LLM policies, so this is a memory-use / answer-generation gain
+rather than a retrieval-availability gain.
+
+Evidence-order shuffle controls now defend the final-answer protocol against a
+position-artifact interpretation.  On HeySQuAD validation-200, the
+evidence-then-answer protocol is 0.885 in the base order and 0.880 / 0.885 /
+0.870 under shuffle seeds
+7/17/29; context gold rate is unchanged and max absolute delta is 0.015.  On
+Spoken-SQuAD test200, evidence-then-answer is 0.925 in the base order and
+0.940 / 0.930 / 0.930 under the same shuffles.  This indicates that the
+evidence protocol itself, not a fixed gold-evidence position, is doing the
+work.
+
+The end-to-end QA/RAG chain is now summarized in
+`docs/end_to_end_chain_table.md` and audited from
+`outputs/end_to_end_chain_summary.json`.  On HeySQuAD validation-200, raw
+top-5 retrieval places gold memory in context for 0.780 of rows, but original
+memory-use success is only 0.280.  Answer/evidence packing raises memory-use
+success to 0.595 while reducing mean text cost from 789 to 246 prompt-token
+proxies.  The final-answer evidence protocol reaches 0.885 with top-3 context
+and 0.895 with top-5 context, showing that retrieval, memory use, and final
+answer quality are related but distinct bottlenecks.
+
+Clean-vs-dialect route reliability is now summarized in
+`docs/dialect_route_table.md` and audited from
+`outputs/dialect_route_summary.json`.  The summary uses legacy AISHELL-1 and
+WenetSpeech-Wu row-level route artifacts.  On AISHELL-1 clean Mandarin,
+ASR-primary Acc@1 is 0.952 while direct omni primary falls to 0.762 with 14
+regressions.  On WenetSpeech-Wu dialect stress, ASR-primary Acc@1 falls to
+0.333 while direct omni primary reaches 0.905 with +0.571 paired delta and no
+regressions.  This is the clearest route-boundary evidence: ASR remains primary
+when reliable, but direct omni should become primary under dialect ASR collapse.
+
+Controller component evidence is now summarized in
+`docs/controller_component_ablation.md` and audited from
+`outputs/controller_component_summary.json`.  The table separates instruction
+arms, low-margin verification, clean-vs-dialect routing, query-audio gates,
+memory packing, and evidence-bound answering.  This is the compact answer to
+"what still needs to be supplemented": most core components now have audited
+positive rows, while the remaining strengthening runs are cross-model backend,
+translation order robustness, harder public QA/RAG, and verifier cost analysis.
+
+URO QA/reasoning now has a deterministic final-task proxy over answer cards.
+Raw boundary-card retrieval has answer pass 0.715 while the gold memory is
+already present in the top-3 context for 0.825 of rows.  The low-margin top-3
+LLM verifier reaches answer pass 0.845 with paired delta +0.130, CI95
+[0.085, 0.180], and 26/0 fixes/regressions.  This strengthens the claim that
+agentic semantic tasks need a controller for selecting/using available memory,
+not only higher retrieval recall.
+
+Selective query-audio gates now have clean+stress mixture diagnostics.  In
+CoVoST2 clean200 + neighbor-text60, the text/candidate-overlap gate reaches
+mixed success 0.954 with delta +0.188 and CI95 [0.142, 0.238] at audio cost
+0.231.  In MInDS clean180 + neighbor-text60, the same gate reaches 0.938 with
+delta +0.213 and CI95 [0.163, 0.267], but audio cost is 0.942 because it also
+routes most clean rows.  In HeySQuAD clean200 + natural-drift60,
+text-equals-noquery reaches 0.892 with delta +0.046 and CI95 [0.019, 0.073]
+at audio cost 0.300.  These are diagnostic mixtures, not natural deployment
+frequency estimates.
+The new budgeted selector converts these diagnostics into deployable
+task-level decisions under audio cost <= 0.35 and regression rate <= 0.03:
+CoVoST2 selects text/candidate overlap (delta +0.188, audio cost 0.231),
+MInDS selects text-first-candidate (delta +0.146, audio cost 0.329), and
+HeySQuAD selects text-equals-noquery (delta +0.046, audio cost 0.300).
+This supports the selective-audio controller story while rejecting a universal
+gate.
+
+The bad-case appendix is now generated from row-level artifacts.  It shows
+that the most important remaining gaps are: HeySQuAD packed retrieval-to-use
+still has 81/200 remaining failures, mostly wrong packed-memory selection or
+retrieval misses; CoVoST2 ar low-margin verifier regressions are mainly
+translation-style / dataset-boundary conflicts; and query-audio gates need
+task-level selection because the accepted trigger differs across CoVoST2,
+MInDS, and HeySQuAD.
+
+Cross-model generative reference remains a backend gap.  Gemma 4 12B Q4 did
+produce a partial CoVoST2 ar->en memory-use run, but the service exited after
+49 completed rows.  On those same query ids, the 12B partial run reaches 0.571
+success versus E4B 0.835, paired delta -0.306 with CI95 [-0.490, -0.143], and
+mean latency 15.7s per row.  Qwen3-Omni GGUF also did not provide a stable
+paper-ready backend: the older 2-row CLI smoke is parse-failing, and the newer
+chat-mode audio route times out on 2/2 rows at 360s per row.  Voxtral Mini 3B
+2507 GGUF improves the backend picture: chat mode produces valid parseable
+outputs on a 60-row CoVoST2 run with Acc@1 0.617, but latency remains about
+39.9s per row and quality is not high enough for formal memory-use evidence.
+Gemma 4 E4B therefore remains the current audited main-model backend;
+cross-model evidence should wait for a stronger Voxtral interface or another
+stable Qwen3-Omni / Gemma 12B service path.
+
+Tool intent has also been converted into deterministic tool-call utility.  On
+SLURP, raw mean tool-call success over five locked splits is 0.554.  The
+same-family changed gate reaches 0.619 with mean delta +0.065, mean confidence
+lower bound +0.027, route rate 0.097, and regression rate 0.008.  It mainly
+reduces same-family boundary errors.  On MInDS, the global instruction
+regresses from raw 0.864 to 0.808 and increases unsafe cross-family errors, so
+the same-family changed gate correctly routes zero rows and preserves raw.
+
+Tool retrieval-to-use is now covered as well.  MInDS raw top-5 retrieval puts
+the correct tool in context for 0.983 of rows and Gemma memory-use success is
+0.967, so the tool retrieval/use gap is nearly closed.  SLURP raw top-5
+retrieval hit is 0.802 while memory-use success is only 0.574, leaving 0.198
+retrieval misses and 0.228 hit-but-use failures.  A verbose tool-boundary
+memory card regresses MInDS by -0.039 with CI95 [-0.072, -0.011] and gives
+only a weak SLURP trend +0.024 with CI95 [-0.006, 0.054], so boundary-card
+memory formatting is rejected unless a task-level gate later validates it.
+
+SLURP tool-use order controls now show that the base-order result is itself
+order-sensitive.  Candidate shuffle seeds 7/17/29 reduce success from 0.574 to
+0.502 / 0.472 / 0.492, with paired deltas -0.072 / -0.102 / -0.082 and
+confidence intervals strictly below zero.  Majority-vote self-consistency over
+base+3 shuffled orders reaches only 0.550, delta -0.024 with CI95
+[-0.050, 0.002].  The best gated self-consistency variant reaches 0.576, delta
++0.002 with CI95 [-0.016, 0.022], and is rejected as an underpowered weak
+trend.  This turns SLURP into a strong order-sensitivity / tool-use diagnostic:
+the next repair should be semantic verifier or retrieval repair, not naive
+candidate-order voting.
+
+The semantic verifier repair has now been run on SLURP as well.  The raw
+direct-omni intent retrieval has Acc@1 0.550 and R@3 0.778.  A lower-cost
+low-margin top-3 LLM verifier at tau=0.01 routes 0.496 of rows and improves
+Acc@1 to 0.676, delta +0.126 with CI95 [0.098, 0.156], 63 fixes and 0
+regressions.  A higher-route tau=0.02 setting routes 0.666 of rows and reaches
+Acc@1 0.690, delta +0.140 with CI95 [0.110, 0.170], 70 fixes and 0 regressions.
+The matching oracle low-margin top-3 upper bound at tau=0.02 reaches 0.762,
+delta +0.212 with CI95 [0.178, 0.248].  This is now the accepted SLURP
+tool-semantic repair: semantic verification fixes many boundary confusions that
+order voting and verbose memory cards could not fix, and the tau=0.01/tau=0.02
+comparison gives a controllable cost-utility trade-off.
+
+MInDS also has a fixed-candidate tool memory-use control.  With no query
+signal, memory-use success is only 0.150.  Adding the text hint raises success
+to 0.967, while query audio + text memory reaches 1.000 with paired delta
++0.033 against text hint, CI95 [0.011, 0.061], and 6/0 fixes/regressions.
+This is not a retrieval bottleneck result; it is a clean tool-memory sanity
+showing that `Theta(q)` must include the query interface and that query audio
+can repair remaining text-hint errors.
+
+Candidate-order stability is now part of the audited evidence.  CoVoST2
+ar->en remains exactly stable under shuffle seeds 7/17/29.  MInDS has only one
+order-sensitive regression across the three shuffles.  HeySQuAD has mild order
+sensitivity: aggregate success stays in 0.905-0.920 around the 0.910 base, but
+individual fixes/regressions swap across orders.  This supports the main
+memory-use rows while keeping QA/RAG candidate-order perturbation as a required
+control.
+
+The first HeySQuAD retrieval-to-use bottleneck summary is now audited.  Raw
+top-5 retrieval places the gold memory in context for 0.780 of validation rows,
+but Gemma memory-use success is only 0.280; half of all rows are hit-but-use
+failures.  A generic `policy_grounding` top-5 retrieval variant does not fix
+the bottleneck and increases invalid/context-overflow outputs.  This is strong
+diagnostic evidence that Θ(q) must include memory packing / evidence protocol /
+rerank decisions, not just retrieval.
+
+Answer/evidence packing has now been rerun with the Gemma memory-use backend,
+not only as a token diagnostic.  On HeySQuAD raw top-5 retrieval, packing
+reduces the mean prompt from 789 tokens to 246 tokens and raises memory-use
+success from 0.280 to 0.595, paired delta +0.315 with CI95 [0.245, 0.385],
+68 fixes and 5 regressions.  Invalid/context-overflow outputs fall from 0.035
+to 0.000.  The `policy_grounding` top-5 route also improves after packing
+(0.255 to 0.590), but packed `policy_grounding` is not better than packed raw:
+delta -0.005 with CI95 [-0.035, 0.025].  This makes memory packing/evidence
+format an accepted memory-use action, while generic retrieval instruction
+remains rejected for HeySQuAD.
+
+CoVoST2 translation now has retrieval-to-use controls as well.  On ar->en
+validation-200, direct-omni top-5 retrieval places the gold memory in context
+for 0.965 of rows, while Gemma memory-use success is 0.805, leaving 0.160
+hit-but-use failures and 0.035 retrieval misses.  On zh-CN->en validation-200,
+top-5 retrieval hit is 1.000 and memory-use success is 0.860, leaving 0.140
+hit-but-use failures.  Invalid outputs are 0.000 in both translation runs.
+This confirms that the retrieval/use distinction is not QA-only: translation
+has a smaller but still visible use gap.
+
+A translation-target memory-use policy now repairs part of that gap without
+changing retrieval.  On CoVoST2 ar->en validation-200, success improves from
+0.805 to 0.860 with delta +0.055, CI95 [0.020, 0.090], and 12/1
+fixes/regressions.  On CoVoST2 zh-CN->en validation-200, success improves from
+0.860 to 0.905 with delta +0.045, CI95 [0.010, 0.080], and 11/2
+fixes/regressions.  This is a memory-use policy gain, not a retrieval gain.
+Candidate-order shuffle controls show the gain is not yet fully stable:
+ar->en same-seed gains over generic memory-use are 0.000 / +0.035 / +0.035
+for seeds 7/17/29, while zh-CN->en gains are +0.025 / +0.005 / -0.015.
+The policy should therefore be reported as positive but order-sensitive, and
+future runs should use order randomization, self-consistency, or an
+order-stability gate.
+
+Order self-consistency has now been tested as a diagnostic controller for the
+translation memory-use policy.  Majority voting over the base order plus three
+candidate shuffles reaches 0.840 on CoVoST2 ar->en and 0.910 on zh-CN->en,
+with deltas +0.035 and +0.050 against generic memory-use.  The zh gain has
+positive CI95 [0.015, 0.090], while ar has CI95 [0.000, 0.070].  Because this
+requires four model calls per row and does not dominate the best single ar
+translation-target run, it should be used as an order-control diagnostic rather
+than a main deployed policy.
+
+The order-robustness summary makes the original limitation explicit and
+audited: ungated translation-target prompting is not order-robust.  The
+translation order-gate repair summary adds a cheaper retrieval-rank /
+generic-deviation gate.  This gate weakly repairs both ar->en and zh-CN->en:
+ar->en has mean delta +0.039, min delta +0.020, max regression rate 0.005, and
+shuffle weak accept 3/3; zh-CN->en has mean delta +0.031, min delta +0.010,
+zero regressions, and shuffle weak accept 3/3.  The stricter multivote/rank
+gate then shows that a no-regression repair exists when extra calls are
+allowed: ar->en +0.025 with CI95 [0.005, 0.050], zh-CN->en +0.065 with CI95
+[0.035, 0.100], and zero regressions for both language pairs.  This should be
+written as a cost tradeoff: cheap weak repair versus expensive strict repair.
+```
 
 ## Current State
 
@@ -48,6 +516,148 @@ The smoke used a deterministic local oracle backend, so it validates manifest
 shape, policy plumbing, output fields, baseline-regression accounting, and cost
 tracking. It is not a model-quality result. Formal V0 runs still need frozen
 generative omni backends over the same manifests.
+
+First frozen-model smoke with Gemma 4 E4B:
+
+```text
+backend: llama-mtmd-cli
+model family: Gemma 4 E4B QAT GGUF
+interface recipe:
+  --jinja
+  compact prompt
+  anti_answer fixed output protocol
+  pty capture
+  no log-disable
+  max_tokens = 192
+```
+
+Important interface finding:
+
+```text
+The current llama.cpp multimodal CLI produced empty captured outputs when
+log-disable was enabled.  With logs enabled and pty capture, final answers are
+parseable.  Verbose memory prompts often keep Gemma in the thought channel;
+compact prompts with a larger token budget are currently the usable interface
+prerequisite.
+```
+
+Tiny V0 model-quality smoke:
+
+| Dataset / task | Policy | n | Success | Invalid | Wrong memory | Audio cost | Regression |
+|---|---|---:|---:|---:|---:|---:|---:|
+| CoVoST2 ar->en translation memory | `text_summary_only` | 6 | 0.667 | 0.333 | 0.000 | 1.0 | 0 |
+| CoVoST2 ar->en translation memory | `dual_summary_plus_audio` | 6 | 1.000 | 0.000 | 0.000 | 5.0 | 0 |
+| MInDS-14 tool / intent memory | `text_summary_only` | 6 | 0.667 | 0.333 | 0.000 | 1.0 | 0 |
+| MInDS-14 tool / intent memory | `task_card_plus_audio` | 6 | 0.833 | 0.167 | 0.000 | 5.0 | 1 |
+| HeySQuAD spoken QA / RAG | `text_summary_only` | 3 | 0.000 | 1.000 | 0.000 | 1.0 | 0 |
+
+Interpretation:
+
+- CoVoST2 gives the first positive memory-use signal: adding candidate memory
+  audio to text summaries rescued two invalid text-only cases with no observed
+  regression in the six-row smoke.
+- MInDS suggests audio/task-card memory can improve tool selection but may
+  introduce regression, so it needs an accept gate rather than unconditional
+  use.
+- HeySQuAD is currently an interface failure under long passage memories.  Its
+  manifest was corrected so candidate memories have text passages but no fake
+  memory audio; the next step is evidence compression or a QA-specific compact
+  memory card before judging model capability.
+
+Service-based V0 formal local-subset result:
+
+```text
+backend: persistent llama.cpp server
+model family: Gemma 4 E4B QAT GGUF
+fixed interface:
+  compact prompt
+  anti_answer fixed output protocol
+  OpenAI-compatible audio request
+  local proxy disabled for server calls
+```
+
+| Dataset / task | Policy | n | Success | Invalid | Wrong memory | Regressions | Mean latency ms | Audio cost |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| CoVoST2 ar->en translation memory | `text_summary_only` | 200 | 0.835 | 0.000 | 0.165 | 0 | 258.0 | 1.0 |
+| CoVoST2 ar->en translation memory | `dual_summary_plus_audio` | 200 | 0.370 | 0.000 | 0.630 | 93 | 752.5 | 6.0 |
+| CoVoST2 ar->en translation memory | `conflict_aware_asr_audio` | 200 | 0.385 | 0.000 | 0.615 | 90 | 726.9 | 6.0 |
+| CoVoST2 ar->en translation memory | `two_stage_audio_verify_then_answer` | 200 | 0.355 | 0.000 | 0.645 | 96 | 729.5 | 6.0 |
+| MInDS-14 tool / intent memory | `text_summary_only` | 180 | 0.978 | 0.000 | 0.022 | 0 | 348.9 | 1.0 |
+| MInDS-14 tool / intent memory | `task_card_plus_audio` | 180 | 0.461 | 0.144 | 0.394 | 94 | 985.9 | 6.0 |
+| HeySQuAD spoken QA / RAG | `text_summary_only` | 200 | 0.895 | 0.015 | 0.090 | 0 | 595.8 | 1.0 |
+| HeySQuAD spoken QA / RAG | `dual_summary_plus_audio` | 200 | 0.895 | 0.015 | 0.090 | 4 | 587.1 | 1.0 |
+
+Interpretation:
+
+- The persistent service solves the per-row model reload problem and makes
+  full local-subset runs practical.
+- The formal V0 result reverses the tiny 6-row smoke: candidate audio memory is
+  harmful when injected unconditionally.  It increases wrong-memory errors on
+  CoVoST2 and MInDS and gives no net benefit on HeySQuAD.
+- `text_summary_only` is the current accepted Gemma 4 E4B memory-use baseline.
+  Audio memory should only re-enter through a route/gate/compression policy
+  that passes locked-test utility and regression checks.
+
+Query-audio and audio-memory controls:
+
+| Dataset / task | Condition | n | Success | Delta vs control | CI95 |
+|---|---|---:|---:|---:|---:|
+| CoVoST2 ar->en | query audio + text memory | 200 | 0.835 | +0.640 vs no-query-audio | [0.570, 0.710] |
+| MInDS-14 | query audio + text memory | 180 | 0.978 | +0.828 vs no-query-audio | [0.772, 0.883] |
+| HeySQuAD | query audio + text memory | 200 | 0.895 | +0.685 vs no-query-audio | [0.620, 0.750] |
+| CoVoST2 ar->en | text memory over pure audio memory | 200 | 0.835 | +0.445 vs `audio_clip_only` | [0.375, 0.515] |
+| MInDS-14 | text memory over pure audio memory | 180 | 0.978 | +0.561 vs `audio_clip_only` | [0.489, 0.633] |
+
+Query-interface layering result:
+
+| Dataset / task | No query signal | Audio query | Text hint query | Audio + text hint |
+|---|---:|---:|---:|---:|
+| CoVoST2 ar->en | 0.195 | 0.835 | 0.995 | 1.000 |
+| MInDS-14 | 0.150 | 0.978 | 0.967 | 1.000 |
+| HeySQuAD | 0.210 | 0.895 | 0.865 | 0.910 |
+
+Paired audio+text-hint gain over text-hint-only:
+
+```text
+CoVoST2: +0.005, CI95 [0.000, 0.015], fixes 1, regressions 0
+MInDS-14: +0.033, CI95 [0.011, 0.061], fixes 6, regressions 0
+HeySQuAD: +0.045, CI95 [0.005, 0.085], fixes 13, regressions 4
+```
+
+Interpretation:
+
+- The accepted `text_summary_only` policy is not exploiting candidate position
+  artifacts.  With the compact prompt, removing query audio drops the task to
+  near-random performance.
+- Candidate memory audio alone is much weaker than text memory summaries in
+  the current semantic tasks.
+- ASR/text hints are the strongest low-cost query interface when reliable, but
+  query audio still adds small positive gains on MInDS and HeySQuAD.
+- The next useful audio-memory policy is not "more audio"; it is selective
+  audio evidence after a text-memory or retrieval plan has identified where
+  audio may add information.
+
+Candidate-order and limited-audio controls:
+
+| Dataset / task | Policy variant | n | Success | Regression vs text-hint baseline |
+|---|---|---:|---:|---:|
+| CoVoST2 ar->en | text hint, shuffled candidates seed 7 | 200 | 1.000 | 0 |
+| MInDS-14 | text hint, shuffled candidates seed 7 | 180 | 1.000 | 0 |
+| HeySQuAD | text hint, shuffled candidates seed 7 / 17 / 29 | 200 | 0.905 / 0.920 / 0.905 | mixed small changes |
+| CoVoST2 ar->en | candidate audio limit 1 / 2 / full | 200 | 0.955 / 0.900 / 0.875 | 9 / 20 / 25 |
+| MInDS-14 | candidate audio limit 1 / 2 / full | 180 | 0.956 / 0.933 / 0.828 | 8 / 12 / 31 |
+
+Interpretation:
+
+- The high text-hint memory-use scores are not caused by fixed candidate
+  positions.  Order perturbation leaves CoVoST2 and MInDS unchanged and keeps
+  HeySQuAD within a narrow band.
+- Limiting candidate audio reduces the damage compared with full candidate
+  audio, but still creates regressions against the accepted text-memory
+  baseline.
+- The V0 gate should therefore be stricter than "add fewer clips."  Candidate
+  audio should only be used for targeted verification when an upstream signal
+  says text memory or ASR/text hint is unreliable.
 
 ## Current Generative Omni Backend Status
 
@@ -1225,4 +1835,545 @@ Lean verification:
 
 ```text
 docs/lean/omni_memory_plan.lean checked with Lean 4.12.
+```
+
+### Omni Agentic Memory V0: Stability, Gates, Stress, Retrieval->Use
+
+Implementation additions:
+
+```text
+scripts/omni_memory_result_compare.py
+scripts/omni_memory_selective_gate.py
+scripts/build_memory_asr_stress_manifest.py
+scripts/build_memory_use_manifest_from_retrieval.py
+```
+
+Candidate-order stability with Gemma 4 E4B service:
+
+| Dataset | Base | Shuffle 7 | Shuffle 17 | Shuffle 29 | Note |
+|---|---:|---:|---:|---:|---|
+| CoVoST2 ar->en 200 | 1.000 | 1.000 | 1.000 | 1.000 | stable |
+| MInDS-14 180 | 1.000 | 1.000 | 1.000 | 0.994 | one order-sensitive regression |
+| HeySQuAD 200 | 0.910 | 0.905 | 0.920 | 0.905 | small order sensitivity, CI crosses 0 |
+
+Candidate audio-memory controls:
+
+| Dataset | Text baseline | Audio limit=1 | Audio limit=2 | Full candidate audio | Interpretation |
+|---|---:|---:|---:|---:|---|
+| CoVoST2 ar->en 200 | 1.000 | 0.955 | 0.900 | 0.875 | candidate audio hurts |
+| MInDS-14 180 | 1.000 | 0.956 | 0.933 | 0.828 | candidate audio hurts more with more clips |
+
+Selective gate diagnostic:
+
+| Dataset | Gate | Gate rate | Success | Delta vs base | Note |
+|---|---|---:|---:|---:|---|
+| CoVoST2 | wrong / invalid / shuffle | 0.000 | 1.000 | 0.000 | text path already stable |
+| MInDS | shuffle disagreement | 0.006 | 0.994 | -0.006 | one regression, no rescue |
+| HeySQuAD | text-hint-wrong | 0.090 | 0.915 | +0.005 | one rescue, weak diagnostic signal |
+
+ASR/text-hint stress results:
+
+| Dataset / stress | No query | Query audio only | Corrupted text only | Audio + corrupted text | Main signal |
+|---|---:|---:|---:|---:|---|
+| CoVoST2 neighbor-text 60 | 0.200 | 0.817 | 0.000 | 0.300 | audio rescues bad text; bad text pollutes audio |
+| MInDS neighbor-text 60 | 0.167 | 0.967 | 0.000 | 0.683 | audio rescues bad text; bad text still harmful |
+| HeySQuAD natural drift 60 | 0.217 | 0.900 | 0.783 | 0.900 | audio improves natural ASR drift |
+
+Paired CI highlights:
+
+```text
+CoVoST2 audio_only - corrupted_text_only: +0.817, CI95 [0.717, 0.917]
+MInDS audio_only - corrupted_text_only: +0.967, CI95 [0.917, 1.000]
+HeySQuAD audio_only - corrupted_text_only: +0.117, CI95 [0.033, 0.217]
+```
+
+Deployable query-audio gate prototype:
+
+```text
+script: scripts/query_audio_gate_eval.py
+policy: run text-only and audio-only interfaces; choose audio when their
+predicted memories disagree.
+```
+
+| Dataset / stress | Text-only | Audio-only | Audio+text | Disagreement gate | Gate rate | Delta vs text | CI95 | Regressions |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| CoVoST2 neighbor-text 60 | 0.000 | 0.817 | 0.300 | 0.817 | 0.983 | +0.817 | [0.717, 0.917] | 0 |
+| MInDS neighbor-text 60 | 0.000 | 0.967 | 0.683 | 0.967 | 0.983 | +0.967 | [0.917, 1.000] | 0 |
+| HeySQuAD natural drift 60 | 0.783 | 0.900 | 0.900 | 0.900 | 0.150 | +0.117 | [0.033, 0.217] | 1 |
+
+Cost / cheaper-trigger note:
+
+```text
+The disagreement gate does not inspect labels and avoids blindly fusing
+corrupted text with audio, but it must evaluate both text and audio branches.
+The cheaper text-equals-noquery trigger uses less audio on these stress sets
+but rescues fewer rows: CoVoST2 0.133, MInDS 0.267, HeySQuAD 0.850 success.
+The next deployable version should learn or validate a cheaper reliability
+trigger before running the audio branch on every row.
+```
+
+Retrieval->use on HeySQuAD:
+
+| Retrieval source | Hit@5 | Exact memory-use success | Hit but use fail | Retrieval miss |
+|---|---:|---:|---:|---:|
+| raw | 0.780 | 0.280 | 0.500 | 0.220 |
+| policy_grounding | 0.780 | 0.255 | 0.525 | 0.220 |
+
+Final-answer local-rule sanity on HeySQuAD:
+
+| Retrieval source | Top-1 answer pass | Top-3 answer pass | Top-5 answer pass |
+|---|---:|---:|---:|
+| raw | 0.925 | 0.925 | 0.925 |
+| policy_grounding | 0.890 | 0.890 | 0.890 |
+
+Gemma 4 E4B generated final-answer evaluation on HeySQuAD:
+
+| Retrieval source / prompt | Context | Answer pass | API errors | Error summary |
+|---|---:|---:|---:|---|
+| raw / default | top-3 | 0.785 | 4 | 17 generation miss, 26 retrieval miss |
+| policy_grounding / default | top-3 | 0.770 | 3 | 16 generation miss, 30 retrieval miss |
+| raw / asr_robust | top-3 | 0.800 | 4 | 16 generation miss, 24 retrieval miss |
+
+Prompt ablation:
+
+```text
+asr_robust - default: +0.015 answer_pass, CI95 [-0.025, 0.055],
+fixes 9, regressions 6.
+```
+
+Interpretation:
+
+```text
+Generated final-answer quality is below the first-document local-rule upper
+bound.  The gap is mostly final-generation behavior plus some retrieval miss.
+The asr_robust prompt is a weak positive trend, not an accepted policy.
+```
+
+Interpretation:
+
+```text
+1. Query audio is valuable when the text hint drifts or is adversarially
+   corrupted.
+2. Candidate audio memory is not currently accepted for semantic memory use;
+   it increases latency/cost and introduces regressions.
+3. For QA/RAG, exact memory id is too strict because neighboring questions may
+   share the same passage.  Final-answer utility is the correct task metric.
+4. The accepted V0 interface is query audio + text memory, with candidate audio
+   gated off unless future deployable gates show reliable positive utility.
+```
+
+Cross-model status:
+
+```text
+Gemma 4 E4B GGUF remains the active service backend for this V0 round.
+Voxtral Mini 3B is present and can run through chat mode, but the current
+60-row CoVoST2 check is too weak/slow to serve as a second paper-ready backend.
+Qwen3-Omni GGUF is present but heavy; it should be run as a separate 60-sample
+reference after stopping the E4B service, not mixed into the current service run.
+Gemma 4 12B Q4 GGUF can start on a separate local service but is currently too
+slow/unstable for this V0 matrix: a CoVoST2 run stopped after 49 rows, with
+mean latency around 15.7s and one row taking about 574s.  Treat it as a backend
+blocker until service parameters are tuned.
+```
+
+### Omni Retrieval-Side Semantic Tasks
+
+This round extends beyond fixed-candidate memory use and directly evaluates
+frozen omni-embedding retrieval on speech translation and tool/intent semantic
+tasks.  Results are from row-level JSON under `outputs/`, which remains
+untracked.
+
+| Task | Policy | N | Acc@1 | R@3 | MRR | Note |
+|---|---|---:|---:|---:|---:|---|
+| CoVoST2 ar->en | raw | 200 | 0.775 | 0.915 | 0.854 | non-saturated translation retrieval |
+| CoVoST2 ar->en | translation_semantic | 200 | 0.750 | 0.900 | 0.834 | instruction regresses |
+| CoVoST2 zh-CN->en | raw | 200 | 0.985 | 0.995 | 0.991 | near saturated |
+| CoVoST2 zh-CN->en | translation_semantic | 200 | 0.990 | 1.000 | 0.994 | tiny weak gain |
+| MInDS-14 intent | raw | 180 | 0.883 | 0.972 | 0.931 | strong raw baseline |
+| MInDS-14 intent | tool_specific_intent | 180 | 0.833 | 0.961 | 0.900 | clear regression |
+| SLURP intent | raw | 500 | 0.550 | 0.778 | 0.677 | useful non-saturated tool task |
+| SLURP intent | tool_specific_intent | 500 | 0.582 | 0.772 | 0.690 | weak Acc@1/MRR trend, R@3 drops |
+
+Paired deltas vs raw:
+
+| Task | Candidate | Delta Acc@1 | CI95 | Fixes | Regressions | Decision |
+|---|---|---:|---:|---:|---:|---|
+| CoVoST2 ar->en | translation_semantic | -0.025 | [-0.070, 0.015] | 7 | 12 | reject |
+| CoVoST2 zh-CN->en | translation_semantic | +0.005 | [-0.010, 0.025] | 2 | 1 | weak / not accepted |
+| MInDS-14 intent | tool_specific_intent | -0.050 | [-0.083, -0.017] | 1 | 10 | reject |
+| SLURP intent | tool_specific_intent | +0.032 | [-0.002, 0.066] | 46 | 30 | weak positive, needs selector/gate |
+
+Interpretation:
+
+```text
+Instruction effects are strongly task-specific.  A semantically plausible
+instruction can either help, do nothing, or regress depending on dataset/task.
+This strengthens the task-level selector story: the system should evaluate a
+finite action set on a validation split, accept only robust gains, and fall back
+to raw omni when the gate fails.  SLURP 500 is now the best non-saturated tool
+semantic benchmark for the next selector/bad-case iteration.
+```
+
+SLURP policy-gate follow-up:
+
+| Policy | Selection N | Selection Acc@1 | Locked N | Locked Acc@1 | Delta vs raw locked | CI95 | Route rate | Regressions |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| raw baseline | 300 / 200 split | 0.520 | 200 | 0.620 | 0.000 | n/a | 0.000 | 0 |
+| tool_specific only | 300 / 200 split | 0.560 | 200 | 0.615 | -0.005 | n/a | 1.000 | n/a |
+| raw-margin gate | 300 / 200 split | 0.563 | 200 | 0.620 | 0.000 | [-0.050, 0.050] | 0.450 | 13 |
+| same-family gate | 300 / 200 split | 0.583 | 200 | 0.665 | +0.045 | [0.010, 0.080] | 0.785 | 2 |
+| changed-same-family gate | 300 / 200 split | 0.583 | 200 | 0.665 | +0.045 | [0.010, 0.080] | 0.075 | 2 |
+| same-family + low-margin gate | 300 / 200 split | 0.583 | 200 | 0.665 | +0.045 | [0.010, 0.080] | 0.260 | 2 |
+
+Interpretation:
+
+```text
+Raw margin alone is not a useful protection signal on SLURP.  The useful
+training-free signal is label-family consistency: allow the instruction to
+override raw only when both omni actions stay inside the same intent family.
+The changed-same-family gate is especially attractive because it changes only
+7.5% of locked-test rows while matching the larger gate's accuracy gain.
+This is a concrete positive result for a training-free policy over frozen
+omni-embedding outputs.
+```
+
+Multi-seed robustness:
+
+| Dataset / candidate | Gate | Seeds positive | Mean delta | Mean CI lower | Mean locked Acc@1 | Route rate | Regression rate | Decision |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| SLURP `tool_specific_intent` | changed same-family | 5 / 5 | +0.065 | +0.027 | 0.619 | 0.097 | 0.008 | accepted |
+| SLURP V2 boundary instruction | global candidate | 5 / 5 | +0.068 | +0.015 | 0.622 | 1.000 | 0.000 | accepted but high route cost |
+| SLURP V2 boundary instruction | changed same-family | 5 / 5 | +0.063 | +0.027 | 0.617 | 0.107 | 0.005 | accepted efficient gate |
+| MInDS `tool_specific_intent` | global candidate | 0 / 5 | -0.056 | negative | 0.827 | 1.000 | high | reject |
+| MInDS V2 boundary instruction | global candidate | 0 / 5 | -0.058 | negative | 0.825 | 1.000 | high | reject |
+
+Formal selector with materialized gates:
+
+| Task | Raw locked Acc@1 | Selector action | Locked Acc@1 | Delta | CI95 | Fixes | Regressions | Decision |
+|---|---:|---|---:|---:|---:|---:|---:|---|
+| SLURP intent 500 | 0.620 | `tool_specific_same_family_gate` | 0.665 | +0.045 | [0.010, 0.080] | 11 | 2 | accepted |
+| SLURP intent 500 | 0.620 | `v2_same_family_gate` | 0.675 | +0.055 | [0.020, 0.090] | 12 | 1 | accepted diagnostic |
+| MInDS intent 180 | 0.861 | raw fallback | 0.861 | 0.000 | n/a | 0 | 0 | raw fallback |
+| CoVoST2 ar->en 200 | 0.800 | raw fallback | 0.800 | 0.000 | n/a | 0 | 0 | harmful instruction rejected |
+| CoVoST2 zh-CN->en 200 | 0.9875 | raw fallback | 0.9875 | 0.000 | n/a | 0 | 0 | underpowered positive rejected |
+
+The selector chooses one action at dataset/task level.  For tool tasks the
+group field is the intent-family prefix, which matches the safety question:
+does the policy preserve the correct semantic tool family while refining the
+action boundary?
+
+Tool-call utility:
+
+| Dataset / policy | Tool-call success | Unsafe wrong-tool rate | Boundary error rate | Route rate | Interpretation |
+|---|---:|---:|---:|---:|---|
+| SLURP raw | 0.550 | high cross-family error | action-boundary errors remain | 0.000 | baseline |
+| SLURP `tool_specific_intent` global | 0.582 | improves some boundaries but regresses others | mixed | 1.000 | weak / not deployable alone |
+| SLURP `tool_specific_same_family_gate` | 0.616 full-set, 0.665 locked | 0.270 full-set | 0.114 full-set | 0.098 full-set | accepted tool-call controller |
+| SLURP V2 same-family gate | 0.614 full-set, 0.675 locked | 0.270 full-set | 0.116 full-set | 0.104 full-set | accepted diagnostic, not selector-selected |
+| MInDS raw | 0.883 full-set | low | low | 0.000 | accepted fallback |
+| MInDS gated candidates | 0.883 full-set | unchanged | unchanged | 0.000 | no safe route, raw remains best |
+
+Jina omni-small cross-model transfer:
+
+| Task | Raw Acc@1 | Candidate policy | Candidate Acc@1 | Selector decision | Interpretation |
+|---|---:|---|---:|---|---|
+| Jina CoVoST2 ar->en 200 | 0.635 | `translation_semantic` | 0.635 | raw fallback | instruction is a no-op under correct media-path interface |
+| Jina CoVoST2 zh-CN->en 200 | 0.970 | `translation_semantic` | 0.970 | raw fallback | strong raw baseline, no accepted gain |
+| Jina SLURP 500 | 0.564 | `tool_specific_intent` | 0.564 | raw fallback | no accepted instruction movement |
+
+Conclusion:
+
+```text
+The SLURP same-family controller is now the first multi-seed accepted
+tool-semantic positive for frozen omni-embedding use.  The same selector also
+does the right conservative thing on MInDS, CoVoST2, and Jina: it falls back to
+raw when an instruction is harmful, underpowered, or a model-specific no-op.
+```
+
+Fallback-task bad-case audit:
+
+```text
+docs/bugs/issue-009-minds-covost-selector-fallback-badcases.md
+```
+
+Key findings:
+
+| Task | Why selector falls back | Better next policy |
+|---|---|---|
+| MInDS-14 intent | raw is already 0.883 Acc@1 / 0.972 R@3; instruction arms have only +0.017 oracle headroom and many regressions | low-margin top-3 label verifier using label definitions/examples |
+| CoVoST2 ar->en | global translation instructions regress; many raw errors are low-margin rank-2/rank-3 misses | low-margin top-3 translation verifier |
+| CoVoST2 zh-CN->en | raw is saturated at 0.985; positive gate fixes only two rows on 200 samples | scale to full validation/test or keep as sanity check |
+
+Interpretation:
+
+```text
+These fallback tasks do not justify more global instruction search.  Their
+headroom is in selective top-k verification / rerank over frozen omni outputs.
+This stays training-free, but it is a controller policy rather than a claim
+that a new instruction universally improves the embedding.
+```
+
+Low-margin top-k verifier follow-up:
+
+```text
+script: scripts/low_margin_topk_verifier.py
+verifier: frozen OpenAI-compatible LLM, temperature 0
+policy: keep raw top-1 unless raw margin <= tau, then verify top-3 candidates
+```
+
+| Task | Threshold | Route rate | Raw Acc@1 | Verifier Acc@1 | Delta | CI95 | Fixes | Regressions | Decision |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| MInDS-14 intent | 0.020 | 0.350 | 0.883 | 0.956 | +0.072 | [0.039, 0.111] | 13 | 0 | accepted controller |
+| CoVoST2 ar->en | 0.020 | 0.340 | 0.775 | 0.905 | +0.130 | [0.085, 0.175] | 26 | 0 | accepted controller |
+| CoVoST2 zh-CN->en | 0.0206 | 0.040 | 0.985 | 0.995 | +0.010 | [0.000, 0.025] | 2 | 0 | saturated sanity |
+
+Repeated split diagnostic:
+
+| Task | Locked positive seeds | Mean locked delta | Mean locked CI lower | Mean route rate | Mean regressions |
+|---|---:|---:|---:|---:|---:|
+| MInDS-14 intent | 5 / 5 | +0.0889 | +0.0306 | 0.389 | 0 |
+| CoVoST2 ar->en | 5 / 5 | +0.1425 | +0.0750 | 0.375 | 0 |
+| CoVoST2 zh-CN->en | 2 / 5 | +0.0050 | 0.0000 | 0.035 | 0 |
+
+Interpretation:
+
+```text
+The top-k verifier converts two previous selector fallback tasks into strong
+system-level positives.  This is not another prompt-only instruction claim:
+it is a low-margin controller over frozen omni retrieval outputs.  CoVoST2 zh
+remains too saturated for a meaningful 200-row claim.
+```
+
+Low-margin verifier ablation:
+
+```text
+script: scripts/low_margin_verifier_ablation.py
+purpose: compare margin routing against always-verify and random same-rate
+controls without calling an API or re-embedding audio.
+```
+
+| Task | Policy | Route rate | Acc@1 | Delta | CI95 | Fixes | Regressions |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MInDS-14 intent | raw | 0.000 | 0.883 | 0.000 | [0.000, 0.000] | 0 | 0 |
+| MInDS-14 intent | oracle always top-3 | 1.000 | 0.972 | +0.089 | [0.050, 0.133] | 16 | 0 |
+| MInDS-14 intent | oracle low-margin top-3, tau=0.02 | 0.350 | 0.967 | +0.083 | [0.044, 0.128] | 15 | 0 |
+| MInDS-14 intent | oracle random same-rate | 0.350 | 0.917 | +0.033 | [0.011, 0.060] | 6.0 | 0 |
+| MInDS-14 intent | LLM low-margin top-3, tau=0.02 | 0.350 | 0.956 | +0.072 | [0.039, 0.111] | 13 | 0 |
+| CoVoST2 ar->en | raw | 0.000 | 0.775 | 0.000 | [0.000, 0.000] | 0 | 0 |
+| CoVoST2 ar->en | oracle always top-3 | 1.000 | 0.915 | +0.140 | [0.095, 0.190] | 28 | 0 |
+| CoVoST2 ar->en | oracle low-margin top-3, tau=0.02 | 0.340 | 0.905 | +0.130 | [0.085, 0.175] | 26 | 0 |
+| CoVoST2 ar->en | oracle random same-rate | 0.340 | 0.829 | +0.054 | [0.025, 0.087] | 10.8 | 0 |
+| CoVoST2 ar->en | LLM low-margin top-3, tau=0.02 | 0.340 | 0.905 | +0.130 | [0.085, 0.175] | 26 | 0 |
+| CoVoST2 zh-CN->en | raw | 0.000 | 0.985 | 0.000 | [0.000, 0.000] | 0 | 0 |
+| CoVoST2 zh-CN->en | oracle always top-3 | 1.000 | 0.995 | +0.010 | [0.000, 0.025] | 2 | 0 |
+| CoVoST2 zh-CN->en | LLM low-margin top-3, tau=0.0206 | 0.040 | 0.995 | +0.010 | [0.000, 0.025] | 2 | 0 |
+
+Interpretation:
+
+```text
+MInDS and CoVoST2 ar show that margin routing is not an arbitrary API-call
+budget.  At the same route rate, random routing recovers far fewer errors than
+low-margin routing.  CoVoST2 ar is especially clean: low-margin top-3 reaches
+the always-verify oracle upper bound on this 200-row slice while routing only
+34% of rows.
+
+CoVoST2 zh remains saturated.  There are only two top-3 repairable rows in the
+200-row slice, so it is useful as a sanity check but not as a headline result.
+```
+
+Full CoVoST2 ar->en API-free margin diagnostic:
+
+| Split | N | Raw Acc@1 | Raw R@3 | Policy | Route rate | Policy Acc@1 | Delta | CI95 | Fixes | Regressions |
+|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|
+| validation | 1758 | 0.579 | 0.758 | oracle always top-3 | 1.000 | 0.758 | +0.179 | [0.162, 0.198] | 314 | 0 |
+| validation | 1758 | 0.579 | 0.758 | oracle low-margin top-3, tau=0.01 | 0.352 | 0.667 | +0.088 | [0.076, 0.102] | 155 | 0 |
+| validation | 1758 | 0.579 | 0.758 | oracle low-margin top-3, tau=0.02 | 0.530 | 0.710 | +0.131 | [0.116, 0.147] | 231 | 0 |
+| locked test | 1695 | 0.635 | 0.801 | oracle always top-3 | 1.000 | 0.801 | +0.165 | [0.148, 0.183] | 280 | 0 |
+| locked test | 1695 | 0.635 | 0.801 | oracle low-margin top-3, tau=0.01 | 0.341 | 0.735 | +0.100 | [0.087, 0.115] | 169 | 0 |
+| locked test | 1695 | 0.635 | 0.801 | oracle low-margin top-3, tau=0.02 | 0.497 | 0.772 | +0.136 | [0.121, 0.153] | 231 | 0 |
+
+Interpretation:
+
+```text
+The full CoVoST2 ar validation/test diagnostic confirms that low-margin rows
+carry a large fraction of top-3 repairable errors.  This does not replace a
+full deployed LLM verifier run, but it validates the mathematical policy shape:
+route ambiguous rows, keep high-confidence raw rows, and verify within top-k.
+```
+
+Full CoVoST2 ar->en deployed LLM verifier:
+
+```text
+output: outputs/low_margin_verifier/covost_ar_validation_full_llm_top3_tau0p02_resumable.json
+status: complete=true
+split: validation
+```
+
+| Split | N | Raw Acc@1 | Raw R@3 | Policy | Route rate | Policy Acc@1 | Delta | CI95 | Fixes | Regressions |
+|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|
+| validation | 1758 | 0.584 | 0.758 | LLM low-margin top-3, tau=0.02 | 0.530 | 0.691 | +0.107 | [0.093, 0.122] | 190 | 2 |
+| locked test | 1695 | 0.641 | 0.801 | LLM low-margin top-3, tau=0.02 | 0.497 | 0.751 | +0.110 | [0.096, 0.126] | 193 | 6 |
+
+Interpretation:
+
+```text
+The deployed frozen verifier recovers most of the low-margin headroom on both
+validation and locked test while keeping regressions rare.  The regressions are
+documented as translation-boundary cases where the verifier prefers a more
+literal, grammatical, or idiomatic candidate than the exact benchmark target.
+```
+
+### Retrieval To Use To Final Answer
+
+Added a report-level comparator:
+
+```text
+scripts/rag_final_answer_compare.py
+```
+
+The script consumes existing row-level final-answer JSON and decomposes:
+
+```text
+context_gold_rate
+grounded_exact_rate
+answer_pass
+answer_given_gold_context
+retrieval_miss_rate
+generation_miss_rate
+paired answer/context deltas
+```
+
+First HeySQuAD train60 comparison:
+
+```text
+outputs/rag_final_answer_compare_heysquad_train60_top3.json
+outputs/rag_final_answer_compare_heysquad_train60_context_k.json
+```
+
+Top-3 retrieval source comparison, baseline = ASR top-3:
+
+| Policy | Context gold | Grounded exact | Answer pass | Answer delta vs ASR top-3 | Context delta vs ASR top-3 |
+|---|---:|---:|---:|---:|---:|
+| ASR top-3 | 0.650 | 0.267 | 0.817 | 0.000 | 0.000 |
+| Omni top-3 | 0.833 | 0.483 | 0.867 | +0.050 CI [-0.017, 0.133] | +0.183 CI [0.083, 0.300] |
+| RRF top-3 | 0.767 | 0.333 | 0.867 | +0.050 CI [0.000, 0.117] | +0.117 CI [0.033, 0.217] |
+| Omni top-3 + asr_robust prompt | 0.833 | 0.483 | 0.883 | +0.067 CI [-0.033, 0.167] | +0.183 CI [0.083, 0.300] |
+| RRF top-3 + asr_robust prompt | 0.767 | 0.333 | 0.883 | +0.067 CI [-0.017, 0.150] | +0.117 CI [0.033, 0.217] |
+
+Context-count comparison, baseline = ASR top-3:
+
+| Policy | Context gold | Answer pass | Answer delta | Context delta |
+|---|---:|---:|---:|---:|
+| ASR top-1 | 0.267 | 0.383 | -0.433 CI [-0.567, -0.317] | -0.383 CI [-0.500, -0.267] |
+| ASR top-3 | 0.650 | 0.817 | 0.000 | 0.000 |
+| ASR top-5 | 0.883 | 0.833 | +0.017 CI [-0.033, 0.083] | +0.233 CI [0.133, 0.350] |
+| Omni top-3 | 0.833 | 0.867 | +0.050 CI [-0.017, 0.133] | +0.183 CI [0.083, 0.300] |
+| Omni top-5 | 0.933 | 0.850 | +0.033 CI [-0.033, 0.100] | +0.283 CI [0.167, 0.417] |
+| RRF top-5 | 0.950 | 0.883 | +0.067 CI [0.017, 0.133] | +0.300 CI [0.183, 0.417] |
+
+Interpretation:
+
+```text
+This is an E2 bridge result, not a final large-scale claim.  It shows the
+right decomposition: top-k omni/RRF retrieval strongly improves context
+availability, while final-answer gains are smaller because context-present
+rows still suffer generation misses.  The next useful run is a larger
+recognized QA/RAG final-answer split or a stronger final-answer prompt/policy,
+not another retrieval-only table.
+```
+
+HeySQuAD answerable validation-200 local-rule comparison:
+
+```text
+outputs/rag_final_answer_compare_heysquad_val200_local_firstdoc.json
+```
+
+| Policy | N | Answer pass | Context gold | Grounded exact | Generation miss | Retrieval miss | Delta vs raw answer | CI95 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| raw top-3 first-document | 200 | 0.925 | 0.575 | 0.900 | 0.010 | 0.425 | 0.000 | [0.000, 0.000] |
+| `policy_grounding` top-3 first-document | 200 | 0.890 | 0.580 | 0.875 | 0.020 | 0.420 | -0.035 | [-0.065, -0.010] |
+
+Interpretation:
+
+```text
+The larger HeySQuAD local-rule run rejects generic QA/RAG instruction.  It does
+not materially improve whether the gold context is available, and it regresses
+answer pass with seven answer regressions.  The next QA/RAG optimization should
+target retrieval-use policy, memory packing, or a low-margin/context verifier
+rather than another generic policy-grounding instruction.
+```
+
+### Query-Audio Rescue Stress
+
+Added a cross-task stress aggregator:
+
+```text
+scripts/query_audio_rescue_stress_summary.py
+outputs/omni_memory_v0/query_audio_rescue_stress_summary.json
+```
+
+The stress setup compares:
+
+```text
+no query signal
+corrupted / drifted text only
+query audio only
+query audio + corrupted text
+```
+
+Results:
+
+| Dataset | Stress type | Text-only success | Audio-only success | Audio+text success | Audio-only delta vs text | Audio+text delta vs text |
+|---|---|---:|---:|---:|---:|---:|
+| CoVoST2 ar->en | neighbor text corruption | 0.000 | 0.817 | 0.300 | +0.817 CI [0.717, 0.917] | +0.300 CI [0.183, 0.417] |
+| MInDS-14 | neighbor text corruption | 0.000 | 0.967 | 0.683 | +0.967 CI [0.917, 1.000] | +0.683 CI [0.567, 0.800] |
+| HeySQuAD | natural ASR/text drift | 0.783 | 0.900 | 0.900 | +0.117 CI [0.033, 0.217] | +0.117 CI [0.033, 0.217] |
+
+Additional finding:
+
+```text
+When the text hint is actively misleading, audio+text can be worse than
+audio-only.  On CoVoST2, audio+text regresses 31/60 rows against audio-only;
+on MInDS it regresses 17/60 rows.  Therefore the deployable policy should not
+blindly fuse corrupted text with audio.  It needs a text-reliability gate or a
+query-audio-primary branch under suspected ASR/text drift.
+```
+
+Interpretation:
+
+```text
+This is the strongest current evidence for why an omni agentic memory system
+is not just a text-memory system with extra audio attached.  Query audio is the
+fallback semantic signal when text hints are misleading.  Candidate audio
+memory remains gated off by default, but query audio should be available as a
+primary path under drift.
+```
+
+Manifest-aware query-audio gates:
+
+```text
+script: scripts/query_audio_gate_eval.py
+purpose: test lower-cost gates that can decide whether to pay for query audio
+         using text/candidate layout or existing branch predictions.
+```
+
+| Dataset / condition | Gate | Text-only success | Gate success | Delta | CI95 | Gate rate | Audio cost | Fixes | Regressions |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| CoVoST2 clean | hint/pred overlap >= 0.80 | 0.995 | 0.995 | +0.000 | [0.000, 0.000] | 0.000 | 0.000 | 0 | 0 |
+| CoVoST2 neighbor text | hint/pred overlap >= 0.80 | 0.000 | 0.817 | +0.817 | [0.717, 0.917] | 1.000 | 1.000 | 49 | 0 |
+| MInDS clean | hint/pred overlap >= 0.80 | 0.967 | 0.967 | +0.000 | [0.000, 0.000] | 0.967 | 0.967 | 0 | 0 |
+| MInDS neighbor text | hint/pred overlap >= 0.80 | 0.000 | 0.850 | +0.850 | [0.750, 0.933] | 0.867 | 0.867 | 51 | 0 |
+| HeySQuAD clean | text equals no-query | 0.865 | 0.905 | +0.040 | [0.010, 0.070] | 0.300 | 0.300 | 9 | 1 |
+| HeySQuAD natural drift | text equals no-query | 0.783 | 0.850 | +0.067 | [0.017, 0.133] | 0.300 | 0.300 | 4 | 0 |
+| HeySQuAD natural drift | text/audio disagreement | 0.783 | 0.900 | +0.117 | [0.033, 0.217] | 0.150 | 1.000 | 8 | 1 |
+
+Interpretation:
+
+```text
+Cheap gates are not universal.  Text/candidate overlap detects literal
+neighbor-text corruption in CoVoST2 and MInDS, but it is a cost-only gate on
+clean MInDS and does not solve HeySQuAD natural drift.  QA drift needs
+no-query or disagreement-style triggers.  This strengthens the project-level
+claim that audio-memory use should be selected by a task-level controller,
+not by a single global rule.
 ```

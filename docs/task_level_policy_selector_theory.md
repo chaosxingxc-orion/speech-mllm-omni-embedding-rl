@@ -79,6 +79,45 @@ family_centering: subtract candidate-family score bias when groups are valid
 route_confidence: choose between validated route policies
 ```
 
+## Same-Family Refinement Gate For Tool Semantics
+
+For tool / intent retrieval, a task instruction can fix action-boundary
+mistakes inside a tool family, but it can also create unsafe cross-family
+rewrites.  Let:
+
+```text
+f(y) = semantic family of tool label y
+pi_0(x) = raw omni prediction
+pi_1(x) = instruction-conditioned prediction
+```
+
+The same-family gate defines:
+
+```text
+pi_sf(x) =
+  pi_1(x), if f(pi_0(x)) = f(pi_1(x))
+  pi_0(x), otherwise
+```
+
+This gate does not guarantee correctness.  It does guarantee that any accepted
+override is a same-family refinement, not a cross-family rewrite:
+
+```text
+pi_sf(x) != pi_0(x) implies f(pi_sf(x)) = f(pi_0(x))
+```
+
+Thus the remaining statistical question is narrower:
+
+```text
+Does the candidate improve same-family action boundaries enough to outweigh
+regressions inside the family?
+```
+
+The task-level selector still applies the usual paired delta, confidence
+interval, regression, and worst-group checks.  In the current SLURP result,
+this turns a weak global tool instruction into an accepted controller, while
+MInDS correctly falls back to raw.
+
 ## V3 Margin-Gated Candidate Policies
 
 V3 adds a conservative way to use a candidate action only where it is plausible
@@ -140,9 +179,19 @@ URO QA/reasoning:
   policy_grounding Acc@1 = 0.465
   exact_condition_matching Acc@1 = 0.450
 
+SLURP tool / intent:
+  raw locked Acc@1 = 0.620
+  tool_specific_same_family_gate locked Acc@1 = 0.665
+  paired delta +0.045, CI95 [0.010, 0.080]
+```
+
+Diagnostic but not accepted:
+
+```text
 CoVoST2 zh-CN->en:
-  raw Acc@1 = 0.890
-  translation_semantic Acc@1 = 0.925
+  full-set raw Acc@1 = 0.890
+  full-set translation_semantic Acc@1 = 0.925
+  repeated selector splits fall back to raw
 ```
 
 System-side results such as SLURP contrastive boundary cards remain important

@@ -1,4 +1,4 @@
-﻿# Decisions
+# Decisions
 
 This file records durable technical and research decisions.
 
@@ -1624,3 +1624,361 @@ task policy utility:
   policies whenever possible.
 - If two output protocols must be compared, report that as an interface
   readiness ablation, not as a memory-use optimization result.
+
+## D040: Use query audio selectively, keep candidate audio gated off by default
+
+Date: 2026-07-01
+
+Decision:
+
+For semantic omni agentic memory V0, the accepted default interface is:
+
+```text
+query audio + text memory
+```
+
+Candidate audio memory is not part of the default semantic memory-use path.
+It may only be enabled by an explicit gate or ablation.
+
+Reason:
+
+- Candidate audio-memory controls on CoVoST2 and MInDS showed monotonic
+  degradation as more candidate audio clips were added.
+- Query-audio stress tests showed strong positive utility when the text hint is
+  corrupted or naturally drifted.
+- Therefore, the useful audio signal in V0 is primarily the query-side speech
+  evidence, not arbitrary candidate audio injection.
+
+Consequence:
+
+- Future semantic-memory tables should report candidate audio as a negative or
+  gated baseline, not as the main policy.
+- Selective audio gates must report trigger rate, rescue count, regression
+  count, and cost.
+- If a future deployable gate accepts candidate audio, it must beat the
+  text-memory baseline with paired CI and regression constraints.
+
+## D041: Evaluate QA/RAG by final-answer utility, not exact memory id alone
+
+Date: 2026-07-01
+
+Decision:
+
+For speech QA / RAG memory-use tasks, exact memory id is a diagnostic metric,
+not the primary task metric.  The primary metric should be final-answer utility
+with grounded-memory audit.
+
+Reason:
+
+- HeySQuAD retrieval->use produced hit@5 around 0.780 but exact memory-use
+  success around 0.255--0.280.
+- The same runs produced much higher local-rule final-answer pass around
+  0.890--0.925 because multiple question memories can share the same supporting
+  passage.
+- Exact memory id can therefore over-penalize systems that retrieve and use a
+  correct passage but do not select the exact question-level memory record.
+
+Consequence:
+
+- QA/RAG tables must include final-answer pass, grounded memory/passages,
+  wrong-memory answer, retrieval miss, and generation miss.
+- Exact memory selection remains useful for debugging same-passage confusion,
+  but should not be used alone for paper claims about QA/RAG utility.
+
+## D042: Separate context availability from generated-answer reliability
+
+Date: 2026-07-01
+
+Decision:
+
+For QA/RAG memory experiments, report at least three layers separately:
+
+```text
+1. retrieval/context availability
+2. memory-use or selected-memory correctness
+3. generated-answer correctness
+```
+
+Reason:
+
+- HeySQuAD local-rule first-document evaluation reached 0.925 answer pass under
+  raw retrieval top-3 context.
+- The same setting with Gemma 4 E4B generated answers reached 0.785.
+- This means the answer can be present in context while the frozen generator
+  still misses or refuses it.
+
+Consequence:
+
+- Do not claim final RAG utility from retrieval hit@k or first-document
+  containment alone.
+- Prompt/memory-packing policies for the main model are valid optimization
+  targets, but accepted improvements need paired CI and regression accounting.
+- `asr_robust` currently shows only a weak trend and is not an accepted policy.
+
+## D043: Select audio instructions per dataset/task, not globally
+
+Date: 2026-07-01
+
+Decision:
+
+Audio-side instruction is a dataset/task-level policy arm, not a universal
+default.  A policy may only replace raw omni when it passes a robust accept gate
+on held-out data.  If no arm passes, raw omni remains the accepted fallback.
+
+Reason:
+
+- New retrieval-side semantic runs show that the same intuitive instruction can
+  help one task and regress another.
+- `translation_semantic` weakly helps saturated CoVoST2 zh-CN->en but hurts
+  CoVoST2 ar->en.
+- `tool_specific_intent` weakly helps SLURP Acc@1 but significantly hurts
+  MInDS.
+- Therefore, instruction wording alone is not evidence of correctness; the
+  policy must be validated by paired task utility and regression counts.
+
+Consequence:
+
+- Future tables should report raw, candidate arm, paired delta, confidence
+  interval, fixes, regressions, and accept/reject decision.
+- Bad-case analysis should be grouped by target family to distinguish true
+  boundary fixes from instruction-induced drift.
+- Dataset/task-level selector remains in scope; global hand-written instruction
+  deployment is out of scope for accepted claims.
+
+## D044: For tool semantics, prefer same-family refinement over global instruction override
+
+Date: 2026-07-01
+
+Decision:
+
+For SLURP-like tool/intent semantic tasks, a task-specific instruction may be
+used as a refinement arm only when its prediction stays within the same intent
+family as the raw omni prediction.  Cross-family instruction rewrites should be
+rejected unless separately validated.
+
+Reason:
+
+- `tool_specific_intent` globally improves SLURP Acc@1 only weakly and causes
+  many regressions.
+- A family-consistency gate on a locked split improves raw from 0.620 to 0.665
+  with CI95 [0.010, 0.080] and regression rate 0.010.
+- A stricter changed-same-family gate reaches the same accuracy while changing
+  only 7.5% of rows.
+
+Consequence:
+
+- Tool-semantic policy search should include label-family or action-family
+  features.
+- Raw margin alone is not enough; it failed to improve locked accuracy in the
+  same SLURP split.
+- This is an accepted positive example of training-free policy control over
+  frozen omni-embedding outputs.
+
+Update:
+
+Multi-seed robustness confirms this decision.  Over split seeds
+`7, 17, 29, 42, 101`, the changed-same-family gate for
+`tool_specific_intent` is positive in 5/5 seeds, with mean locked-test delta
+`+0.065`, mean confidence lower bound `+0.027`, route rate about `0.097`,
+and regression rate about `0.008`.  A V2 boundary instruction also passes
+under a same-family gate, but the task-level selector chooses the lower-risk
+`tool_specific_same_family_gate` on the selection split.
+
+For MInDS-14, the same global instruction family is harmful and the same-family
+gate routes zero rows, so raw remains the accepted fallback.  This is desired:
+the method should improve SLURP only where the instruction makes same-family
+action-boundary refinements, not force a universal tool prompt across datasets.
+
+## D045: Cross-model instruction transfer must be normalized to each model's raw interface
+
+Date: 2026-07-01
+
+Decision:
+
+Before testing instruction or policy transfer on another omni-embedding model,
+first normalize that model to its correct raw media interface.  Payload or API
+format failures are backend validation issues, not method results.
+
+Reason:
+
+- Jina omni-small uses direct media-path audio input in the current runner.
+  A dict-style payload is the wrong interface and should not be counted as an
+  instruction-policy failure or gain.
+- With the correct media-path baseline, Jina is already strong on several
+  semantic tasks.
+- The tested natural-language instruction arms are no-ops on Jina in this
+  setup: CoVoST2 ar->en, CoVoST2 zh-CN->en, and SLURP all keep the same Acc@1
+  under raw and the candidate instruction.
+
+Evidence:
+
+```text
+Jina CoVoST2 ar->en 200:
+  raw Acc@1 0.635
+  translation_semantic Acc@1 0.635
+  selector decision raw fallback
+
+Jina CoVoST2 zh-CN->en 200:
+  raw Acc@1 0.970
+  translation_semantic Acc@1 0.970
+  selector decision raw fallback
+
+Jina SLURP 500:
+  raw Acc@1 0.564
+  tool_specific_intent Acc@1 0.564
+  selector decision raw fallback
+```
+
+Consequence:
+
+- Cross-model transfer claims should say that the robust selector transfers as
+  a safety and fallback procedure.
+- Do not claim a positive instruction-transfer gain on Jina yet.
+- Future cross-model work should search for Jina-native interface actions
+  instead of assuming Nemotron instruction arms will move the embedding space.
+
+## D046: For saturated or fallback tasks, move from global instructions to low-margin top-k verification
+
+Date: 2026-07-02
+
+Decision:
+
+When a task-level selector repeatedly falls back to raw, do not keep adding
+global instruction arms unless the bad-case audit shows instruction-specific
+headroom.  Prefer a low-margin top-k verifier when:
+
+```text
+raw Acc@1 is strong,
+raw R@3/R@5 is much stronger than Acc@1,
+errors are concentrated in low-margin rows,
+candidate instructions either regress or have tiny oracle headroom.
+```
+
+Reason:
+
+- MInDS raw is already strong: Acc@1 `0.883`, R@3 `0.972`.  Existing
+  instruction arms can fix only 3 raw errors in oracle combination and create
+  many regressions.
+- CoVoST2 ar raw is Acc@1 `0.775`, R@3 `0.915`.  The correct translation is
+  often nearby, but global translation instructions introduce regressions.
+- CoVoST2 zh is saturated at Acc@1 `0.985`.  Small instruction/gate positives
+  are underpowered on a 200-row slice.
+
+Consequence:
+
+- Next MInDS experiment should be a low-margin top-3 label verifier over raw
+  omni outputs, using label definitions/examples as verifier context.
+- Next CoVoST2 ar experiment should be a low-margin top-3 translation verifier
+  over raw omni outputs.
+- CoVoST2 zh should be scaled to full validation/test only if we need a
+  high-accuracy sanity table; otherwise it should remain a saturated diagnostic.
+- These verifier policies are training-free controller actions, not pure
+  omni-side instruction improvements.
+
+Update:
+
+The low-margin top-k verifier was implemented and tested.  It converts MInDS
+and CoVoST2 ar from selector-fallback tasks into strong system-level positives:
+
+```text
+MInDS:
+  raw Acc@1 0.883
+  low-margin top-3 LLM verifier Acc@1 0.956
+  delta +0.072, CI95 [0.039, 0.111]
+  route rate 0.350
+  fixes / regressions 13 / 0
+
+CoVoST2 ar->en:
+  raw Acc@1 0.775
+  low-margin top-3 LLM verifier Acc@1 0.905
+  delta +0.130, CI95 [0.085, 0.175]
+  route rate 0.340
+  fixes / regressions 26 / 0
+```
+
+Repeated split diagnostics are also positive in 5/5 locked splits for both
+tasks, with zero regressions.  CoVoST2 zh-CN->en remains a saturated sanity
+case: it improves from `0.985` to `0.995` on the 200-row slice, but the
+confidence lower bound is `0`.
+
+This confirms the decision.  For fallback tasks with strong R@3 but weaker
+Acc@1, the right frozen/training-free action is:
+
+```text
+retrieve with frozen omni
+route low-margin rows to a frozen top-k verifier
+keep high-margin raw rows untouched
+```
+
+Full CoVoST2 ar->en validation/test evidence further confirms the decision:
+
+```text
+validation:
+  raw Acc@1 0.584
+  LLM low-margin verifier Acc@1 0.691
+  delta +0.107, CI95 [0.093, 0.122]
+  route rate 0.530
+  fixes / regressions 190 / 2
+
+locked test:
+  raw Acc@1 0.641
+  LLM low-margin verifier Acc@1 0.751
+  delta +0.110, CI95 [0.096, 0.126]
+  route rate 0.497
+  fixes / regressions 193 / 6
+```
+
+The remaining regressions are mostly benchmark target-style conflicts in
+translation, so the policy remains accepted but must always report regression
+count and examples.
+
+## D047: Treat the frozen/training-free semantic round as complete enough for drafting
+
+Date: 2026-07-03
+
+Decision:
+
+Do not keep expanding broad semantic tasks by default.  The current frozen /
+training-free experiment round is complete enough for a manuscript draft once
+the evidence verifier and coverage guardrail pass.
+
+Current audit state:
+
+```text
+paper evidence verifier: 66 / 66 checks passed
+coverage guardrail: 65 / 65 checks passed
+core evidence decision: core_evidence_ready
+```
+
+Reason:
+
+- The main semantic task families are covered: QA/reasoning, tool/intent,
+  translation, spoken QA/RAG, query-audio stress, and dialect route reliability.
+- The result set includes both positives and rejections: validated
+  instructions, low-margin verification, selective query audio, memory packing,
+  translation order repair, Jina raw fallback, candidate-audio regression, and
+  backend blockers.
+- The HeySQuAD 422-row public supplement now adds scale.  It shows direct
+  audio retrieval improves local first-document answer proxy, and the LLM
+  evidence run shows a more nuanced result: direct audio significantly improves
+  grounding but not final answer pass.
+
+Consequence:
+
+- New experiments should be targeted strengthening runs, not broad evidence
+  collection.
+- The only high-priority experimental gap is a stable second generative omni
+  backend.  Current Voxtral, Qwen3-Omni, and Gemma 4 12B diagnostics should be
+  reported as blockers or underpowered references unless a better backend is
+  found.
+- If reviewers ask for more scale, prefer a larger public generated-answer
+  QA/RAG run over another small smoke task.
+- The manuscript should keep metrics separated by layer:
+
+```text
+retrieval hit
+grounded memory selection
+memory use
+generated answer pass
+cost / route rate / regressions
+```

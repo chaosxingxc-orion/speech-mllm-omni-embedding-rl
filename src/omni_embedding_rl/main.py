@@ -145,6 +145,7 @@ def rag_answer_eval_config(cfg: DictConfig) -> RAGAnswerEvalConfig:
         candidate_order=section.get("candidate_order", "asr"),
         candidate_count=section.get("candidate_count", 5),
         answer_context_count=section.get("answer_context_count", 3),
+        context_shuffle_seed=section.get("context_shuffle_seed", -1),
         rrf_k=section.get("rrf_k", 60),
         generator_mode=section.get("generator_mode", "llm"),
         judge_mode=section.get("judge_mode", "local_rule"),

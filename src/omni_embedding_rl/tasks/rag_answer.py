@@ -19,6 +19,7 @@ import argparse
 import http.client
 import json
 import os
+import random
 import re
 import time
 import urllib.error
@@ -41,6 +42,7 @@ class RAGAnswerEvalConfig:
     candidate_order: str = "asr"
     candidate_count: int = 5
     answer_context_count: int = 3
+    context_shuffle_seed: int = -1
     rrf_k: int = 60
     generator_mode: str = "llm"
     judge_mode: str = "local_rule"
@@ -61,6 +63,9 @@ class RAGAnswerEvalConfig:
     example_count: int = 5
     bad_case_count: int = 20
     grounding_target: str = "document_id"
+    resume: bool = False
+    checkpoint_every: int = 25
+    stop_after_new_rows: int = 0
 
 
 def safe_error(exc: BaseException, limit: int = 180) -> str:
@@ -219,6 +224,33 @@ def answer_prompt(
             "If no provided document supports a plausible answer, say that the knowledge base does not provide enough information.",
             "",
             f"Uncertain speech transcript: {query}",
+            "",
+            "Knowledge documents:",
+        ]
+    elif style == "extractive_short":
+        lines = [
+            "You answer a spoken question using only the provided knowledge documents.",
+            "Return the shortest exact answer phrase that is supported by one document.",
+            "Prefer copying the phrase from the document instead of paraphrasing it.",
+            "Do not explain your reasoning. Do not add extra facts.",
+            "If none of the documents contains a supported answer, return: NOT ENOUGH INFORMATION",
+            "",
+            f"Spoken question transcript: {query}",
+            "",
+            "Knowledge documents:",
+        ]
+    elif style == "evidence_then_answer":
+        lines = [
+            "You answer a spoken question using only the provided knowledge documents.",
+            "The transcript may be noisy, so treat it as a clue rather than an exact string.",
+            "First identify one evidence span in the documents that most directly answers the intended question.",
+            "Then copy the shortest answer phrase from that evidence span.",
+            "Do not merge conflicting facts from different documents.",
+            "Return exactly this format:",
+            "EVIDENCE: <one copied evidence span>",
+            "ANSWER: <short copied answer phrase, or NOT ENOUGH INFORMATION>",
+            "",
+            f"Spoken question transcript: {query}",
             "",
             "Knowledge documents:",
         ]
@@ -450,6 +482,86 @@ def retrieval_rows(retrieval: dict[str, Any], split: str) -> list[dict[str, Any]
     raise KeyError(f"Cannot find rows for split={split}")
 
 
+def compatible_completed_report(report: dict[str, Any], config: RAGAnswerEvalConfig) -> bool:
+    existing = report.get("config", {})
+    checks = {
+        "retrieval_result": str(config.retrieval_result),
+        "manifest": str(config.manifest),
+        "answer_keys": str(config.answer_keys),
+        "candidate_order": config.candidate_order,
+        "candidate_count": config.candidate_count,
+        "answer_context_count": config.answer_context_count,
+        "context_shuffle_seed": config.context_shuffle_seed,
+        "generator_mode": config.generator_mode,
+        "judge_mode": config.judge_mode,
+        "answer_prompt_style": config.answer_prompt_style,
+        "grounding_target": config.grounding_target,
+    }
+    for key, value in checks.items():
+        default = -1 if key == "context_shuffle_seed" else None
+        if existing.get(key, default) != value:
+            return False
+    return True
+
+
+def load_completed_rows(config: RAGAnswerEvalConfig) -> dict[str, dict[str, Any]]:
+    if not config.resume or not config.output.exists():
+        return {}
+    try:
+        report = read_json(config.output)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not compatible_completed_report(report, config):
+        return {}
+    rows = report.get("rows")
+    if not isinstance(rows, list):
+        return {}
+    return {str(row.get("sample_id")): row for row in rows if row.get("sample_id")}
+
+
+def build_report(
+    config: RAGAnswerEvalConfig,
+    out_rows: list[dict[str, Any]],
+    *,
+    requested_count: int,
+    complete: bool,
+    reused_row_count: int,
+    new_row_count: int,
+) -> dict[str, Any]:
+    safe_config = asdict(config)
+    safe_config["api_key_file"] = "<local-file>" if config.api_key_file else ""
+    return {
+        "experiment": "rag_final_answer_eval",
+        "config": safe_config | {
+            "retrieval_result": str(config.retrieval_result),
+            "manifest": str(config.manifest),
+            "answer_keys": str(config.answer_keys),
+            "output": str(config.output),
+        },
+        "requested_count": requested_count,
+        "sample_count": len(out_rows),
+        "complete": complete,
+        "resume_enabled": config.resume,
+        "reused_row_count": reused_row_count,
+        "new_row_count": new_row_count,
+        "metrics": aggregate_metrics(out_rows),
+        "by_query_style": grouped_metrics(out_rows, "query_style"),
+        "by_tts_dialect": grouped_metrics(out_rows, "tts_dialect"),
+        "rows": out_rows if config.include_rows else out_rows[: config.example_count],
+        "bad_cases": [row for row in out_rows if not row["answer_pass"]][: config.bad_case_count],
+        "notes": [
+            "generator_mode=llm is the intended experiment mode.",
+            "local_rule_answer_pass is always reported as deterministic audit.",
+            "judge_mode=llm_rule constrains the LLM judge with required/forbidden rule keys.",
+        ],
+    }
+
+
+def write_report(config: RAGAnswerEvalConfig, report: dict[str, Any]) -> None:
+    config.output.parent.mkdir(parents=True, exist_ok=True)
+    config.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def run(config: RAGAnswerEvalConfig) -> dict[str, Any]:
     retrieval = read_json(config.retrieval_result)
     answer_keys = read_json(config.answer_keys)["keys"]
@@ -458,11 +570,25 @@ def run(config: RAGAnswerEvalConfig) -> dict[str, Any]:
     if config.max_rows:
         rows = rows[: config.max_rows]
 
+    completed_rows = load_completed_rows(config)
     out_rows = []
+    reused_row_count = 0
+    new_row_count = 0
+    stopped_early = False
     for row in rows:
         target_id = row["sample_id"]
+        completed = completed_rows.get(target_id)
+        if completed is not None:
+            out_rows.append(completed)
+            reused_row_count += 1
+            continue
+
         candidates = base_candidates(row, config)
         answer_candidates = candidates[: config.answer_context_count]
+        if config.context_shuffle_seed >= 0 and len(answer_candidates) > 1:
+            rng = random.Random(f"{config.context_shuffle_seed}:{target_id}")
+            answer_candidates = list(answer_candidates)
+            rng.shuffle(answer_candidates)
         baseline_id = candidates[0]["sample_id"] if candidates else ""
         selected_id = baseline_id
         used_ids = [candidate["sample_id"] for candidate in answer_candidates]
@@ -537,30 +663,33 @@ def run(config: RAGAnswerEvalConfig) -> dict[str, Any]:
                 "api_error": api_error,
             }
         )
+        new_row_count += 1
 
-    safe_config = asdict(config)
-    safe_config["api_key_file"] = "<local-file>" if config.api_key_file else ""
-    report = {
-        "experiment": "rag_final_answer_eval",
-        "config": safe_config | {
-            "retrieval_result": str(config.retrieval_result),
-            "manifest": str(config.manifest),
-            "answer_keys": str(config.answer_keys),
-            "output": str(config.output),
-        },
-        "metrics": aggregate_metrics(out_rows),
-        "by_query_style": grouped_metrics(out_rows, "query_style"),
-        "by_tts_dialect": grouped_metrics(out_rows, "tts_dialect"),
-        "rows": out_rows if config.include_rows else out_rows[: config.example_count],
-        "bad_cases": [row for row in out_rows if not row["answer_pass"]][: config.bad_case_count],
-        "notes": [
-            "generator_mode=llm is the intended experiment mode.",
-            "local_rule_answer_pass is always reported as deterministic audit.",
-            "judge_mode=llm_rule constrains the LLM judge with required/forbidden rule keys.",
-        ],
-    }
-    config.output.parent.mkdir(parents=True, exist_ok=True)
-    config.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        if config.checkpoint_every > 0 and new_row_count % config.checkpoint_every == 0:
+            write_report(
+                config,
+                build_report(
+                    config,
+                    out_rows,
+                    requested_count=len(rows),
+                    complete=False,
+                    reused_row_count=reused_row_count,
+                    new_row_count=new_row_count,
+                ),
+            )
+        if config.stop_after_new_rows > 0 and new_row_count >= config.stop_after_new_rows:
+            stopped_early = True
+            break
+
+    report = build_report(
+        config,
+        out_rows,
+        requested_count=len(rows),
+        complete=not stopped_early and len(out_rows) == len(rows),
+        reused_row_count=reused_row_count,
+        new_row_count=new_row_count,
+    )
+    write_report(config, report)
     return report
 
 
@@ -574,9 +703,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--candidate-order", choices=["asr", "asr_first", "omni", "omni_first", "rrf"], default="asr")
     parser.add_argument("--candidate-count", type=int, default=5)
     parser.add_argument("--answer-context-count", type=int, default=3)
+    parser.add_argument(
+        "--context-shuffle-seed",
+        type=int,
+        default=-1,
+        help="If >=0, deterministically shuffle the selected answer context per row without changing retrieval.",
+    )
     parser.add_argument("--generator-mode", choices=["llm", "gold", "first_document"], default="llm")
     parser.add_argument("--judge-mode", choices=["local_rule", "llm_rule"], default="local_rule")
-    parser.add_argument("--answer-prompt-style", choices=["default", "asr_robust"], default="default")
+    parser.add_argument(
+        "--answer-prompt-style",
+        choices=["default", "asr_robust", "extractive_short", "evidence_then_answer"],
+        default="default",
+    )
     parser.add_argument("--model", default="deepseek-chat")
     parser.add_argument("--base-url", default="https://api.deepseek.com")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
@@ -584,6 +723,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-rows", type=int, default=0)
     parser.add_argument("--include-rows", action="store_true")
     parser.add_argument("--grounding-target", default="document_id")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--checkpoint-every", type=int, default=25)
+    parser.add_argument("--stop-after-new-rows", type=int, default=0)
     return parser
 
 
@@ -597,6 +739,7 @@ def config_from_args(args: argparse.Namespace) -> RAGAnswerEvalConfig:
         candidate_order=args.candidate_order,
         candidate_count=args.candidate_count,
         answer_context_count=args.answer_context_count,
+        context_shuffle_seed=args.context_shuffle_seed,
         generator_mode=args.generator_mode,
         judge_mode=args.judge_mode,
         answer_prompt_style=args.answer_prompt_style,
@@ -607,11 +750,14 @@ def config_from_args(args: argparse.Namespace) -> RAGAnswerEvalConfig:
         max_rows=args.max_rows,
         include_rows=args.include_rows,
         grounding_target=args.grounding_target,
+        resume=args.resume,
+        checkpoint_every=args.checkpoint_every,
+        stop_after_new_rows=args.stop_after_new_rows,
     )
 
 
 def main() -> None:
-    print(json.dumps(run(config_from_args(build_parser().parse_args())), ensure_ascii=False, indent=2))
+    print(json.dumps(run(config_from_args(build_parser().parse_args())), ensure_ascii=True, indent=2))
 
 
 if __name__ == "__main__":

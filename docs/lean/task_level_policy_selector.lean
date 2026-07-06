@@ -73,9 +73,45 @@ theorem fallback_when_no_non_raw_accepted
   simp [ChosenAction]
 
 /-!
+Tool-family refinement gate.
+
+For tool / intent retrieval, a candidate policy may be allowed to override the
+raw prediction only when both predictions stay inside the same semantic tool
+family.  This is the deterministic part of the SLURP same-family gate: it
+cannot by itself prove that the candidate is correct, but it rules out
+cross-family rewrites by construction.
+-/
+
+structure ToolPrediction where
+  family : String
+  target : String
+deriving Repr
+
+def SameFamily (raw candidate : ToolPrediction) : Prop :=
+  raw.family = candidate.family
+
+def CrossFamilyRewrite (raw candidate : ToolPrediction) : Prop :=
+  Not (raw.family = candidate.family)
+
+def SameFamilyGateAllowsOverride (raw candidate : ToolPrediction) : Prop :=
+  SameFamily raw candidate
+
+theorem same_family_gate_prevents_cross_family_rewrite
+    (raw candidate : ToolPrediction)
+    (h : SameFamilyGateAllowsOverride raw candidate) :
+    Not (CrossFamilyRewrite raw candidate) := by
+  intro hCross
+  exact hCross h
+
+/-!
 Interpretation:
 
 The implementation may search over a finite set of dataset/task-level actions,
 but it should only return a non-raw action when `Accepts` holds on the selection
 split.  Otherwise the conservative fallback is raw.
+
+For tool / intent tasks, the same-family gate is a domain-specific deterministic
+constraint on the action space.  It narrows the candidate's possible effect to
+same-family action-boundary refinement before the statistical accept gate
+checks utility gain and regressions.
 -/

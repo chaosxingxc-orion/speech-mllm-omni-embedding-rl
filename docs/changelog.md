@@ -1,6 +1,1565 @@
-﻿# Changelog
+# Changelog
 
 This is the research-level changelog, not a software release log.
+
+## 2026-07-03: Add HeySQuAD 422 Public QA/RAG Scale Supplement
+
+Changed:
+- Re-ran the HeySQuAD answerable validation-shard local first-document RAG
+  proxy with full row-level output enabled.
+- Added the paired comparison to `outputs/rag_final_answer_compare_heysquad_val422_firstdoc_local.json`.
+- Added a verifier check and updated the paper-facing docs so the result is
+  treated as a public-scale supplement rather than a replacement for LLM
+  final-answer evidence.
+
+Evidence:
+- On 422 answerable HeySQuAD validation-shard rows, direct omni top-3
+  first-document answer pass is 0.983.
+- Oracle-question-text retrieval top-3 first-document answer pass is 0.943.
+- Paired delta is +0.040 with CI95 [0.017, 0.064], 21 fixes, and 4 regressions.
+- The corresponding LLM evidence-then-answer run reaches 0.955 for direct omni
+  and 0.950 for oracle-question-text retrieval; the answer-pass delta is only
+  +0.005 with CI95 [-0.009, 0.019].
+- In the same LLM run, direct omni still improves grounded exact memory
+  selection by +0.043 with CI95 [0.021, 0.066].
+
+Impact:
+- This strengthens the public QA/RAG scale story: direct audio retrieval remains
+  useful beyond the 200-row LLM final-answer table.
+- The LLM scale run adds an important caveat: grounding gains can survive at
+  larger scale while generated answer-pass gains become small.  The manuscript
+  should keep retrieval/grounding and final-answer utility as separate metrics.
+
+## 2026-07-03: Add Voxtral Chat-Mode Backend Evidence
+
+Changed:
+- Fixed the chat-mode parser in `scripts/generative_omni_chat_cli_smoke.py`
+  so it prefers the final standalone option letter instead of latching onto
+  echoed prompt letters.
+- Made chat-mode candidate sampling deterministic per row so interrupted
+  `--resume` runs do not change later candidate sets when completed rows are
+  skipped.
+- Added the Voxtral Mini chat-mode run to
+  `docs/cross_model_backend_readiness.md` via
+  `scripts/build_cross_model_backend_readiness_summary.py`.
+- Extended `scripts/verify_paper_evidence.py` so the cross-model readiness
+  check also audits the Voxtral chat-mode fields.
+
+Evidence:
+- Voxtral Mini 3B 2507 GGUF chat-mode CoVoST2 ar->en is valid and parseable on
+  60/60 rows.
+- Accuracy is 0.617 with mean latency about 39.9 seconds per row.
+
+Impact:
+- Voxtral is no longer only an audio-interface blocker, but it remains too
+  weak and slow to count as a stable second paper-ready main backend.
+- The earlier 12-row high score was a useful interface smoke, but the 60-row
+  run shows why small backend smokes should not become paper claims.
+- Gemma 4 E4B remains the audited main generative backend; Voxtral is now the
+  best candidate only if we later improve its serving/prompt interface.
+
+## 2026-07-03: Add Query-Audio Gate Deployability Audit
+
+Changed:
+- Added `scripts/build_query_audio_gate_deployability_summary.py`.
+- Generated `outputs/query_audio_gate_deployability_summary.json` and
+  `docs/query_audio_gate_deployability.md`.
+- Linked the audit from `docs/project_status.md` and referenced it in
+  `docs/paper_evidence_tables.md` / `docs/claim_evidence_map.md`.
+
+Evidence:
+- CoVoST2 ar, MInDS, and HeySQuAD all accept a deployable query-audio gate.
+- Mean selected delta vs text-only is +0.127.
+- Mean selected audio cost is 0.287, a 0.713 reduction versus full audio.
+- Selected gates preserve clean rows while mainly rescuing stress/drift rows:
+  CoVoST2 stress +0.817, MInDS stress +0.550, HeySQuAD stress +0.067.
+
+Impact:
+- This strengthens the selective-audio claim without adding a new model run:
+  query audio is treated as a budgeted rescue channel, not a default
+  all-audio memory format.
+
+## 2026-07-03: Add Paper Table Freeze Manifest
+
+Changed:
+- Added `docs/paper_table_freeze_manifest.md`.
+- Linked it from `docs/project_status.md`.
+- Updated `docs/paper_evidence_tables.md` from the older 62-check audit note
+  to the current 63-check verifier status.
+
+Reason:
+- The experiment matrix is now ready enough for manuscript drafting, so the
+  paper-facing tables need a freeze manifest that states which tables are
+  frozen, which verification command guards them, and which claims remain
+  non-claims.
+
+Impact:
+- Main tables, cost/regression appendix, and qualitative bad-case appendix can
+  now be drafted from fixed sources.
+- New experiments should reopen the table freeze only if they introduce a
+  stable second backend, fix an invalidated source artifact, or answer a
+  reviewer-required scope gap.
+
+## 2026-07-03: Add Claim Evidence Map
+
+Changed:
+- Added `docs/claim_evidence_map.md`.
+- Linked it from `docs/project_status.md` as the current claim-to-evidence
+  boundary map.
+
+Reason:
+- The experiment coverage is now strong enough for drafting, but the paper can
+  still over-claim if the manuscript does not separate accepted evidence,
+  rejected actions, blockers, out-of-scope tasks, and future weight-training
+  work.
+
+Impact:
+- The map states the safe core claim:
+  frozen omni models can be improved for semantic agentic memory through
+  training-free task-level controllers.
+- It also lists what we should not claim: universal instruction transfer,
+  all-audio memory usefulness, non-semantic task coverage, cross-model
+  generative readiness, or trained-weight improvements.
+
+## 2026-07-03: Add Experiment Completion Checklist
+
+Changed:
+- Added `docs/experiment_completion_checklist.md`.
+- Linked it from `docs/project_status.md`.
+
+Reason:
+- `docs/experiment_completion_plan.md` is a useful historical queue, but many
+  entries now contain stale "started" or "next target" language because the
+  work has since been completed, rejected, or converted into a blocker.
+- The new checklist gives the current decision view: which experiments are
+  complete, which are documented blockers, which are out of scope, and which
+  are deferred.
+
+Impact:
+- The current core experiment matrix is complete enough for manuscript
+  drafting.
+- New runs should now be optional strengthening runs, not broad evidence
+  collection by default.
+
+## 2026-07-03: Strengthen Translation Order-Gate Repair
+
+Changed:
+- Extended `scripts/build_translation_order_gate_summary.py` with a stronger
+  deployable translation memory-use gate:
+  `translation_if_original_top1_or_generic_not_original_top1_else_generic`.
+- Regenerated `outputs/translation_order_gate_summary.json` and
+  `docs/translation_order_gate_repair.md`.
+- Updated `scripts/verify_paper_evidence.py` to audit the strengthened gate.
+
+Evidence:
+- CoVoST2 ar->en improves from the previous original-top1-only repair to weak
+  order-robust repair:
+  - mean delta +0.039;
+  - min delta +0.020;
+  - shuffle weak accept 3/3;
+  - max regression rate 0.005.
+- CoVoST2 zh-CN->en remains weakly order-robust:
+  - mean delta +0.031;
+  - min delta +0.010;
+  - shuffle weak accept 3/3;
+  - max regression rate 0.000.
+
+Impact:
+- Translation memory-use order stability is no longer a broad missing block.
+  It is now ready-with-caveat: weakly repaired by a cheap rank/deviation gate,
+  but still not a strict universal all-seed CI-lower-positive claim.
+- The main remaining experimental blocker is a stable second generative
+  backend, not another translation self-consistency sweep.
+
+## 2026-07-03: Add Experiment Coverage Summary
+
+Changed:
+- Added `scripts/build_experiment_coverage_summary.py`.
+- Generated `outputs/experiment_coverage_summary.json` and
+  `docs/experiment_coverage_summary.md`.
+- Added `experiment_coverage_summary` as the 62nd
+  `scripts/verify_paper_evidence.py` check.
+- Updated the project status, paper readiness audit, and evidence-table docs.
+
+Evidence:
+- The offline verifier now passes 62/62 checks with no mismatches and no
+  missing source artifacts.
+- The coverage audit reports 11 experiment blocks:
+  - 9 blocks have verified evidence coverage.
+  - 8 blocks are ready or ready-with-caveat.
+  - 0 blocks are partial.
+  - 1 block is a documented blocker: stable second generative backend.
+  - 1 block is out of scope: non-semantic speaker/emotion.
+  - 1 block is deferred: LoRA/RL weight updates.
+
+Impact:
+- The project should now prioritize manuscript synthesis and targeted
+  strengthening runs rather than broad new experiment collection.
+- If we add more experiments, the highest-value target is a stable second
+  generative backend; stricter translation order-stability remains optional
+  strengthening.
+
+## 2026-07-03: Add Qwen3-Omni Chat-Mode Backend Blocker
+
+Changed:
+- Added `scripts/generative_omni_chat_cli_smoke.py`.
+- Ran a 2-row CoVoST2 ar->en Qwen3-Omni GGUF chat-mode smoke with scripted
+  `/audio` input.
+- Updated `scripts/build_cross_model_backend_readiness_summary.py`.
+- Regenerated `outputs/cross_model_backend_readiness_summary.json` and
+  `docs/cross_model_backend_readiness.md`.
+- Updated `scripts/verify_paper_evidence.py` to audit the chat-mode blocker.
+
+Reason:
+- The old Qwen3-Omni candidate-choice smoke used a less suitable
+  `--audio`/`-p` interface and produced empty parse results.  A fairer blocker
+  check should use the chat-mode `/audio` route that previously passed audio
+  smoke.
+
+Evidence:
+- The chat-mode runner timed out on 2/2 CoVoST2 ar->en candidate-choice rows
+  at 360 seconds per row.
+- `valid_rate = 0.0`, `parse_rate = 0.0`, `accuracy = 0.0`,
+  `timeout_count = 2`, and mean latency is 360000 ms.
+
+Impact:
+- Qwen3-Omni GGUF remains a backend-readiness blocker, not a paper-ready
+  second generative model.
+- Gemma 4 E4B remains the only audited main generative backend.
+
+## 2026-07-03: Add URO Family-Level Final-Task Breakdown
+
+Changed:
+- Added `scripts/build_uro_family_breakdown_summary.py`.
+- Generated `outputs/uro_family_breakdown_summary.json`.
+- Added `docs/uro_family_breakdown.md`.
+- Added the URO family breakdown to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- URO is a mixed semantic/reasoning benchmark.  The paper needs to show that
+  the low-margin verifier gain is not caused by one easy subtask family.
+
+Evidence:
+- Across 8 URO task families and 200 rows, the low-margin verifier improves
+  7 families, leaves 1 saturated family unchanged, and has 0 negative-family
+  deltas.
+- Total fixes/regressions remain 26/0.
+- The largest family deltas are +0.240 on HSK5-zh and SQuAD-zh.
+- StoralEval remains the hardest family after verification, improving from
+  0.120 to only 0.280 answer pass.
+
+Impact:
+- The paper evidence audit now covers 61 / 61 checks.
+- URO can be written as a multi-family semantic stress result rather than a
+  single aggregate row.
+
+## 2026-07-03: Add Translation Order-Gate Repair Summary
+
+Changed:
+- Added `scripts/build_translation_order_gate_summary.py`.
+- Generated `outputs/translation_order_gate_summary.json`.
+- Added `docs/translation_order_gate_repair.md`.
+- Added the order-gate repair summary to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- CoVoST2 translation-target memory-use showed positive same-order gains, but
+  candidate-order shuffles exposed instability.  The paper needs to know
+  whether this can be repaired without expensive four-order self-consistency.
+
+Evidence:
+- The original-retrieval-top1 gate uses translation-target output only when it
+  selects the original retrieval top-1 memory; otherwise it falls back to
+  generic memory-use output.
+- On CoVoST2 ar->en, this is a partial repair: mean delta +0.025, min delta
+  +0.010, max regression rate 0.005, and shuffle strict accept 2/3.
+- On CoVoST2 zh-CN->en, this is a weak order-robust repair: mean delta +0.031,
+  min delta +0.010, shuffle weak accept 3/3, and zero regressions.
+- Direct retrieval-top1 fallback is strong on zh-CN->en but regresses on
+  ar->en, so it remains a system-side diagnostic rather than a universal
+  policy.
+
+Impact:
+- The paper evidence audit now covers 60 / 60 checks.
+- Translation memory-use could already be presented as repairable by a cheap
+  retrieval-rank-aware gate, while preserving the limitation that it remains
+  language-pair-specific.
+- Superseded by the later strengthened rank/deviation gate entry above, which
+  upgrades the translation block to ready-with-caveat.
+
+## 2026-07-03: Add Cross-Model Backend Readiness Summary
+
+Changed:
+- Added `scripts/build_cross_model_backend_readiness_summary.py`.
+- Generated `outputs/cross_model_backend_readiness_summary.json`.
+- Added `docs/cross_model_backend_readiness.md`.
+- Added cross-model/backend readiness guardrails to
+  `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The paper needs a clean boundary around cross-model claims.  Jina,
+  Gemma 4 E4B, Gemma 4 12B, and Qwen3-Omni represent different evidence
+  levels, and mixing them would overclaim transfer.
+
+Evidence:
+- Jina selector rows fall back to raw on SLURP, CoVoST2 ar->en, and CoVoST2
+  zh-CN->en; repeated Jina diagnostics on URO and CoVoST2 zh find no stable
+  positive policy.
+- Jina boundary-card gains are real system-side positives on SLURP and MInDS,
+  but they are candidate/schema formatting rather than omni-side optimization.
+- Gemma 4 E4B remains the audited main generative backend, with a small formal
+  CoVoST2 ar candidate-selection run showing raw 0.067 versus best 0.533.
+- Gemma 4 12B is a rejected partial backend reference, and Qwen3-Omni remains
+  smoke-only.
+
+Impact:
+- The paper evidence audit now covers 59 / 59 checks.
+- Cross-model evidence should be written as safety/fallback and backend
+  readiness, not as broad positive instruction transfer.
+
+## 2026-07-03: Add Runtime Latency And Cost Summary
+
+Changed:
+- Added `scripts/build_runtime_latency_summary.py`.
+- Generated `outputs/runtime_latency_summary.json`.
+- Added `docs/runtime_latency_summary.md`.
+- Added runtime-cost guardrails to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The paper should not only report abstract route rates.  It also needs
+  runtime-like evidence showing which memory-use policies are actually cheap,
+  costly, or backend-blocked in the current local setup.
+
+Evidence:
+- CoVoST2 full candidate audio regresses success by -0.125 and increases mean
+  latency by 2.81x versus text memory plus query audio.
+- MInDS full candidate audio regresses success by -0.172 and increases mean
+  latency by 2.75x.
+- HeySQuAD answer/evidence packing improves memory-use success by +0.315,
+  reduces mean prompt text cost by 543 tokens, and lowers mean latency to
+  0.735x of the original cards.
+- The partial Gemma 4 12B backend regresses by -0.306 and is 60.7x slower on
+  completed rows.
+
+Impact:
+- The paper evidence audit now covers 58 / 58 checks.
+- The runtime appendix strengthens the selective-memory claim: more audio or
+  a larger model is not automatically better.
+
+## 2026-07-03: Add Bad-Case Audit Samples
+
+Changed:
+- Added `scripts/build_badcase_audit_samples.py`.
+- Generated `outputs/badcase_audit_samples.json`.
+- Added `docs/badcase_audit_samples.md`.
+- Added a sample-count guardrail to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The paper needs concrete inspectable examples for why the controller helps
+  and where it can regress.  Aggregate metrics alone are not enough for a
+  convincing error-analysis section.
+
+Evidence:
+- SLURP low-margin verifier: 63 routed fixes and 0 regressions; 8 fixes are
+  selected for audit.
+- CoVoST2 ar locked-test verifier: 193 routed fixes and 6 regressions; 14
+  examples are selected for audit.
+- HeySQuAD memory packing: 68 fixes and 5 regressions; 13 examples are
+  selected for audit.
+
+Impact:
+- At this stage, the paper evidence audit covered 57 / 57 checks.  The current
+  latest count is recorded in the newest changelog entry.
+- The audit sheet is qualitative support and should not be treated as a new
+  metric table.
+
+## 2026-07-03: Add Controller Cost-Budget Summary
+
+Changed:
+- Added `scripts/build_controller_cost_budget_summary.py`.
+- Generated `outputs/controller_cost_budget_summary.json`.
+- Added `docs/controller_cost_budget.md`.
+- Added the cost-budget summary to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The paper story needs to show that the controller is not merely choosing the
+  most accurate policy.  It should choose deployable policies by trading
+  utility against route rate, audio cost, token cost, self-consistency calls,
+  and backend latency.
+
+Evidence:
+- SLURP tau=0.01 is a strong lower-cost verifier point: delta +0.126, CI95
+  [0.098, 0.156], route 0.496, and zero regressions.
+- SLURP tau=0.02 reaches higher utility, delta +0.140, but its marginal
+  benefit per additional routed row is weak.
+- HeySQuAD memory packing improves memory-use success by +0.315 while reducing
+  mean prompt text cost from 789 to 246 tokens.
+- Order self-consistency and the partial Gemma 4 12B backend remain costly
+  diagnostics rather than deployable policies.
+
+Impact:
+- At this stage, the paper evidence audit covered 56 / 56 checks.  The current
+  latest count is recorded in the newest changelog entry.
+- The controller can be presented as a utility/cost optimizer, not just an
+  accuracy improver.
+
+## 2026-07-03: Add Translation Order-Robustness Audit
+
+Changed:
+- Added `scripts/build_translation_order_robustness_summary.py`.
+- Generated `outputs/translation_order_robustness_summary.json`.
+- Added `docs/translation_order_robustness.md`.
+- Added the order-robustness summary to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- CoVoST2 translation memory-use had positive base-order gains, but the paper
+  needed a stricter answer to whether these gains survive candidate-order
+  perturbation.
+
+Evidence:
+- CoVoST2 ar->en:
+  - base-order translation-target delta is +0.055, CI95 [0.020, 0.090];
+  - only 1/3 shuffle seeds passes the strict accept rule;
+  - self-consistency is weak positive with CI95 [0.000, 0.070] and 4x calls.
+- CoVoST2 zh-CN->en:
+  - base-order translation-target delta is +0.045, CI95 [0.015, 0.080];
+  - 0/3 shuffle seeds pass the strict accept rule;
+  - self-consistency reaches +0.050, CI95 [0.015, 0.090], but also costs 4x
+    calls.
+
+Impact:
+- Translation memory-use remains a useful diagnostic positive, but not a
+  headline deployed policy.
+- At this stage, the paper evidence audit covered 55 / 55 checks.  The current
+  latest count is recorded in the newest changelog entry.
+
+## 2026-07-03: Add Controller Component Ablation Summary
+
+Changed:
+- Added `scripts/build_controller_component_summary.py`, an offline summary
+  builder that consolidates the accepted controller components.
+- Generated `outputs/controller_component_summary.json`.
+- Added `docs/controller_component_ablation.md`.
+- Added the component summary to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The current paper story should not look like a bag of independent tricks.
+  It needs one compact table showing which controller components are supported:
+  instruction arms, low-margin verifier, route boundary, query-audio gate,
+  memory packing, and evidence-bound answering.
+
+Evidence:
+- The summary covers 10 audited rows across URO, SLURP, CoVoST2, AISHELL,
+  WenetSpeech-Wu, HeySQuAD, and Spoken-SQuAD.
+- It preserves both positive and negative route decisions: for example,
+  direct omni is rejected as primary on clean AISHELL but accepted under Wu
+  dialect ASR collapse.
+
+Impact:
+- The paper evidence audit now covers 54 / 54 checks.
+- The remaining supplementary experiments are now targeted strengthening runs:
+  cross-model backend, translation order robustness, harder public QA/RAG, and
+  verifier cost analysis.
+
+## 2026-07-03: Add Audited Clean-vs-Dialect Route Summary
+
+Changed:
+- Added `scripts/build_dialect_route_summary.py`, an offline summarizer for
+  legacy AISHELL-1 and WenetSpeech-Wu route artifacts.
+- Generated `outputs/dialect_route_summary.json`.
+- Added `docs/dialect_route_table.md`.
+- Added the route summary to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The clean Mandarin vs Wu dialect route result was important but previously
+  lived mostly as legacy documentation and legacy result files.
+- The paper needs an auditable boundary for when ASR/text should remain primary
+  and when direct omni should become primary.
+
+Evidence:
+- AISHELL-1 clean Mandarin test:
+  - ASR primary Acc@1 is 0.952;
+  - direct omni primary Acc@1 is 0.762;
+  - direct omni delta is -0.190 with CI95 [-0.302, -0.079] and 14 regressions.
+- WenetSpeech-Wu dialect stress test:
+  - ASR primary Acc@1 is 0.333;
+  - direct omni primary Acc@1 is 0.905;
+  - direct omni delta is +0.571 with CI95 [0.381, 0.762] and 12/0
+    rescues/regressions.
+
+Impact:
+- The route story is now paper-audited: ASR is the clean-speech primary path,
+  while direct omni becomes the primary path under dialect ASR collapse.
+- The paper evidence audit now covers 53 / 53 checks.
+
+## 2026-07-03: Add End-To-End Retrieval-Use-Answer Chain Summary
+
+Changed:
+- Added `scripts/build_end_to_end_chain_summary.py`, an offline summarizer for
+  QA/RAG chain evidence.
+- Generated `outputs/end_to_end_chain_summary.json`.
+- Added `docs/end_to_end_chain_table.md`.
+- Added the chain summary to `scripts/verify_paper_evidence.py`.
+
+Reason:
+- The existing QA/RAG evidence was strong but spread across retrieval-use,
+  memory packing, final-answer, and order-control artifacts.
+- The paper needs one aligned table showing that retrieval hit, memory-use
+  success, and final-answer pass are different bottlenecks.
+
+Evidence:
+- HeySQuAD validation-200:
+  - raw top-5 retrieval hit@5 is 0.780;
+  - original top-5 memory-use success is 0.280;
+  - packed answer/evidence memory-use success is 0.595;
+  - evidence final-answer pass is 0.885 with top-3 context and 0.895 with
+    top-5 context;
+  - evidence-order shuffles have max answer-pass delta 0.015.
+- Spoken-SQuAD test-200:
+  - default final-answer pass is 0.870;
+  - evidence-then-answer pass is 0.925;
+  - evidence-order shuffles remain within max answer-pass delta 0.015.
+
+Impact:
+- The retrieval-use-answer chain is now paper-audited as a single artifact.
+- At this point in the log, the paper evidence audit covered 52 / 52 checks.
+
+## 2026-07-03: Add Evidence-Order Shuffle Controls For Final-Answer QA
+
+Changed:
+- Added `context_shuffle_seed` to the RAG final-answer evaluator so selected
+  top-k evidence can be shuffled without changing retrieval.
+- Ran HeySQuAD validation-200 evidence-then-answer with shuffle seeds 7, 17,
+  and 29.
+- Ran Spoken-SQuAD test-200 evidence-then-answer with shuffle seeds 7, 17, and
+  29.
+- Added both order-shuffle summaries to the paper evidence audit.
+
+Evidence:
+- HeySQuAD original evidence order answer pass is 0.885.  Shuffle seeds
+  7/17/29 reach 0.880 / 0.885 / 0.870, with paired deltas -0.005 / 0.000 /
+  -0.015 and no context-gold changes.
+- Spoken-SQuAD original evidence order answer pass is 0.925.  Shuffle seeds
+  7/17/29 reach 0.940 / 0.930 / 0.930, with paired deltas +0.015 / +0.005 /
+  +0.005 and no context-gold changes.
+
+Impact:
+- Evidence-then-answer is not explained by a fixed evidence-position artifact
+  on these two QA/RAG datasets.
+- HeySQuAD still has mild generation-level order sensitivity, but the worst
+  observed perturbation is only -0.015 Acc with CI touching zero.
+- At this point in the log, the paper evidence audit covered 51 / 51 checks.
+
+## 2026-07-03: Add SLURP Low-Margin Semantic Verifier Cost Curve
+
+Changed:
+- Ran an API-free low-margin top-3 oracle/random ablation for SLURP 500 intent
+  retrieval.
+- Ran a DeepSeek/OpenAI-compatible low-margin top-3 verifier on SLURP 500 with
+  `tau=0.01` and `tau=0.02`, using existing frozen omni retrieval rows.
+- Added the deployed verifier cost curve and oracle ablation rows to the paper
+  evidence audit and paper-facing docs.
+
+Evidence:
+- Raw direct-omni SLURP intent Acc@1 is 0.550, with R@3 0.778.
+- Lower-cost LLM verifier at `tau=0.01` routes 0.496 of rows and reaches Acc@1
+  0.676, delta +0.126, CI95 [0.098, 0.156], fixes/regressions 63/0.
+- Low-margin top-3 oracle at `tau=0.02` routes 0.666 of rows and reaches Acc@1
+  0.762, delta +0.212, CI95 [0.178, 0.248], fixes/regressions 106/0.
+- Same-rate random oracle reaches Acc@1 0.705, showing margin routing captures
+  more useful top-k headroom than random routing.
+- Higher-route LLM verifier at `tau=0.02` reaches Acc@1 0.690, delta +0.140,
+  CI95 [0.110, 0.170], fixes/regressions 70/0, unsafe wrong tool rate 0.210,
+  and boundary error rate 0.100.
+
+Impact:
+- This is the accepted repair for SLURP after boundary-card memory formatting
+  and order self-consistency were rejected.
+- The `tau=0.01` / `tau=0.02` comparison gives a cost-utility curve: moving
+  from 49.6% to 66.6% route rate adds only +1.4 Acc@1 points, so the system can
+  choose a lower-cost operating point when API budget matters.
+- It strengthens the general controller claim: low-margin semantic verification
+  works on tool intent, MInDS intent, and CoVoST2 translation.
+- At this point in the log, the paper evidence audit covered 51 / 51 checks.
+
+## 2026-07-02: Add SLURP Tool-Use Order and Self-Consistency Controls
+
+Changed:
+- Ran candidate-order shuffle seeds 7/17/29 for SLURP raw top-5
+  retrieval-to-tool-memory-use.
+- Added `scripts/build_self_consistency_gate_summary.py` to evaluate
+  deployment-safe self-consistency gates over existing order-vote outputs.
+- Built majority-vote and gated self-consistency summaries for SLURP tool-use.
+- Updated paper-facing docs and evidence verifier.
+
+Evidence:
+- Base-order SLURP top-5 tool memory-use success is 0.574.
+- Shuffle seeds 7/17/29 reduce success to 0.502 / 0.472 / 0.492.
+- Paired deltas vs base are -0.072 / -0.102 / -0.082, all with confidence
+  intervals below zero.
+- Majority self-consistency over base+3 shuffled orders reaches 0.550,
+  delta -0.024, CI95 [-0.050, 0.002], fixes/regressions 16/28.
+- The best gated self-consistency policy reaches 0.576, delta +0.002,
+  CI95 [-0.016, 0.022], fixes/regressions 12/11, route rate 0.080.
+
+Impact:
+- SLURP tool-use is clearly candidate-order sensitive.
+- Naive order self-consistency is not an accepted repair; the robust gate
+  correctly rejects it.
+- The next tool-use repair should be semantic verifier / rerank or retrieval
+  repair, not more verbose memory cards or order-vote aggregation.
+- The paper evidence audit covered 46 / 46 checks at this point in the log;
+  later QA/RAG evidence updates raise the audited coverage further.
+
+## 2026-07-02: Add Tool Retrieval-To-Use Decomposition
+
+Changed:
+- Added `scripts/build_tool_memory_use_manifest_from_retrieval.py` to convert
+  tool/intent `top_labels` retrieval rows into canonical memory-use manifests.
+- Built raw top-5 tool-memory manifests for SLURP 500 and MInDS-14 180.
+- Ran Gemma 4 E4B server memory-use evaluation with query audio plus top-5
+  text tool memories.
+- Tested verbose tool-boundary memory cards as a memory-presentation control.
+- Updated paper-facing docs and evidence verifier.
+
+Evidence:
+- MInDS raw top-5 retrieval hit@5 is 0.983; Gemma memory-use success is 0.967,
+  with 0.017 hit-but-use-fail and 0.017 retrieval miss.
+- SLURP raw top-5 retrieval hit@5 is 0.802; Gemma memory-use success is 0.574,
+  with 0.228 hit-but-use-fail and 0.198 retrieval miss.
+- MInDS boundary-card memory regresses from 0.967 to 0.928, delta -0.039,
+  CI95 [-0.072, -0.011], fixes/regressions 1/8.
+- SLURP boundary-card memory weakly trends from 0.574 to 0.598, delta +0.024,
+  CI95 [-0.006, 0.054], fixes/regressions 35/23.
+
+Impact:
+- MInDS is nearly solved after retrieval exposes the correct tool in top-5.
+- SLURP has both retrieval miss and memory-use confusion, so it remains the
+  better tool-semantic stress task.
+- More verbose memory cards are not accepted automatically; memory
+  representation changes need the same validation and fallback discipline as
+  omni-side instructions.
+- The paper evidence audit now covers 44 / 44 checks at this point in the log;
+  later SLURP order/self-consistency controls raise it to 46 / 46.
+
+## 2026-07-02: Add Gemma 4 12B Partial Cross-Model Backend Diagnostic
+
+Changed:
+- Compared the partial Gemma 4 12B CoVoST2 ar->en memory-use run against the
+  existing Gemma 4 E4B run on matching query ids.
+- Added `outputs/omni_memory_v0/summary_gemma12b_partial_covost2_vs_e4b.json`
+  to the evidence audit.
+- Updated project status, readiness, synthesis, and paper evidence docs.
+
+Evidence:
+- Gemma 4 12B completed 49 rows before the backend exited.
+- On the same 49 query ids, Gemma 4 12B success is 0.571 vs E4B 0.835.
+- Paired delta is -0.306 with CI95 [-0.490, -0.143].
+- Fixes/regressions are 4/19, and mean latency is 15.7s per row.
+
+Impact:
+- This is a backend/cross-model negative diagnostic, not a main model result.
+- E4B remains the audited main-model backend for the current paper evidence.
+- A stronger cross-model claim should wait for a stable Voxtral, Qwen3-Omni, or
+  larger Gemma service path.
+
+## 2026-07-02: Add MInDS Fixed-Candidate Tool Memory-Use Query-Signal Audit
+
+Changed:
+- Generated `outputs/omni_memory_v0/summary_minds14_fixed_candidate_memory_use.json`
+  from existing MInDS fixed-candidate memory-use runs.
+- Added the result to `docs/main_evidence_table.md`,
+  `docs/paper_evidence_tables.md`, `docs/research_synthesis.md`,
+  `docs/project_status.md`, and `docs/paper_readiness_audit.md`.
+- Added an audited evidence check to `scripts/verify_paper_evidence.py`.
+
+Evidence:
+- No-query memory-use success is 0.150.
+- Text-hint memory-use success is 0.967.
+- Query audio + text memory reaches 1.000.
+- Query audio vs text hint: delta +0.033, CI95 [0.011, 0.061],
+  fixes/regressions 6/0.
+- Text hint vs no-query: delta +0.817, CI95 [0.761, 0.867],
+  fixes/regressions 147/0.
+
+Impact:
+- This is a fixed-candidate tool-memory sanity result, not a retrieval
+  bottleneck result.
+- It strengthens the claim that `Theta(q)` must include the query interface:
+  without query signal, the memory-use task is mostly guessing; clean query
+  audio can also repair remaining text-hint errors without regressions.
+
+## 2026-07-02: Add CoVoST2 Translation Order Self-Consistency Diagnostic
+
+Changed:
+- Added `scripts/omni_memory_self_consistency.py`.
+- Ran majority-vote order self-consistency over the base candidate order plus
+  shuffle seeds 7/17/29 for CoVoST2 ar->en and zh-CN->en translation
+  memory-use.
+- Added generic-baseline comparisons:
+  - `outputs/omni_memory_v0/summary_order_self_consistency_covost2_ar_vs_generic.json`
+  - `outputs/omni_memory_v0/summary_order_self_consistency_covost2_zh_vs_generic.json`
+- Added the diagnostic rows to the paper evidence audit.
+
+Evidence:
+- CoVoST2 ar->en:
+  - generic memory-use success 0.805;
+  - self-consistency success 0.840;
+  - delta +0.035, CI95 [0.000, 0.070], fixes/regressions 10/3.
+- CoVoST2 zh-CN->en:
+  - generic memory-use success 0.860;
+  - self-consistency success 0.910;
+  - delta +0.050, CI95 [0.015, 0.090], fixes/regressions 13/3.
+
+Impact:
+- Self-consistency preserves the translation-target positive signal under
+  order perturbation, but it costs four model calls per row.
+- This is a useful order-control diagnostic, not the main deployed policy; the
+  next deployable version should use cheaper order-stability acceptance,
+  rerank, or permutation-invariant scoring.
+
+## 2026-07-02: Add CoVoST2 Translation Memory-Use Order Controls
+
+Changed:
+- Ran candidate-shuffle seeds 7/17/29 for CoVoST2 ar->en and zh-CN->en
+  translation-target memory-use policy.
+- Ran the same shuffle seeds for generic memory-use to enable same-order
+  paired comparisons.
+- Added summary artifacts:
+  - `outputs/omni_memory_v0/summary_shuffle_covost2_ar_translation_vs_generic.json`
+  - `outputs/omni_memory_v0/summary_shuffle_covost2_zh_translation_vs_generic.json`
+- Added the shuffle controls to `scripts/verify_paper_evidence.py`.
+
+Evidence:
+- ar->en:
+  - same-order translation-target gains over generic memory-use are
+    0.000 / +0.035 / +0.035 for seeds 7/17/29;
+  - the original ordered gain was +0.055.
+- zh-CN->en:
+  - same-order gains are +0.025 / +0.005 / -0.015 for seeds 7/17/29;
+  - the original ordered gain was +0.045.
+
+Impact:
+- Translation-target memory-use remains a useful positive signal, but it is
+  order-sensitive.
+- The correct paper claim is that translation memory-use is optimizable and
+  requires order-stability controls, not that a single translation instruction
+  is already a stable accepted policy.
+
+## 2026-07-02: Add CoVoST2 Translation-Target Memory-Use Policy
+
+Changed:
+- Added `translation_target_text` to `scripts/omni_memory_use_eval.py`.
+- Ran CoVoST2 ar->en and zh-CN->en validation-200 retrieval-to-use policies
+  against the existing Gemma 4 E4B service backend.
+- Added paired summaries:
+  - `outputs/retrieval_use_translation_policy_ar_summary.json`
+  - `outputs/retrieval_use_translation_policy_zh_summary.json`
+- Added the new rows to `scripts/verify_paper_evidence.py`.
+
+Evidence:
+- CoVoST2 ar->en validation-200:
+  - generic memory-use success 0.805;
+  - translation-target memory-use success 0.860;
+  - delta +0.055, CI95 [0.020, 0.090], fixes/regressions 12/1.
+- CoVoST2 zh-CN->en validation-200:
+  - generic memory-use success 0.860;
+  - translation-target memory-use success 0.905;
+  - delta +0.045, CI95 [0.010, 0.080], fixes/regressions 11/2.
+
+Impact:
+- This turns the CoVoST2 translation retrieval-to-use row from only a use-gap
+  diagnostic into a positive memory-use policy result.
+- The gain is not a retrieval improvement and not an embedding-weight change:
+  it is a task-specific policy for how the frozen main model should use
+  retrieved translation memories.
+
+## 2026-07-02: Add HeySQuAD Evidence-Packing Prompt-Budget Diagnostic
+
+Changed:
+- Added `scripts/build_memory_evidence_packing.py`.
+- Added `scripts/build_memory_packing_summary.py`.
+- Built answer/evidence-packed HeySQuAD raw and `policy_grounding` top-5
+  memory-use manifests.
+- Added `outputs/memory_packing_summary.json` to the paper evidence audit.
+
+Evidence:
+- Raw top-5 retrieval prompt budget:
+  - mean prompt tokens 789 -> 246;
+  - max prompt tokens 2757 -> 332;
+  - overflow rate 0.030 -> 0.000.
+- `policy_grounding` top-5 retrieval prompt budget:
+  - mean prompt tokens 837 -> 246;
+  - max prompt tokens 2757 -> 332;
+  - overflow rate 0.045 -> 0.000.
+
+Impact:
+- This does not yet prove a model-quality gain.
+- It does remove the immediate context-budget blocker identified by the
+  retrieval-to-use bottleneck experiment.
+- The next positive experiment should rerun Gemma memory selection or
+  final-answer generation on the packed manifests.
+
+## 2026-07-02: Add HeySQuAD Retrieval-To-Use Bottleneck Summary
+
+Changed:
+- Added `scripts/build_retrieval_use_summary.py`.
+- Built `outputs/retrieval_use_summary.json` from existing HeySQuAD top-5
+  retrieval-to-memory-use outputs.
+- Added the retrieval-use bottleneck to `scripts/verify_paper_evidence.py`.
+- Updated `docs/paper_evidence_tables.md`, `docs/cost_failure_table.md`,
+  `docs/research_synthesis.md`, `docs/paper_story_outline.md`, and
+  `docs/project_status.md`.
+
+Evidence:
+- Raw HeySQuAD top-5 retrieval has hit@5 = 0.780.
+- Gemma memory-use success over the retrieved top-5 is only 0.280.
+- Hit-but-use-fail rate is 0.500, while retrieval miss is 0.220.
+- `policy_grounding` top-5 retrieval does not fix this: success drops to
+  0.255, paired delta -0.025 with CI95 [-0.060, 0.005], and invalid/context
+  overflow rises from 0.035 to 0.060.
+
+Impact:
+- This is a clean diagnostic for the omni agentic memory story: putting the
+  gold memory in context is not enough.
+- Future positive rows should optimize memory packing, evidence protocols,
+  rerank/compression, or final-answer use policies rather than only retrieval.
+
+## 2026-07-02: Add Paper Story Outline
+
+Changed:
+- Added `docs/paper_story_outline.md` as the writing-oriented entry point for
+  the current evidence.
+- Linked the outline from `docs/project_status.md`.
+
+Reason:
+- The project now has enough experiments that the main risk is not missing a
+  single metric, but mixing evidence layers: omni-side actions, controllers,
+  system-side candidate formatting, and downstream memory-use policies.
+
+Impact:
+- The outline states the paper claim, suggested tables, accepted evidence,
+  negative controls, and remaining experiments in one place.
+- It keeps the claim boundary explicit: this is a training-free controller for
+  frozen omni semantic agentic memory, not a universal instruction or a
+  weight-training method.
+
+## 2026-07-02: Add Candidate-Order Stability Evidence Audit
+
+Changed:
+- Added `scripts/build_candidate_order_stability_summary.py`.
+- Built `outputs/candidate_order_stability_summary.json` from existing
+  CoVoST2, MInDS, and HeySQuAD candidate-shuffle compare outputs.
+- Extended `scripts/verify_paper_evidence.py` from 19 to 22 audited checks.
+- Updated `docs/main_evidence_table.md`, `docs/paper_evidence_tables.md`,
+  `docs/experiment_completion_plan.md`, `docs/cost_failure_table.md`,
+  `docs/project_status.md`, and `docs/research_synthesis.md`.
+
+Evidence:
+- CoVoST2 ar->en text-hint memory-use is exactly stable under shuffle seeds
+  7/17/29: base success 1.000 and shuffle success 1.000 / 1.000 / 1.000.
+- MInDS-14 is bounded-stable: base success 1.000 and shuffle range
+  0.994-1.000 with one total regression across three shuffles.
+- HeySQuAD has mild candidate-order sensitivity: base success 0.910 and
+  shuffle range 0.905-0.920, with row-level fixes/regressions swapping across
+  orders.
+
+Impact:
+- This closes a likely reviewer concern that fixed-candidate memory-use results
+  might be position artifacts.
+- CoVoST2 and MInDS are stable enough for the current evidence chain.
+- HeySQuAD remains acceptable as a memory-use result, but QA/RAG tables should
+  keep candidate-order perturbation as a required control.
+
+## 2026-07-02: Add Tool-Call Utility Summary
+
+Changed:
+- Added `scripts/build_tool_call_utility_summary.py`.
+- Built `outputs/tool_call_utility_summary.json` from existing SLURP/MInDS
+  multi-seed tool policy matrices.
+- Updated `docs/main_evidence_table.md`, `docs/paper_evidence_tables.md`,
+  `docs/experiment_completion_plan.md`, `docs/cost_failure_table.md`,
+  `docs/project_status.md`, and `docs/research_synthesis.md`.
+- Added SLURP and MInDS tool-call utility checks to
+  `scripts/verify_paper_evidence.py`.
+
+Evidence:
+- SLURP:
+  - raw mean tool-call success 0.554;
+  - global instruction 0.587, mean LCB -0.016;
+  - same-family changed gate 0.619, mean delta +0.065, mean LCB +0.027;
+  - route rate 0.097 and regression rate 0.008.
+- MInDS:
+  - raw mean tool-call success 0.864;
+  - global instruction regresses to 0.808 and raises unsafe cross-family errors;
+  - same-family changed gate routes zero rows and preserves raw.
+
+Impact:
+- Tool/intent is now represented as deterministic tool-call utility, not only
+  retrieval/classification.
+- The result strengthens the controller story: SLURP accepts a same-family
+  refinement gate, while MInDS correctly falls back to raw.
+
+## 2026-07-02: Add Query-Audio Gate Clean+Stress Mixture Diagnostics
+
+Changed:
+- Added `scripts/build_query_audio_gate_mixture.py`.
+- Built `outputs/query_audio_gate_mixture_summary.json` from existing clean and
+  stress query-audio gate reports.
+- Updated `docs/main_evidence_table.md`, `docs/paper_evidence_tables.md`,
+  `docs/experiment_completion_plan.md`, `docs/cost_failure_table.md`, and
+  `docs/project_status.md`.
+- Added three mixture checks to `scripts/verify_paper_evidence.py`.
+
+Evidence:
+- CoVoST2 clean200 + neighbor-text60:
+  - text/candidate-overlap gate mixed success 0.954;
+  - delta +0.188, CI95 [0.142, 0.238];
+  - audio cost 0.231;
+  - fixes / regressions 49 / 0.
+- MInDS clean180 + neighbor-text60:
+  - text/candidate-overlap gate mixed success 0.938;
+  - delta +0.213, CI95 [0.163, 0.267];
+  - audio cost 0.942;
+  - fixes / regressions 51 / 0.
+- HeySQuAD clean200 + natural-drift60:
+  - text-equals-noquery gate mixed success 0.892;
+  - delta +0.046, CI95 [0.019, 0.073];
+  - audio cost 0.300;
+  - fixes / regressions 13 / 1.
+
+Impact:
+- The selective-audio story now has mixed clean+stress diagnostics instead of
+  only separated clean/stress tables.
+- The result remains a diagnostic mixture, not a natural deployment frequency
+  estimate.
+
+## 2026-07-02: Add URO Retrieval-To-Use Final-Task Proxy
+
+Changed:
+- Added `scripts/uro_final_task_use_eval.py`.
+- Evaluated URO boundary-card retrieval as deterministic answer-card use:
+  raw top-1, low-margin top-3 LLM verifier, and oracle low-margin top-3.
+- Updated `docs/main_evidence_table.md`, `docs/paper_evidence_tables.md`,
+  `docs/experiment_completion_plan.md`, `docs/cost_failure_table.md`,
+  `docs/project_status.md`, and `docs/research_synthesis.md`.
+- Added the URO final-task proxy to `scripts/verify_paper_evidence.py`.
+
+Evidence:
+- Raw boundary-card top-1 answer pass is 0.715.
+- Raw top-3 context already contains the gold memory for 0.825 of rows.
+- Low-margin top-3 LLM verifier answer pass is 0.845.
+- Paired delta is +0.130 with CI95 [0.085, 0.180].
+- Fixes / regressions are 26 / 0.
+- Oracle low-margin top-3 reaches 0.860 with 29 / 0 fixes/regressions.
+
+Impact:
+- URO now has a retrieval-to-use bridge, not only retrieval proxy metrics.
+- The result supports the claim that agentic semantic tasks need a controller
+  to select and use available memory; increasing top-k recall alone is not
+  sufficient.
+
+## 2026-07-02: Add Paper Evidence Verification Guardrail
+
+Changed:
+- Added `scripts/verify_paper_evidence.py` to audit paper-facing table numbers
+  against existing result JSON files.
+- Generated `outputs/paper_evidence_verification.json`.
+- Documented the checker in `docs/paper_evidence_tables.md`,
+  `docs/experiment_completion_plan.md`, and `docs/project_status.md`.
+
+Evidence:
+- This entry originally added the 19-row headline verifier.
+- The verifier has since been extended; the current status is 25 / 25 checks
+  passing with 0 mismatches and 0 missing source artifacts.
+
+Impact:
+- Paper-table numbers now have a reproducible audit path instead of relying on
+  manual copying from scattered experiment logs.
+- Future headline rows should be added to the checker before being treated as
+  paper-ready evidence.
+
+## 2026-07-02: Add Low-Margin Verifier Cost-Curve Summary
+
+Changed:
+- Added `scripts/build_low_margin_cost_curve.py`.
+- Generated `docs/low_margin_cost_curve.md` from existing ablation and verifier
+  outputs.
+- Linked the curve from `docs/cost_failure_table.md`,
+  `docs/experiment_completion_plan.md`, and `docs/paper_evidence_tables.md`.
+
+Evidence:
+- The curve covers MInDS intent, CoVoST2 ar->en 200, CoVoST2 zh-CN->en 200,
+  and full CoVoST2 ar->en validation / locked test.
+- Each threshold row reports route rate, oracle top-k gain, CI, fixes, and a
+  random same-rate control.
+- Deployed LLM verifier rows are included where available.
+
+Impact:
+- The low-margin verifier story no longer depends on a single hand-picked
+  threshold.  The cost/utility curve shows that low-margin routing consistently
+  beats random same-rate routing on the useful MInDS and CoVoST2 ar settings,
+  while CoVoST2 zh remains a saturated sanity check.
+
+## 2026-07-02: Add HeySQuAD Validation-200 LLM Final-Answer Prompt Controls
+
+Changed:
+- Added an `extractive_short` answer prompt style to
+  `src/omni_embedding_rl/tasks/rag_answer.py`.
+- Re-ran HeySQuAD answerable validation-200 raw top-3 final-answer generation
+  with resumable LLM calls for:
+  - default prompt;
+  - ASR-robust prompt;
+  - extractive-short prompt.
+  - evidence-then-answer prompt.
+- Updated `scripts/rag_final_answer_compare.py` labels so generator mode is
+  visible in comparison tables.
+- Updated `docs/experiment_completion_plan.md`, `docs/main_evidence_table.md`,
+  `docs/cost_failure_table.md`, and `docs/research_synthesis.md`.
+
+Evidence:
+- Default LLM prompt: answer pass 0.790, generation miss 0.145.
+- ASR-robust prompt: answer pass 0.815, paired delta +0.025,
+  CI95 [-0.020, 0.070], fixes/regressions 12/7.
+- Extractive-short prompt: answer pass 0.735, paired delta -0.055,
+  CI95 [-0.105, -0.005], fixes/regressions 7/18.
+- Evidence-then-answer prompt: answer pass 0.885, paired delta +0.095,
+  CI95 [0.045, 0.145], fixes/regressions 23/4.
+- `policy_grounding` retrieval with the same evidence-then-answer protocol:
+  answer pass 0.855, paired delta -0.030 vs raw evidence,
+  CI95 [-0.055, -0.010], fixes/regressions 0/6.
+- Raw retrieval top-5 with evidence-then-answer:
+  answer pass 0.895, paired delta +0.010 vs raw top-3 evidence,
+  CI95 [-0.010, 0.030], fixes/regressions 3/1.
+- First-document local-rule control: answer pass 0.925, paired delta +0.135,
+  CI95 [0.080, 0.190].
+
+Impact:
+- HeySQuAD final-answer remains a generation/use bottleneck, not just a
+  retrieval bottleneck.
+- Generic prompt repair is not enough: ASR-robust prompting is underpowered and
+  extractive-short prompting regresses.
+- Evidence-bound memory use is accepted: binding a copied evidence span before
+  answering substantially reduces generation miss.
+- Evidence-bound answering does not rescue a harmful retrieval instruction, and
+  context expansion alone is only a weak trend.  Retrieval policy, context size,
+  and answer protocol should stay separate controller actions.
+
+## 2026-07-02: Add Deployable Query-Audio Gate Prototype
+
+Changed:
+- Added `scripts/query_audio_gate_eval.py`.
+- Evaluated non-oracle query-audio gates on CoVoST2, MInDS, and HeySQuAD
+  stress outputs.
+- Generated clean text-hint vs audio+text compare reports for CoVoST2, MInDS,
+  and HeySQuAD.
+- Recorded the gate results in `docs/project_status.md`,
+  `docs/experiment_completion_plan.md`, `docs/main_evidence_table.md`, and
+  `docs/cost_failure_table.md`.
+
+Reason:
+- The previous stress table showed query audio can rescue corrupted or drifted
+  text hints, but used direct audio-only comparisons.  We need a deployable
+  signal for deciding when to trust audio rather than corrupted text.
+
+Evidence:
+- Text/audio prediction-disagreement gate:
+  - CoVoST2 neighbor-text: success 0.817, delta +0.817,
+    CI95 [0.717, 0.917], 0 regressions.
+  - MInDS neighbor-text: success 0.967, delta +0.967,
+    CI95 [0.917, 1.000], 0 regressions.
+  - HeySQuAD natural drift: success 0.900, delta +0.117,
+    CI95 [0.033, 0.217], 1 regression.
+- Cheaper text-equals-noquery trigger:
+  - CoVoST2 success 0.133;
+  - MInDS success 0.267;
+  - HeySQuAD success 0.850.
+- Clean text-hint controls:
+  - CoVoST2: 0.995 -> 1.000, delta +0.005;
+  - MInDS: 0.967 -> 1.000, delta +0.033, CI95 [0.011, 0.061];
+  - HeySQuAD: 0.865 -> 0.910, delta +0.045, CI95 [0.005, 0.085],
+    with 4 regressions.
+
+Impact:
+- Text/audio disagreement is a useful non-oracle reliability signal, but it
+  costs an audio branch.  This makes it a deployable reliability prototype,
+  not the final cheapest gate.
+- Clean controls support a two-regime interpretation: query audio is a small
+  complement when text hints are reliable, and a primary fallback when text
+  hints drift or are corrupted.
+- The next improvement should reduce audio calls by predicting text
+  unreliability before running the audio branch.
+
+## 2026-07-02: Add HeySQuAD Validation-200 Final-Answer Comparison
+
+Changed:
+- Ran `scripts/rag_final_answer_compare.py` over HeySQuAD answerable
+  validation-200 local-rule final-answer reports.
+- Recorded the comparison in `docs/project_status.md`,
+  `docs/experiment_completion_plan.md`, and `docs/main_evidence_table.md`.
+
+Reason:
+- The previous HeySQuAD final-answer bridge was a 60-row result.  We need a
+  larger recognized QA/RAG check before deciding whether to keep optimizing
+  generic QA/RAG instructions.
+
+Evidence:
+- Raw top-3 first-document local-rule answer pass: 0.925.
+- `policy_grounding` top-3 first-document local-rule answer pass: 0.890.
+- Paired answer delta: -0.035, CI95 [-0.065, -0.010], with 7 answer
+  regressions.
+- Context-gold rate is nearly unchanged: 0.575 for raw vs 0.580 for
+  `policy_grounding`.
+
+Impact:
+- Generic QA/RAG instruction is rejected at 200-row scale.  For recognized
+  QA/RAG, the next optimization target should be memory-use policy,
+  context packing, or a low-margin/context verifier, not broader instruction
+  wording.
+
+## 2026-07-02: Add Full CoVoST2 ar Low-Margin Diagnostic
+
+Changed:
+- Added full CoVoST2 ar->en validation/test API-free low-margin diagnostic
+  summaries to `docs/project_status.md`, `docs/experiment_completion_plan.md`,
+  and `docs/main_evidence_table.md`.
+
+Reason:
+- The 200-row low-margin verifier result is strong, but the paper needs a
+  larger-split check showing that margin routing is not a small-sample artifact.
+
+Evidence:
+- Full validation, n=1758:
+  - raw Acc@1 0.579, R@3 0.758;
+  - oracle always top-3 Acc@1 0.758, delta +0.179,
+    CI95 [0.162, 0.198];
+  - oracle low-margin top-3 tau=0.02 Acc@1 0.710 at route rate 0.530,
+    delta +0.131, CI95 [0.116, 0.147].
+- Locked test, n=1695:
+  - raw Acc@1 0.635, R@3 0.801;
+  - oracle always top-3 Acc@1 0.801, delta +0.165,
+    CI95 [0.148, 0.183];
+  - oracle low-margin top-3 tau=0.02 Acc@1 0.772 at route rate 0.497,
+    delta +0.136, CI95 [0.121, 0.153].
+
+Impact:
+- This strengthens the margin-controller claim at full validation/test scale.
+  It is still an API-free oracle diagnostic, so the remaining deployability
+  step is a larger real verifier run or a cheaper local verifier replacement.
+
+## 2026-07-02: Add Cost And Failure Mode Table
+
+Changed:
+- Added `scripts/build_cost_failure_summary.py`.
+- Generated `outputs/cost_failure_summary.json`.
+- Added `docs/cost_failure_table.md`.
+
+Reason:
+- The method must report cost and remaining failure modes, not just accuracy.
+
+Evidence:
+- Low-margin verifier routes about one third of MInDS and CoVoST2 ar rows while
+  recovering most top-3 oracle headroom.
+- HeySQuAD final-answer runs show that context availability improves more than
+  answer quality because generation miss remains.
+- Query-audio stress shows audio rescues text drift, but corrupted text can
+  dominate if fused blindly.
+
+Impact:
+- E5 now has a concrete table for route/API cost, audio cost, latency, and
+  failure taxonomy.
+
+## 2026-07-02: Add Main Evidence Table
+
+Changed:
+- Added `docs/main_evidence_table.md`.
+- Linked it from project status and the experiment completion plan.
+
+Reason:
+- After E1/E2/E3, the project needs one paper-facing table that separates
+  accepted omni-side/controller evidence, system-side baselines, and negative
+  controls.
+
+Impact:
+- The main claim boundary is now explicit:
+  training-free task-level controllers over frozen omni outputs are supported;
+  a universal instruction-improves-everything claim is not supported.
+
+## 2026-07-02: Add Query-Audio Rescue Stress Summary
+
+Changed:
+- Added `scripts/query_audio_rescue_stress_summary.py`.
+- Aggregated CoVoST2, MInDS, and HeySQuAD query-audio stress results into
+  `outputs/omni_memory_v0/query_audio_rescue_stress_summary.json`.
+- Updated project status and completion plan.
+
+Reason:
+- The next missing evidence is why omni audio is needed beyond text memory.
+  We need a formal stress table showing when query audio rescues corrupted or
+  drifted text hints.
+
+Evidence:
+- CoVoST2 neighbor-text corruption:
+  - text-only success 0.000;
+  - audio-only success 0.817;
+  - delta +0.817 CI [0.717, 0.917].
+- MInDS neighbor-text corruption:
+  - text-only success 0.000;
+  - audio-only success 0.967;
+  - delta +0.967 CI [0.917, 1.000].
+- HeySQuAD natural drift:
+  - text-only success 0.783;
+  - audio-only success 0.900;
+  - delta +0.117 CI [0.033, 0.217].
+
+Impact:
+- This supports the agentic-memory claim that query audio should be a semantic
+  fallback path under text/ASR drift.
+- It also shows that corrupted text should not always be fused with audio:
+  audio+text underperforms audio-only on CoVoST2 and MInDS stress.
+
+## 2026-07-02: Start Retrieval-To-Final-Answer Decomposition
+
+Changed:
+- Added `scripts/rag_final_answer_compare.py`.
+- Compared HeySQuAD train60 ASR / omni / RRF final-answer outputs across
+  top-1, top-3, and top-5 contexts.
+- Updated project status and the completion plan.
+
+Reason:
+- The next experiment gap is not more retrieval-only evidence.  The paper needs
+  a clear bridge from retrieval to memory context availability and final-answer
+  utility.
+
+Evidence:
+- ASR top-1 is too brittle: answer pass 0.383.
+- ASR top-3 improves to 0.817, with context-gold rate 0.650.
+- Omni top-3 improves context-gold rate to 0.833 and answer pass to 0.867,
+  but answer-pass CI vs ASR top-3 still crosses zero.
+- RRF top-5 reaches context-gold rate 0.950 and answer pass 0.883, with paired
+  answer delta +0.067 CI [0.017, 0.133] vs ASR top-3 on this 60-row set.
+
+Impact:
+- E2 now has a working decomposition script and first bridge evidence.
+- The result supports top-k memory use and exposes generation miss as the next
+  bottleneck.
+
+## 2026-07-02: Start Experiment Completion Queue And Low-Margin Ablation
+
+Changed:
+- Added `docs/experiment_completion_plan.md`.
+- Added `scripts/low_margin_verifier_ablation.py`.
+- Ran API-free ablations for MInDS-14, CoVoST2 ar->en, and CoVoST2 zh-CN->en.
+
+Reason:
+- The research synthesis identified low-margin verifier ablation as the most
+  important missing evidence.  We need to show that gains come from routing
+  ambiguous rows, not just from making more verifier calls.
+
+Evidence:
+- MInDS:
+  - oracle always top-3 reaches Acc@1 0.972;
+  - oracle low-margin tau=0.02 reaches 0.967 at route rate 0.350;
+  - oracle random same-rate reaches only 0.917;
+  - LLM low-margin reaches 0.956 with 13 fixes and 0 regressions.
+- CoVoST2 ar->en:
+  - oracle always top-3 reaches Acc@1 0.915;
+  - oracle low-margin tau=0.02 reaches 0.905 at route rate 0.340;
+  - oracle random same-rate reaches only 0.829;
+  - LLM low-margin also reaches 0.905 with 26 fixes and 0 regressions.
+- CoVoST2 zh-CN->en:
+  - raw is saturated at 0.985;
+  - only two rows are top-3 repairable on the 200-row slice;
+  - keep as sanity check, not headline evidence.
+
+Impact:
+- This strengthens the central controller claim: frozen omni retrieval provides
+  useful margin/uncertainty structure, and a training-free verifier should be
+  called selectively on low-margin rows.
+
+## 2026-07-02: Add Research Synthesis
+
+Changed:
+- Added `docs/research_synthesis.md`.
+- Linked the synthesis from `docs/project_status.md`.
+
+Reason:
+- Recent experiments now support a clearer story than "improve direct omni
+  top-1."  The stable story is a training-free omni agentic memory controller:
+  validated task-level actions, raw fallback, low-margin verification, and
+  selective query-audio memory use.
+
+Impact:
+- The project now has a compact entry point for paper writing and future
+  experiment planning.
+- The document separates omni-side optimization, controller/system-side
+  policies, memory-use findings, accepted positives, and negative controls.
+
+## 2026-07-02: Add Low-Margin Top-K Verifier Results
+
+Changed:
+- Added `scripts/low_margin_topk_verifier.py`.
+- Ran oracle upper-bound and LLM verifier experiments on MInDS, CoVoST2 ar->en,
+  and CoVoST2 zh-CN->en.
+- Updated fallback-task bug audit, project status, and decisions.
+
+Reason:
+- Bad-case analysis showed that MInDS and CoVoST2 ar were not helped by more
+  global instructions.  Their headroom was in low-margin rows where the gold
+  label or translation was already in top-k.
+
+Evidence:
+- MInDS:
+  - raw Acc@1 0.883;
+  - low-margin top-3 LLM verifier Acc@1 0.956;
+  - delta +0.072, CI95 [0.039, 0.111];
+  - route rate 0.350, fixes/regressions 13/0.
+- CoVoST2 ar->en:
+  - raw Acc@1 0.775;
+  - low-margin top-3 LLM verifier Acc@1 0.905;
+  - delta +0.130, CI95 [0.085, 0.175];
+  - route rate 0.340, fixes/regressions 26/0.
+- CoVoST2 zh-CN->en:
+  - raw Acc@1 0.985;
+  - low-margin top-3 LLM verifier Acc@1 0.995;
+  - delta +0.010, CI95 [0.000, 0.025];
+  - route rate 0.040, fixes/regressions 2/0.
+- Repeated split diagnostics:
+  - MInDS and CoVoST2 ar are positive on 5/5 locked splits with zero
+    regressions;
+  - CoVoST2 zh remains saturated and underpowered.
+
+Impact:
+- Two previous selector-fallback tasks now have strong training-free controller
+  positives.
+- The accepted mechanism is not another audio instruction.  It is:
+
+```text
+frozen omni retrieval -> low-margin detection -> frozen top-k verifier
+```
+
+- This strengthens the agentic-system story: the omni component provides a
+  candidate set and uncertainty signal, while a verifier resolves ambiguous
+  rows without touching model weights.
+
+## 2026-07-02: Audit MInDS And CoVoST2 Selector Fallback Bad Cases
+
+Changed:
+- Added `docs/bugs/issue-009-minds-covost-selector-fallback-badcases.md`.
+- Analyzed MInDS, CoVoST2 ar->en, and CoVoST2 zh-CN->en row-level errors,
+  margins, fix/regression patterns, and oracle headroom over existing
+  candidate arms.
+
+Reason:
+- The selector correctly falls back to raw on these tasks, but fallback should
+  not end the analysis.  We need to know whether another training-free policy
+  surface can improve them.
+
+Evidence:
+- MInDS raw is strong at Acc@1 0.883 and R@3 0.972.  Existing instruction arms
+  have only +0.017 oracle headroom over raw and many regressions.
+- CoVoST2 ar raw is Acc@1 0.775 and R@3 0.915.  Translation instructions are
+  globally harmful, but many errors are low-margin rank-2/rank-3 cases.
+- CoVoST2 zh raw is Acc@1 0.985 and is saturated.  A low-margin
+  `translation_semantic` gate can repair two rows on the 200-row slice, but
+  the confidence lower bound is zero.
+
+Impact:
+- Stop trying more global instruction arms for these tasks.
+- Next useful experiments are low-margin top-k verifier policies:
+  - MInDS transcript/audio -> top-3 label verifier;
+  - CoVoST2 ar audio -> top-3 translation verifier;
+  - CoVoST2 zh full-scale low-margin sanity gate if needed.
+
+## 2026-07-01: Formalize SLURP Same-Family Gate And Jina Cross-Model Check
+
+Changed:
+- Added `scripts/materialize_tool_gate_result.py` to convert a gate over raw
+  and instruction row-level outputs into an ordinary row-level result JSON.
+- Ran SLURP multi-seed gate robustness over seeds `7, 17, 29, 42, 101`.
+- Re-ran task-level selector tables with materialized same-family gate arms.
+- Ran Jina omni-small cross-model checks on SLURP and CoVoST2 with the correct
+  media-path audio interface.
+
+Reason:
+- The first SLURP gate was promising but only a single split.  It needed
+  multi-seed robustness and integration into the official task-level selector.
+- Jina cross-model transfer should test the method over the correct raw
+  backend interface, not over an invalid payload format.
+
+Evidence:
+- SLURP `tool_specific_intent` changed-same-family gate:
+  - positive delta in 5/5 split seeds;
+  - mean locked-test delta +0.065;
+  - mean confidence lower bound +0.027;
+  - route rate about 0.097;
+  - regression rate about 0.008.
+- SLURP V2 boundary same-family gate:
+  - positive delta in 5/5 seeds;
+  - mean locked-test delta +0.063;
+  - mean confidence lower bound +0.027;
+  - route rate about 0.107.
+- Formal selector with gates:
+  - selected `tool_specific_same_family_gate` on SLURP;
+  - locked Acc@1 improved from 0.620 to 0.665;
+  - delta +0.045, CI95 [0.010, 0.080], fixes/regressions 11/2.
+- MInDS-14 selector fell back to raw because global tool instructions were
+  harmful and same-family gates had route rate 0.
+- CoVoST2 ar->en rejected `translation_semantic`; CoVoST2 zh-CN->en stayed raw
+  because the positive locked split was underpowered on selection.
+- Jina cross-model checks:
+  - CoVoST2 ar->en raw and `translation_semantic` both Acc@1 0.635;
+  - CoVoST2 zh-CN->en raw and `translation_semantic` both Acc@1 0.970;
+  - SLURP raw and `tool_specific_intent` both Acc@1 0.564.
+
+Impact:
+- SLURP now has a multi-seed accepted training-free omni-side controller:
+  use the instruction only for same-family action-boundary refinement.
+- The method is not a universal prompt.  It is a dataset/task-level selector
+  with a robust fallback to raw.
+- Jina provides a clean negative cross-model result: the selector transfers as
+  a reject/fallback mechanism, but current Nemotron instruction arms do not
+  produce accepted Jina gains.
+
+## 2026-07-01: Add Order Shuffle And Selective Audio-Memory Controls
+
+Changed:
+- Added `--candidate-shuffle-seed` to `scripts/omni_memory_use_eval.py` for
+  deterministic candidate-order perturbation.
+- Added `--memory-audio-limit` to test limited candidate-audio injection rather
+  than all candidate clips.
+- Ran order-shuffle controls for CoVoST2, MInDS-14, and HeySQuAD.
+- Ran candidate-audio limit controls for CoVoST2 and MInDS-14.
+
+Reason:
+- The high text-memory scores need to be checked against option-position bias.
+- The rejected full-audio policy might fail simply because too many audio clips
+  are injected; limiting audio is the first selective-audio control.
+
+Evidence:
+- Candidate-order shuffle is stable:
+  - CoVoST2 audio+text-hint+text-memory remains 1.000 after shuffle seed 7.
+  - MInDS-14 audio+text-hint+text-memory remains 1.000 after shuffle seed 7.
+  - HeySQuAD audio+text-hint+text-memory is 0.910 without shuffle and
+    0.905 / 0.920 / 0.905 under shuffle seeds 7 / 17 / 29.
+- Limited candidate-audio injection is less harmful than full candidate audio
+  but still regresses the accepted text-memory baseline:
+  - CoVoST2 text-hint baseline 1.000; candidate-audio limit 1 / 2 / full:
+    0.955 / 0.900 / 0.875.
+  - MInDS-14 text-hint baseline 1.000; candidate-audio limit 1 / 2 / full:
+    0.956 / 0.933 / 0.828.
+
+Impact:
+- The accepted V0 result is not an option-order artifact.
+- Audio memory has a monotonic pollution pattern in these two datasets: more
+  candidate audio clips increase regressions and latency.
+- Candidate audio should not be added by count alone.  The next gate needs a
+  stronger trigger, such as ASR unreliability, retrieval disagreement, or a
+  specific verification query over one selected memory.
+
+## 2026-07-01: Add Query-Audio And Audio-Memory Controls
+
+Changed:
+- Added `--query-audio / --no-query-audio` control support to
+  `scripts/omni_memory_use_eval.py`.
+- Added `--query-text-hint / --no-query-text-hint` support to test ASR/text
+  query hints under the same fixed memory-use protocol.
+- Ran no-query-audio controls for CoVoST2 ar->en, MInDS-14, and HeySQuAD.
+- Ran pure `audio_clip_only` controls for CoVoST2 ar->en and MInDS-14.
+
+Reason:
+- The formal V0 result showed unconditional candidate audio memory is harmful.
+  The next question is whether the accepted `text_summary_only` policy is truly
+  using spoken query audio, or merely exploiting candidate text / position
+  artifacts.
+
+Evidence:
+- Query audio is necessary under the compact prompt:
+  - CoVoST2: `query_audio+text_memory` 0.835 vs no-query-audio 0.195,
+    paired delta +0.640, CI95 [0.570, 0.710].
+  - MInDS-14: 0.978 vs 0.150, paired delta +0.828,
+    CI95 [0.772, 0.883].
+  - HeySQuAD: 0.895 vs 0.210, paired delta +0.685,
+    CI95 [0.620, 0.750].
+- Candidate audio memory is not a replacement for text memory:
+  - CoVoST2 `text_summary_only` 0.835 vs `audio_clip_only` 0.390,
+    paired delta +0.445, CI95 [0.375, 0.515].
+  - MInDS-14 `text_summary_only` 0.978 vs `audio_clip_only` 0.417,
+    paired delta +0.561, CI95 [0.489, 0.633].
+- ASR/text hints are strong, and audio can still add small controlled gains:
+  - CoVoST2: text hint 0.995, audio+text hint 1.000, delta +0.005.
+  - MInDS-14: text hint 0.967, audio+text hint 1.000,
+    paired delta +0.033, CI95 [0.011, 0.061].
+  - HeySQuAD: text hint 0.865, audio+text hint 0.910,
+    paired delta +0.045, CI95 [0.005, 0.085].
+
+Impact:
+- The current accepted V0 interface is:
+
+```text
+spoken query audio + text memory summaries -> frozen omni main model
+```
+
+- The current rejected V0 interface is:
+
+```text
+spoken query audio + all candidate memory audio clips -> frozen omni main model
+```
+
+- Future audio-memory use should be selective, compressed, or gated; it should
+  not be treated as a default input expansion.
+- The current best system pattern is a layered query interface:
+
+```text
+ASR/text hint when reliable
++ query audio as a complementary evidence channel
++ text memory summaries as the primary memory format
++ candidate audio memory only behind a gate/compression step
+```
+
+## 2026-06-30: Run Service-Based Omni Memory-Use Formal V0
+
+Changed:
+- Added a persistent `llama_server` backend to `scripts/omni_memory_use_eval.py`
+  so frozen omni main-model runs do not reload the model for every row.
+- Added OpenAI-compatible audio request support, proxy-free local requests, and
+  lightweight server retry handling.
+- Built fixed-candidate memory-use manifests for CoVoST2 ar->en 200,
+  MInDS-14 180, and HeySQuAD human answerable 200.
+
+Reason:
+- Per-row CLI loading made results slow and caused intermittent GPU visibility.
+  A persistent service is the correct backend for formal V0 policy comparison.
+- The 6-row smoke was too small and overestimated the value of candidate audio
+  memory.  Full local subsets are needed before accepting an audio-inclusive
+  memory-use policy.
+
+Evidence:
+- CoVoST2 ar->en 200:
+  - `text_summary_only`: success 0.835, invalid 0.000, wrong memory 0.165.
+  - `dual_summary_plus_audio`: success 0.370, wrong memory 0.630,
+    regressions 93.
+  - `conflict_aware_asr_audio`: success 0.385, wrong memory 0.615,
+    regressions 90.
+  - `two_stage_audio_verify_then_answer`: success 0.355, wrong memory 0.645,
+    regressions 96.
+- MInDS-14 180:
+  - `text_summary_only`: success 0.978, invalid 0.000, wrong memory 0.022.
+  - `task_card_plus_audio`: success 0.461, invalid 0.144, wrong memory 0.394,
+    regressions 94.
+- HeySQuAD human answerable 200:
+  - `text_summary_only`: success 0.895, invalid 0.015, wrong memory 0.090.
+  - `dual_summary_plus_audio`: success 0.895, invalid 0.015, wrong memory
+    0.090, regressions 4.
+
+Impact:
+- The current V0 policy decision is conservative: use text memory summaries as
+  the primary memory-use interface for Gemma 4 E4B.
+- Candidate audio memory should not be injected unconditionally.  In the
+  current backend it substantially increases wrong-memory errors on translation
+  and tool/intent tasks, and gives no net gain on HeySQuAD.
+- Audio memory remains a possible routed or compressed evidence source, but it
+  requires a validity gate, fewer clips, or upstream compression before it can
+  be accepted.
 
 ## 2026-06-29: Add Omni Agentic Memory V0 Runner
 
@@ -30,6 +1589,39 @@ Impact:
   omni backends.
 - Output protocol and parser validity remain prerequisites; the optimization
   object is the memory-use policy under fixed, parseable output.
+
+## 2026-06-30: Run First Gemma 4 E4B Omni Memory-Use Smoke
+
+Changed:
+- Added `pty` capture and `anti_answer` fixed output protocol support to
+  `scripts/omni_memory_use_eval.py`.
+- Added compact prompt style for frozen generative omni memory-use runs.
+- Added explicit audio attachment ordering for multi-audio memory policies.
+- Improved answer-letter parsing to handle log-heavy llama.cpp outputs.
+
+Reason:
+- The V0 runner initially produced empty captured outputs or no-final thought
+  outputs under the verbose prompt.  The backend needs a stable, fixed
+  interface before memory-use policies can be compared.
+
+Evidence:
+- CoVoST2 ar->en, 6-row smoke:
+  - `text_summary_only`: success 0.667, invalid 0.333, audio cost 1.0.
+  - `dual_summary_plus_audio`: success 1.000, invalid 0.000, audio cost 5.0,
+    regression count 0.
+- MInDS-14, 6-row smoke:
+  - `text_summary_only`: success 0.667, invalid 0.333.
+  - `task_card_plus_audio`: success 0.833, invalid 0.167, regression count 1.
+- HeySQuAD, 3-row smoke:
+  - `text_summary_only`: success 0.000, invalid 1.000.
+
+Impact:
+- The first positive V0 signal is not direct omni-embedding Acc@1; it is
+  final model memory-use utility under fixed candidates.
+- Audio-inclusive memory can rescue invalid text-only decisions in translation
+  memory use, but tool/intent memory needs a regression-aware accept gate.
+- Long QA/RAG memories need compression or QA-specific memory cards before
+  formal comparison.
 
 ## 2026-06-27: Add Recent Small Generative Omni Survey
 
@@ -2185,3 +3777,396 @@ optimization target:
 
 - Future tables should separate interface validity metrics from task utility
   metrics.
+
+## 2026-07-01: Add Omni Memory Stability, Selective Gate, Stress, And Retrieval->Use Evidence
+
+Changed:
+- Extended `scripts/omni_memory_use_eval.py` with query-audio, query-text-hint,
+  candidate shuffle, and memory audio-limit controls.
+- Added offline result tooling:
+  - `scripts/omni_memory_result_compare.py`
+  - `scripts/omni_memory_selective_gate.py`
+  - `scripts/build_memory_asr_stress_manifest.py`
+  - `scripts/build_memory_use_manifest_from_retrieval.py`
+- Updated `docs/project_status.md` with order-stability, audio-gate, stress,
+  retrieval->use, and final-answer sanity tables.
+
+Reason:
+- Smoke conclusions were too brittle.  The next evidence layer must test
+  candidate order, selective audio, ASR/text drift, retrieval->use, and
+  final-answer utility separately.
+- We need to know whether audio helps because of query semantics, candidate
+  memory audio, or only because the fixed-candidate task was too easy.
+
+Impact:
+- Candidate-order shuffle is stable for CoVoST2 and mostly stable for MInDS /
+  HeySQuAD.
+- Full candidate audio memory is a negative baseline on CoVoST2 and MInDS:
+  adding more candidate clips reduces success and increases latency.
+- Query audio strongly rescues adversarial or naturally drifted text hints:
+
+```text
+CoVoST2 neighbor-text: audio-only 0.817 vs corrupted text 0.000
+MInDS neighbor-text: audio-only 0.967 vs corrupted text 0.000
+HeySQuAD natural drift: audio-only 0.900 vs corrupted text 0.783
+```
+
+- HeySQuAD retrieval->use shows that exact memory selection can be misleading:
+  hit@5 is 0.780, exact use success is only 0.280 / 0.255, but local-rule
+  final-answer pass is 0.925 / 0.890.  The QA/RAG metric should be final-answer
+  utility rather than exact memory id alone.
+
+## 2026-07-01: Add Gemma Final-Answer Generation And 12B Backend Probe
+
+Changed:
+- Ran Gemma 4 E4B service as a local OpenAI-compatible generator for HeySQuAD
+  final-answer evaluation.
+- Added `--success-field` support to `scripts/omni_memory_result_compare.py`
+  so the same paired-CI tool can compare `answer_pass` as well as
+  `task_success`.
+- Probed Gemma 4 12B Q4 as a second backend.
+
+Reason:
+- First-document local-rule evaluation gives an upper-bound sanity check, but
+  the paper needs to know whether the frozen omni main model can actually
+  generate grounded answers.
+- Cross-model validation should start from low-cost backend readiness before
+  scaling full matrices.
+
+Evidence:
+- HeySQuAD 200, raw retrieval, top-3 context:
+  - first-document local-rule answer pass: 0.925.
+  - Gemma 4 E4B generated answer pass: 0.785.
+  - Gemma 4 E4B `asr_robust` prompt: 0.800, paired delta +0.015,
+    CI95 [-0.025, 0.055].
+- HeySQuAD 200, policy-grounding retrieval, top-3 context:
+  - Gemma 4 E4B generated answer pass: 0.770.
+- Gemma 4 12B Q4:
+  - service can load, but the first CoVoST2 run stopped after 49 rows.
+  - partial success was 0.571 with high latency, so it is not yet an accepted
+    cross-model backend.
+
+Impact:
+- Final-answer generation is now identified as a separate optimization target:
+  retrieval/context can contain the answer while the generator still misses it.
+- `asr_robust` is only a weak prompt trend, not an accepted policy.
+- Cross-model validation should continue with a stable second backend before
+  making model-general claims.
+
+## 2026-07-01: Add Retrieval-Side Translation And Tool Semantic Evidence
+
+Changed:
+- Ran frozen direct-omni retrieval on CoVoST2 ar->en / zh-CN->en translation
+  candidate tasks and MInDS / SLURP intent tasks.
+- Compared raw audio queries against task-specific audio instructions:
+  `translation_semantic` and `tool_specific_intent`.
+- Wrote paired bootstrap summaries to ignored experiment outputs and recorded
+  aggregate evidence in `docs/project_status.md`.
+
+Reason:
+- The memory-use V0 tables isolate how the main model uses fixed candidate
+  memories, but the full system also needs evidence that retrieval-side
+  semantic tasks behave differently across task families.
+- We need non-saturated tasks to test whether training-free omni policies
+  actually improve utility rather than merely confirming already-easy cases.
+
+Evidence:
+- CoVoST2 ar->en 200: raw Acc@1 0.775; `translation_semantic` 0.750,
+  paired delta -0.025, CI95 [-0.070, 0.015].
+- CoVoST2 zh-CN->en 200: raw Acc@1 0.985; `translation_semantic` 0.990,
+  paired delta +0.005, CI95 [-0.010, 0.025].
+- MInDS intent 180: raw Acc@1 0.883; `tool_specific_intent` 0.833,
+  paired delta -0.050, CI95 [-0.083, -0.017].
+- SLURP intent 500: raw Acc@1 0.550; `tool_specific_intent` 0.582,
+  paired delta +0.032, CI95 [-0.002, 0.066].
+
+Impact:
+- The same intuitive instruction can help on one task and regress on another.
+  This supports dataset/task-level policy selection with a conservative accept
+  gate, not a universal hand-written instruction claim.
+- SLURP 500 is the current best non-saturated tool semantic benchmark for
+  further selector and bad-case analysis.
+
+## 2026-07-01: Add SLURP Same-Family Tool Policy Gate
+
+Changed:
+- Added bad-case report `docs/bugs/issue-002-tool-instruction-regression.md`.
+- Tested offline gates over raw vs `tool_specific_intent` SLURP outputs:
+  raw-margin, same-family, changed-same-family, and same-family+low-margin.
+- Updated `docs/project_status.md` and `docs/decisions.md` with the accepted
+  gate result.
+
+Reason:
+- The global tool instruction had a weak aggregate gain but many regressions.
+  We needed to understand whether those regressions were avoidable by a
+  systematic training-free controller.
+
+Evidence:
+- Margin-only gate failed on the locked split:
+  raw 0.620, gate 0.620, CI95 [-0.050, 0.050].
+- Same-family gate succeeded on the locked split:
+  raw 0.620, gate 0.665, delta +0.045, CI95 [0.010, 0.080].
+- Changed-same-family gate reached the same 0.665 while changing only 7.5% of
+  rows and causing 2 regressions.
+
+Impact:
+- This is a concrete positive example of training-free policy control over
+  frozen omni-embedding outputs.
+- The accepted mechanism is not "prompt harder"; it is "allow instruction only
+  for same-family action-boundary refinement."
+
+## 2026-07-02: Add Manifest-Aware Query-Audio Gate Diagnostics
+
+Changed:
+- Added `scripts/query_audio_gate_eval.py` for offline composition of
+  query-audio gates over existing memory-use row-level outputs.
+- Ran clean and stress gate diagnostics for CoVoST2, MInDS, and HeySQuAD with
+  fixed candidate-memory manifests.
+- Updated `docs/experiment_completion_plan.md`,
+  `docs/cost_failure_table.md`, `docs/main_evidence_table.md`, and
+  `docs/research_synthesis.md`.
+
+Reason:
+- The first query-audio gate used text/audio disagreement.  It is reliable but
+  expensive because it has to evaluate the audio branch before deciding.
+- We needed cheaper pre-audio triggers to test whether some text-drift cases
+  can be detected from text and candidate layout alone.
+
+Evidence:
+- CoVoST2 neighbor-text corruption:
+  - corrupted text-only success 0.000;
+  - hint/candidate-overlap gate success 0.817, CI95 [0.717, 0.917].
+- MInDS neighbor-text corruption:
+  - corrupted text-only success 0.000;
+  - hint/candidate-overlap gate success 0.850, CI95 [0.750, 0.933].
+- HeySQuAD natural drift:
+  - drifted text-only success 0.783;
+  - text-equals-noquery gate success 0.850, CI95 [0.017, 0.133];
+  - text/audio disagreement remains stronger at 0.900 but requires the audio
+    branch.
+- Clean controls:
+  - CoVoST2 overlap gate routes zero rows and preserves the saturated 0.995
+    text baseline.
+  - MInDS overlap gate routes 96.7% of clean rows with no success gain, so it
+    is a cost-only action unless a validation split accepts it.
+
+Impact:
+- The audio gate story is now more precise:
+
+```text
+Use query audio under text drift, but do not expect one universal cheap gate.
+Cheap gates are task-conditioned and must pass the same validation/accept
+discipline as instruction or verifier policies.
+```
+
+## 2026-07-02: Add Resumable Low-Margin Verifier Runner
+
+Changed:
+- Extended `scripts/low_margin_topk_verifier.py` with:
+  - `--resume`
+  - `--checkpoint-every`
+  - `--stop-after-new-rows`
+- Stored raw `base_rank` inside each verifier row so resumed and partial runs
+  can recompute baseline metrics correctly.
+- Verified resume behavior with an oracle-only smoke: a 10-row partial run was
+  resumed into a 40-row complete run, reusing the 10 completed rows.
+
+Reason:
+- The next CoVoST2 ar full-split LLM verifier can require many API-backed
+  rerank decisions.  It must be chunkable and interruption-safe before we run
+  it at full scale.
+
+Impact:
+- Full validation/test verifier runs can now be launched in bounded chunks.
+- If a run is interrupted, rerunning with `--resume` skips compatible completed
+  rows and continues from the remaining samples.
+
+Follow-up run:
+- Completed the CoVoST2 ar->en full-validation LLM verifier using the
+  resumable runner.
+- Validation result:
+  - raw Acc@1 is 0.584;
+  - LLM low-margin verifier Acc@1 is 0.691;
+  - delta is +0.107 with CI95 [0.093, 0.122];
+  - route rate is 0.530;
+  - fixes / regressions are 190 / 2.
+- Completed the CoVoST2 ar->en locked-test LLM verifier.
+- Locked-test result:
+  - raw Acc@1 is 0.641;
+  - LLM low-margin verifier Acc@1 is 0.751;
+  - delta is +0.110 with CI95 [0.096, 0.126];
+  - route rate is 0.497;
+  - fixes / regressions are 193 / 6.
+- Added `docs/bugs/issue-010-covost2-ar-llm-verifier-regressions.md` to record
+  the validation and locked-test regression cases.
+
+## 2026-07-02: Add Spoken-SQuAD Final-Answer Transfer Probe
+
+Changed:
+- Built a `rag_final_answer_compare` report for Spoken-SQuAD test60:
+  `outputs/rag_final_answer_compare_spoken_squad_test60.json`.
+- Updated `docs/experiment_completion_plan.md` and `docs/project_status.md`
+  with the compact result.
+
+Evidence:
+- Direct omni top-3 default LLM answer pass: 0.900.
+- Direct omni top-3 evidence-then-answer LLM answer pass: 0.950.
+- Paired delta: +0.050, CI95 [0.000, 0.117], fixes/regressions 3/0.
+- ASR/oracle-text top-3 first-document local answer pass is only 0.650, while
+  direct omni top-3 first-document local answer pass is 0.983.
+
+Impact:
+- This is a useful transfer probe for the accepted HeySQuAD memory-use
+  protocol, but it remains supplementary rather than headline evidence because
+  the current split has only 60 rows and the confidence lower bound touches
+  zero.
+
+Follow-up:
+- Extended the same pipeline to Spoken-SQuAD test200:
+  - built context retrieval with oracle-text and direct omni;
+  - generated RAG answer-eval inputs and answer keys;
+  - ran local first-document audits for ASR/oracle-text, direct omni, and RRF;
+  - ran default LLM and evidence-then-answer LLM policies for direct omni
+    top-3 context;
+  - generated `outputs/rag_final_answer_compare_spoken_squad_test200.json`.
+- Key result:
+  - direct omni top-3 default LLM answer pass: 0.870;
+  - evidence-then-answer answer pass: 0.925;
+  - paired delta: +0.055, CI95 [0.020, 0.090], fixes/regressions 12/1.
+
+Impact:
+- The evidence-bound memory-use protocol now transfers from HeySQuAD
+  validation-200 to Spoken-SQuAD test200.
+- Since context gold rate is 1.000 for both compared LLM policies, this row
+  supports the claim that memory-use protocol itself matters after retrieval
+  has already made the evidence available.
+
+## 2026-07-02: Rerun HeySQuAD Packed Retrieval-To-Use With Gemma
+
+Changed:
+- Reran HeySQuAD validation-200 retrieved top-5 memory-use on packed
+  answer/evidence cards with the same frozen Gemma memory-use backend.
+- Added packed-vs-original and packed-policy-vs-packed-raw comparisons to the
+  paper evidence audit.
+- Hardened `scripts/omni_memory_use_eval.py` JSON checkpoint writes with a
+  short retry loop for Windows file-replace races during resumable runs.
+
+Evidence:
+- Raw top-5 original memory-use success: 0.280; invalid/context-overflow:
+  0.035.
+- Raw top-5 packed memory-use success: 0.595; paired delta +0.315 with CI95
+  [0.245, 0.385], 68 fixes and 5 regressions; invalid/context-overflow: 0.000.
+- `policy_grounding` top-5 packed memory-use success: 0.590.
+- Packed `policy_grounding` vs packed raw: delta -0.005 with CI95
+  [-0.035, 0.025], 4 fixes and 5 regressions.
+
+Impact:
+- Answer/evidence packing is now an accepted memory-use action, not only a
+  prompt-budget diagnostic.
+- The positive gain should be attributed to memory packing/evidence format.
+  Generic `policy_grounding` retrieval remains rejected for HeySQuAD because it
+  does not outperform packed raw.
+
+## 2026-07-02: Add Budgeted Query-Audio Gate Selector
+
+Changed:
+- Built an extended clean+stress query-audio gate mixture summary with more
+  cheap gates: invalid-only, text-equals-noquery, text/candidate overlap,
+  high-overlap, and text-first-candidate.
+- Added `scripts/build_query_audio_gate_selector_summary.py`, an offline
+  selector that accepts only gates with positive paired CI lower bound,
+  regression rate <= 0.03, and audio cost <= 0.35.
+- Tried to start Gemma 4 12B and Qwen3-Omni GGUF as cross-model references,
+  but both remained in model-loading state and did not expose a health-ready
+  endpoint in the smoke window.  E4B remains the current audited backend.
+
+Evidence:
+- CoVoST2 mixed clean+neighbor-text selected text/candidate-overlap:
+  success 0.954, delta +0.188, CI95 [0.142, 0.238], audio cost 0.231,
+  49 fixes and 0 regressions.
+- MInDS mixed clean+neighbor-text selected text-first-candidate:
+  success 0.871, delta +0.146, CI95 [0.104, 0.192], audio cost 0.329,
+  35 fixes and 0 regressions.
+- HeySQuAD mixed clean+natural-drift selected text-equals-noquery:
+  success 0.892, delta +0.046, CI95 [0.019, 0.073], audio cost 0.300,
+  13 fixes and 1 regression.
+
+Impact:
+- Selective query audio now has a budgeted, task-level deployable selector,
+  not only oracle-style or disagreement-style diagnostics.
+- The selected trigger differs by task, reinforcing the controller story and
+  rejecting a universal audio gate.
+
+## 2026-07-02: Add Regression And Bad-Case Taxonomy Appendix
+
+Changed:
+- Added `scripts/export_failure_taxonomy.py`, an offline exporter that reads
+  row-level result artifacts and writes a compact failure taxonomy.
+- Generated `docs/bugs/issue-011-regression-taxonomy.md` and
+  `outputs/failure_taxonomy_summary.json`.
+
+Evidence summarized:
+- HeySQuAD packed retrieval-to-use: packing improves success from 0.280 to
+  0.595, but leaves 81/200 remaining failures and 5 regressions; remaining
+  cases are mostly wrong packed-memory selection or missing gold memory.
+- Budgeted query-audio gates: accepted gates differ by task, confirming that
+  the audio trigger is task-level rather than universal.
+- CoVoST2 ar full locked-test verifier: 193 fixes and 6 regressions; the
+  regressions are mostly translation-style or dataset-boundary conflicts where
+  the verifier prefers a plausible/idiomatic translation over the exact target.
+
+Impact:
+- The paper now has a bad-case appendix explaining why the remaining useful
+  follow-up is not another generic instruction sweep, but targeted retrieval
+  rerank/packing, verifier-regression mitigation, and cross-model validation.
+
+## 2026-07-02: Add CoVoST2 Translation Retrieval-To-Use Controls
+
+Changed:
+- Built direct-omni top-5 memory-use manifests for CoVoST2 ar->en and
+  zh-CN->en validation-200.
+- Ran the frozen Gemma 4 E4B server backend with query audio plus top-5 text
+  memory candidates under the fixed letter-output protocol.
+- Added the two runs to `outputs/retrieval_use_translation_summary.json` and
+  the paper evidence audit.
+
+Evidence:
+- CoVoST2 ar->en: retrieval hit@5 is 0.965, memory-use success is 0.805,
+  hit-but-use-fail is 0.160, retrieval miss is 0.035, invalid is 0.000.
+- CoVoST2 zh-CN->en: retrieval hit@5 is 1.000, memory-use success is 0.860,
+  hit-but-use-fail is 0.140, retrieval miss is 0.000, invalid is 0.000.
+
+Impact:
+- The retrieval-to-use gap is now documented outside QA/RAG.  Translation is
+  much healthier than HeySQuAD, but still shows that putting the gold memory in
+  top-5 is not equivalent to the main model selecting/using it correctly.
+## 2026-07-03: Add Strict Multivote Translation Order Repair
+
+- Added `scripts/build_translation_multivote_gate_summary.py`.
+- Generated `docs/translation_multivote_gate_repair.md` and
+  `outputs/translation_multivote_gate_summary.json`.
+- The strict gate uses the four-order multivote translation prediction only
+  when it selects the original retrieval top-1 memory; otherwise it falls back
+  to generic memory-use output.
+- Result:
+  - CoVoST2 ar->en: +0.025, CI95 [0.005, 0.050], 5 fixes / 0 regressions.
+  - CoVoST2 zh-CN->en: +0.065, CI95 [0.035, 0.100], 13 fixes / 0 regressions.
+- This turns the translation order issue into a cost tradeoff:
+  - cheap rank/deviation gate: weak order-robust repair;
+  - four-order multivote/rank gate: strict no-regression repair at higher
+    model-call cost.
+- Added the new artifact to `scripts/verify_paper_evidence.py`; the then-current
+  paper evidence verifier passed cleanly.
+
+## 2026-07-03: Add Remaining Experiment Triage
+
+- Added `docs/remaining_experiment_triage.md`.
+- The triage records that the frozen / training-free semantic round has no
+  required broad experiment left before drafting:
+  - paper evidence verifier: 66 / 66 checks passed;
+  - coverage guardrail: 65 / 65 checks passed;
+  - paper decision: `core_evidence_ready`.
+- Future runs should be targeted strengthening only:
+  - stable second generative omni backend;
+  - larger public generated-answer QA/RAG scale if reviewers ask;
+  - slot filling or LoRA/RL only as future work.
