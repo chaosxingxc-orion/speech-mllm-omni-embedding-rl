@@ -1,0 +1,1767 @@
+{
+  "experiment": "minds14_toolintent_v2_factorial",
+  "summary": {
+    "task": "MInDS-14 en-US tool/intent identification, support/eval-separated 2x2 factorial (instruction x cards)",
+    "smoke_only": true,
+    "n_eval": 50,
+    "n_classes": 2,
+    "card_pool_per_class": 9,
+    "n_draws": 3,
+    "draw_size": 3,
+    "arms_accuracy_at_1": {
+      "naive": 0.98,
+      "instruction_only (ZERO-SHOT: task instruction, no examples)": 0.98,
+      "cards_only (pooled over draws)": 1.0,
+      "instruction_plus_cards (pooled over draws)": 1.0
+    },
+    "deltas_vs_naive": {
+      "instruction_only": 0.0,
+      "cards_only": 0.02,
+      "instruction_plus_cards": 0.02
+    },
+    "factor_isolation_deltas": {
+      "instruction_effect__cards_absent": 0.0,
+      "instruction_effect__cards_present": 0.0,
+      "cards_effect__instruction_absent": 0.02,
+      "cards_effect__instruction_present": 0.02
+    },
+    "note": "Cards are built ONLY from the card-pool split (disjoint from eval; CARD_SEED=20260711); eval rows are never used to build candidate-card text. Only 'instruction_only' may be described as zero-shot (task instruction, no examples). Supersedes scripts/repro_minds14_toolintent.py and _repro/minds14_toolintent_paired.json (both FROZEN; forensic audit INT-001/INT-007 found transductive candidate cards and a hand-assembled, non-script-produced artifact that disagreed with docs/experiment_inventory.md:86). SMOKE RUN: restricted to the first 2 classes -- pipeline sanity check only, NOT a scientific result."
+  },
+  "config": {
+    "data_dir": "/mnt/e/chao_workspace/exploring-l4-intelligence/speechrl-data",
+    "lang": "en-US",
+    "card_pool_per_class": 9,
+    "n_draws": 3,
+    "draw_size": 3,
+    "card_seed": 20260711,
+    "bootstrap_seed": 42,
+    "n_boot": 1000,
+    "smoke_classes": 2,
+    "device": "auto",
+    "output": ""
+  },
+  "provenance": {
+    "git_sha": "7ba8d0b6b9c9214928a1b6fc2b269aa3a13f5db5",
+    "git_dirty": true,
+    "model_path": "/mnt/e/chao_workspace/exploring-l4-intelligence/speechrl-data/models/omni-embed-nemotron-3b",
+    "model_config_sha256": "327253e63719744eeb97114e92b77f5ec19fb9d4c04b478bc848fa3b0e2a477e",
+    "model_sentence_transformers_config_sha256": "f9d85f52ae9a2f91453edb78c4b2d3194ab65315a77652f283ce9c35a146f392",
+    "device": "cuda",
+    "sentence_transformers_version": "5.6.0",
+    "torch_version": "2.9.1+cu128",
+    "card_seed": 20260711,
+    "bootstrap_seed": 42,
+    "n_boot": 1000,
+    "run_timestamp_utc": "2026-07-10T17:13:13.092393+00:00"
+  },
+  "manifests": {
+    "card_pool": {
+      "row_count": 18,
+      "sha256": "7be955a3fe1d47d7459e6e2f3c7a7182eadf5388f6155cec283f47594954615f",
+      "ids": [
+        "card_abroad_0000",
+        "card_abroad_0001",
+        "card_abroad_0002",
+        "card_abroad_0003",
+        "card_abroad_0004",
+        "card_abroad_0005",
+        "card_abroad_0006",
+        "card_abroad_0007",
+        "card_abroad_0008",
+        "card_address_0000",
+        "card_address_0001",
+        "card_address_0002",
+        "card_address_0003",
+        "card_address_0004",
+        "card_address_0005",
+        "card_address_0006",
+        "card_address_0007",
+        "card_address_0008"
+      ]
+    },
+    "eval": {
+      "row_count": 50,
+      "sha256": "ad8a9d2b088ebac88cfbe0e0411c8d16d11ecfdd641d96f9716bea8f02160d4b",
+      "ids": [
+        "eval_abroad_0000",
+        "eval_abroad_0001",
+        "eval_abroad_0002",
+        "eval_abroad_0003",
+        "eval_abroad_0004",
+        "eval_abroad_0005",
+        "eval_abroad_0006",
+        "eval_abroad_0007",
+        "eval_abroad_0008",
+        "eval_abroad_0009",
+        "eval_abroad_0010",
+        "eval_abroad_0011",
+        "eval_abroad_0012",
+        "eval_abroad_0013",
+        "eval_abroad_0014",
+        "eval_abroad_0015",
+        "eval_abroad_0016",
+        "eval_abroad_0017",
+        "eval_abroad_0018",
+        "eval_abroad_0019",
+        "eval_abroad_0020",
+        "eval_abroad_0021",
+        "eval_abroad_0022",
+        "eval_abroad_0023",
+        "eval_abroad_0024",
+        "eval_address_0000",
+        "eval_address_0001",
+        "eval_address_0002",
+        "eval_address_0003",
+        "eval_address_0004",
+        "eval_address_0005",
+        "eval_address_0006",
+        "eval_address_0007",
+        "eval_address_0008",
+        "eval_address_0009",
+        "eval_address_0010",
+        "eval_address_0011",
+        "eval_address_0012",
+        "eval_address_0013",
+        "eval_address_0014",
+        "eval_address_0015",
+        "eval_address_0016",
+        "eval_address_0017",
+        "eval_address_0018",
+        "eval_address_0019",
+        "eval_address_0020",
+        "eval_address_0021",
+        "eval_address_0022",
+        "eval_address_0023",
+        "eval_address_0024"
+      ]
+    },
+    "draws": [
+      {
+        "row_count": 6,
+        "sha256": "c2ffef3a0b6814c7eb571d0081dbe8e9651964d3b2a31f762d9f843d34942eae",
+        "ids": [
+          "card_abroad_0000",
+          "card_abroad_0001",
+          "card_abroad_0002",
+          "card_address_0000",
+          "card_address_0001",
+          "card_address_0002"
+        ]
+      },
+      {
+        "row_count": 6,
+        "sha256": "5b176f3de21af492b2613950fca831ea1be73b2dbc1968fc8ad0809273acefb3",
+        "ids": [
+          "card_abroad_0003",
+          "card_abroad_0004",
+          "card_abroad_0005",
+          "card_address_0003",
+          "card_address_0004",
+          "card_address_0005"
+        ]
+      },
+      {
+        "row_count": 6,
+        "sha256": "22fd9730ce7a4893e6072e0d33c4c03aafba3584eead9a6cc8160fccd60992ef",
+        "ids": [
+          "card_abroad_0006",
+          "card_abroad_0007",
+          "card_abroad_0008",
+          "card_address_0006",
+          "card_address_0007",
+          "card_address_0008"
+        ]
+      }
+    ]
+  },
+  "reproduce": "SPEECHRL_DATA_DIR=/mnt/e/chao_workspace/exploring-l4-intelligence/speechrl-data HF_HUB_OFFLINE=1 ~/.venvs/speechrl/bin/python -u projects/speech-mllm-omni-embedding-rl/scripts/repro_minds14_toolintent_v2.py --smoke-classes 2",
+  "labels": [
+    "abroad",
+    "address"
+  ],
+  "arms": {
+    "naive": {
+      "instruction_arm": "raw",
+      "label_description_style": "basic",
+      "uses_cards": false,
+      "accuracy_at_1": 0.98,
+      "metrics": {
+        "accuracy_at_1": 0.98,
+        "accuracy_at_3": 1.0,
+        "accuracy_at_5": 1.0,
+        "accuracy": 0.98,
+        "mrr": 0.99,
+        "mean_rank": 1.02
+      },
+      "hits": {
+        "eval_abroad_0000": 1,
+        "eval_abroad_0001": 1,
+        "eval_abroad_0002": 1,
+        "eval_abroad_0003": 1,
+        "eval_abroad_0004": 1,
+        "eval_abroad_0005": 1,
+        "eval_abroad_0006": 1,
+        "eval_abroad_0007": 1,
+        "eval_abroad_0008": 1,
+        "eval_abroad_0009": 1,
+        "eval_abroad_0010": 1,
+        "eval_abroad_0011": 1,
+        "eval_abroad_0012": 1,
+        "eval_abroad_0013": 1,
+        "eval_abroad_0014": 1,
+        "eval_abroad_0015": 1,
+        "eval_abroad_0016": 1,
+        "eval_abroad_0017": 1,
+        "eval_abroad_0018": 1,
+        "eval_abroad_0019": 1,
+        "eval_abroad_0020": 1,
+        "eval_abroad_0021": 1,
+        "eval_abroad_0022": 1,
+        "eval_abroad_0023": 1,
+        "eval_abroad_0024": 1,
+        "eval_address_0000": 1,
+        "eval_address_0001": 1,
+        "eval_address_0002": 1,
+        "eval_address_0003": 1,
+        "eval_address_0004": 0,
+        "eval_address_0005": 1,
+        "eval_address_0006": 1,
+        "eval_address_0007": 1,
+        "eval_address_0008": 1,
+        "eval_address_0009": 1,
+        "eval_address_0010": 1,
+        "eval_address_0011": 1,
+        "eval_address_0012": 1,
+        "eval_address_0013": 1,
+        "eval_address_0014": 1,
+        "eval_address_0015": 1,
+        "eval_address_0016": 1,
+        "eval_address_0017": 1,
+        "eval_address_0018": 1,
+        "eval_address_0019": 1,
+        "eval_address_0020": 1,
+        "eval_address_0021": 1,
+        "eval_address_0022": 1,
+        "eval_address_0023": 1,
+        "eval_address_0024": 1
+      },
+      "rows": [
+        {
+          "sample_id": "eval_abroad_0000",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0001",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0002",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0003",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0004",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0005",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0006",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0007",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0008",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0009",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0010",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0011",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0012",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0013",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0014",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0015",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0016",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0017",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0018",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0019",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0020",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0021",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0022",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0023",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0024",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0000",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0001",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0002",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0003",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0004",
+          "intent": "address",
+          "prediction": "abroad",
+          "rank": 2,
+          "hit_at_1": 0
+        },
+        {
+          "sample_id": "eval_address_0005",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0006",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0007",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0008",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0009",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0010",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0011",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0012",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0013",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0014",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0015",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0016",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0017",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0018",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0019",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0020",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0021",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0022",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0023",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0024",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        }
+      ],
+      "label_descriptions": {
+        "abroad": "Intent label: abroad.",
+        "address": "Intent label: address."
+      }
+    },
+    "instruction_only": {
+      "instruction_arm": "tool_specific_intent",
+      "label_description_style": "basic",
+      "uses_cards": false,
+      "accuracy_at_1": 0.98,
+      "metrics": {
+        "accuracy_at_1": 0.98,
+        "accuracy_at_3": 1.0,
+        "accuracy_at_5": 1.0,
+        "accuracy": 0.98,
+        "mrr": 0.99,
+        "mean_rank": 1.02
+      },
+      "hits": {
+        "eval_abroad_0000": 1,
+        "eval_abroad_0001": 0,
+        "eval_abroad_0002": 1,
+        "eval_abroad_0003": 1,
+        "eval_abroad_0004": 1,
+        "eval_abroad_0005": 1,
+        "eval_abroad_0006": 1,
+        "eval_abroad_0007": 1,
+        "eval_abroad_0008": 1,
+        "eval_abroad_0009": 1,
+        "eval_abroad_0010": 1,
+        "eval_abroad_0011": 1,
+        "eval_abroad_0012": 1,
+        "eval_abroad_0013": 1,
+        "eval_abroad_0014": 1,
+        "eval_abroad_0015": 1,
+        "eval_abroad_0016": 1,
+        "eval_abroad_0017": 1,
+        "eval_abroad_0018": 1,
+        "eval_abroad_0019": 1,
+        "eval_abroad_0020": 1,
+        "eval_abroad_0021": 1,
+        "eval_abroad_0022": 1,
+        "eval_abroad_0023": 1,
+        "eval_abroad_0024": 1,
+        "eval_address_0000": 1,
+        "eval_address_0001": 1,
+        "eval_address_0002": 1,
+        "eval_address_0003": 1,
+        "eval_address_0004": 1,
+        "eval_address_0005": 1,
+        "eval_address_0006": 1,
+        "eval_address_0007": 1,
+        "eval_address_0008": 1,
+        "eval_address_0009": 1,
+        "eval_address_0010": 1,
+        "eval_address_0011": 1,
+        "eval_address_0012": 1,
+        "eval_address_0013": 1,
+        "eval_address_0014": 1,
+        "eval_address_0015": 1,
+        "eval_address_0016": 1,
+        "eval_address_0017": 1,
+        "eval_address_0018": 1,
+        "eval_address_0019": 1,
+        "eval_address_0020": 1,
+        "eval_address_0021": 1,
+        "eval_address_0022": 1,
+        "eval_address_0023": 1,
+        "eval_address_0024": 1
+      },
+      "rows": [
+        {
+          "sample_id": "eval_abroad_0000",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0001",
+          "intent": "abroad",
+          "prediction": "address",
+          "rank": 2,
+          "hit_at_1": 0
+        },
+        {
+          "sample_id": "eval_abroad_0002",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0003",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0004",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0005",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0006",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0007",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0008",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0009",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0010",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0011",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0012",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0013",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0014",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0015",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0016",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0017",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0018",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0019",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0020",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0021",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0022",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0023",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_abroad_0024",
+          "intent": "abroad",
+          "prediction": "abroad",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0000",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0001",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0002",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0003",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0004",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0005",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0006",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0007",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0008",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0009",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0010",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0011",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0012",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0013",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0014",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0015",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0016",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0017",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0018",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0019",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0020",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0021",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0022",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0023",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        },
+        {
+          "sample_id": "eval_address_0024",
+          "intent": "address",
+          "prediction": "address",
+          "rank": 1,
+          "hit_at_1": 1
+        }
+      ],
+      "label_descriptions": {
+        "abroad": "Intent label: abroad.",
+        "address": "Intent label: address."
+      }
+    },
+    "cards_only": {
+      "instruction_arm": "raw",
+      "label_description_style": "contrastive_boundary_tool",
+      "uses_cards": true,
+      "n_draws": 3,
+      "pooled_accuracy_at_1": 1.0,
+      "per_draw_accuracy_at_1": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "pooled_hits": {
+        "eval_abroad_0000": 1.0,
+        "eval_abroad_0001": 1.0,
+        "eval_abroad_0002": 1.0,
+        "eval_abroad_0003": 1.0,
+        "eval_abroad_0004": 1.0,
+        "eval_abroad_0005": 1.0,
+        "eval_abroad_0006": 1.0,
+        "eval_abroad_0007": 1.0,
+        "eval_abroad_0008": 1.0,
+        "eval_abroad_0009": 1.0,
+        "eval_abroad_0010": 1.0,
+        "eval_abroad_0011": 1.0,
+        "eval_abroad_0012": 1.0,
+        "eval_abroad_0013": 1.0,
+        "eval_abroad_0014": 1.0,
+        "eval_abroad_0015": 1.0,
+        "eval_abroad_0016": 1.0,
+        "eval_abroad_0017": 1.0,
+        "eval_abroad_0018": 1.0,
+        "eval_abroad_0019": 1.0,
+        "eval_abroad_0020": 1.0,
+        "eval_abroad_0021": 1.0,
+        "eval_abroad_0022": 1.0,
+        "eval_abroad_0023": 1.0,
+        "eval_abroad_0024": 1.0,
+        "eval_address_0000": 1.0,
+        "eval_address_0001": 1.0,
+        "eval_address_0002": 1.0,
+        "eval_address_0003": 1.0,
+        "eval_address_0004": 1.0,
+        "eval_address_0005": 1.0,
+        "eval_address_0006": 1.0,
+        "eval_address_0007": 1.0,
+        "eval_address_0008": 1.0,
+        "eval_address_0009": 1.0,
+        "eval_address_0010": 1.0,
+        "eval_address_0011": 1.0,
+        "eval_address_0012": 1.0,
+        "eval_address_0013": 1.0,
+        "eval_address_0014": 1.0,
+        "eval_address_0015": 1.0,
+        "eval_address_0016": 1.0,
+        "eval_address_0017": 1.0,
+        "eval_address_0018": 1.0,
+        "eval_address_0019": 1.0,
+        "eval_address_0020": 1.0,
+        "eval_address_0021": 1.0,
+        "eval_address_0022": 1.0,
+        "eval_address_0023": 1.0,
+        "eval_address_0024": 1.0
+      },
+      "draws": [
+        {
+          "draw": 0,
+          "card_ids": [
+            "card_abroad_0000",
+            "card_abroad_0001",
+            "card_abroad_0002",
+            "card_address_0000",
+            "card_address_0001",
+            "card_address_0002"
+          ],
+          "accuracy_at_1": 1.0,
+          "metrics": {
+            "accuracy_at_1": 1.0,
+            "accuracy_at_3": 1.0,
+            "accuracy_at_5": 1.0,
+            "accuracy": 1.0,
+            "mrr": 1.0,
+            "mean_rank": 1.0
+          },
+          "hits": {
+            "eval_abroad_0000": 1,
+            "eval_abroad_0001": 1,
+            "eval_abroad_0002": 1,
+            "eval_abroad_0003": 1,
+            "eval_abroad_0004": 1,
+            "eval_abroad_0005": 1,
+            "eval_abroad_0006": 1,
+            "eval_abroad_0007": 1,
+            "eval_abroad_0008": 1,
+            "eval_abroad_0009": 1,
+            "eval_abroad_0010": 1,
+            "eval_abroad_0011": 1,
+            "eval_abroad_0012": 1,
+            "eval_abroad_0013": 1,
+            "eval_abroad_0014": 1,
+            "eval_abroad_0015": 1,
+            "eval_abroad_0016": 1,
+            "eval_abroad_0017": 1,
+            "eval_abroad_0018": 1,
+            "eval_abroad_0019": 1,
+            "eval_abroad_0020": 1,
+            "eval_abroad_0021": 1,
+            "eval_abroad_0022": 1,
+            "eval_abroad_0023": 1,
+            "eval_abroad_0024": 1,
+            "eval_address_0000": 1,
+            "eval_address_0001": 1,
+            "eval_address_0002": 1,
+            "eval_address_0003": 1,
+            "eval_address_0004": 1,
+            "eval_address_0005": 1,
+            "eval_address_0006": 1,
+            "eval_address_0007": 1,
+            "eval_address_0008": 1,
+            "eval_address_0009": 1,
+            "eval_address_0010": 1,
+            "eval_address_0011": 1,
+            "eval_address_0012": 1,
+            "eval_address_0013": 1,
+            "eval_address_0014": 1,
+            "eval_address_0015": 1,
+            "eval_address_0016": 1,
+            "eval_address_0017": 1,
+            "eval_address_0018": 1,
+            "eval_address_0019": 1,
+            "eval_address_0020": 1,
+            "eval_address_0021": 1,
+            "eval_address_0022": 1,
+            "eval_address_0023": 1,
+            "eval_address_0024": 1
+          },
+          "label_descriptions": {
+            "abroad": "Tool schema card for spoken command routing. Tool name: abroad. Task type: intent. Domain: unknown. Use this tool when the user command asks for: abroad. Positive example: I'll be traveling abroad and I'd like to know if there's anything I need to do as far as notifying you that I'll be out of the country when I want to use my credit card. Positive example: card work abroad. Positive example: hello I'm calling you to see if I can use my card abroad currently I'm in Japan and I don't know if I'm able to use my card processing in some stores. Boundary note: do not choose this tool for nearby tools or intents: address.",
+            "address": "Tool schema card for spoken command routing. Tool name: address. Task type: intent. Domain: unknown. Use this tool when the user command asks for: address. Positive example: I want to change my address to something else I have moved and I no longer at that particular address so again I'm calling about getting a new address for updating my address rather. Positive example: hi yes I want to change my address. Positive example: change my dress. Boundary note: do not choose this tool for nearby tools or intents: abroad."
+          },
+          "delta_vs_naive": {
+            "delta": 0.02,
+            "ci95": [
+              0.0,
+              0.06
+            ],
+            "fixes": 1,
+            "regressions": 0,
+            "n": 50,
+            "significant": false
+          }
+        },
+        {
+          "draw": 1,
+          "card_ids": [
+            "card_abroad_0003",
+            "card_abroad_0004",
+            "card_abroad_0005",
+            "card_address_0003",
+            "card_address_0004",
+            "card_address_0005"
+          ],
+          "accuracy_at_1": 1.0,
+          "metrics": {
+            "accuracy_at_1": 1.0,
+            "accuracy_at_3": 1.0,
+            "accuracy_at_5": 1.0,
+            "accuracy": 1.0,
+            "mrr": 1.0,
+            "mean_rank": 1.0
+          },
+          "hits": {
+            "eval_abroad_0000": 1,
+            "eval_abroad_0001": 1,
+            "eval_abroad_0002": 1,
+            "eval_abroad_0003": 1,
+            "eval_abroad_0004": 1,
+            "eval_abroad_0005": 1,
+            "eval_abroad_0006": 1,
+            "eval_abroad_0007": 1,
+            "eval_abroad_0008": 1,
+            "eval_abroad_0009": 1,
+            "eval_abroad_0010": 1,
+            "eval_abroad_0011": 1,
+            "eval_abroad_0012": 1,
+            "eval_abroad_0013": 1,
+            "eval_abroad_0014": 1,
+            "eval_abroad_0015": 1,
+            "eval_abroad_0016": 1,
+            "eval_abroad_0017": 1,
+            "eval_abroad_0018": 1,
+            "eval_abroad_0019": 1,
+            "eval_abroad_0020": 1,
+            "eval_abroad_0021": 1,
+            "eval_abroad_0022": 1,
+            "eval_abroad_0023": 1,
+            "eval_abroad_0024": 1,
+            "eval_address_0000": 1,
+            "eval_address_0001": 1,
+            "eval_address_0002": 1,
+            "eval_address_0003": 1,
+            "eval_address_0004": 1,
+            "eval_address_0005": 1,
+            "eval_address_0006": 1,
+            "eval_address_0007": 1,
+            "eval_address_0008": 1,
+            "eval_address_0009": 1,
+            "eval_address_0010": 1,
+            "eval_address_0011": 1,
+            "eval_address_0012": 1,
+            "eval_address_0013": 1,
+            "eval_address_0014": 1,
+            "eval_address_0015": 1,
+            "eval_address_0016": 1,
+            "eval_address_0017": 1,
+            "eval_address_0018": 1,
+            "eval_address_0019": 1,
+            "eval_address_0020": 1,
+            "eval_address_0021": 1,
+            "eval_address_0022": 1,
+            "eval_address_0023": 1,
+            "eval_address_0024": 1
+          },
+          "label_descriptions": {
+            "abroad": "Tool schema card for spoken command routing. Tool name: abroad. Task type: intent. Domain: unknown. Use this tool when the user command asks for: abroad. Positive example: hi I'm going to be leaving the country and I'm going abroad I need to make sure that my card will work or anything that I need to do to make sure does it stop working. Positive example: yes I'm going to be traveling to the United Kingdom for a couple of weeks next month I need to know if I can use my card from from my bank account while I'm in Europe. Positive example: I'm planning to go to the UK on the 16th and come back on the 24th I was wondering if my car. Boundary note: do not choose this tool for nearby tools or intents: address.",
+            "address": "Tool schema card for spoken command routing. Tool name: address. Task type: intent. Domain: unknown. Use this tool when the user command asks for: address. Positive example: hi I need to change my address. Positive example: hi Dan Conchas I need to register my new address with you guys so I wanted to change my address on bank account. Positive example: do I need to change my address. Boundary note: do not choose this tool for nearby tools or intents: abroad."
+          },
+          "delta_vs_naive": {
+            "delta": 0.02,
+            "ci95": [
+              0.0,
+              0.06
+            ],
+            "fixes": 1,
+            "regressions": 0,
+            "n": 50,
+            "significant": false
+          }
+        },
+        {
+          "draw": 2,
+          "card_ids": [
+            "card_abroad_0006",
+            "card_abroad_0007",
+            "card_abroad_0008",
+            "card_address_0006",
+            "card_address_0007",
+            "card_address_0008"
+          ],
+          "accuracy_at_1": 1.0,
+          "metrics": {
+            "accuracy_at_1": 1.0,
+            "accuracy_at_3": 1.0,
+            "accuracy_at_5": 1.0,
+            "accuracy": 1.0,
+            "mrr": 1.0,
+            "mean_rank": 1.0
+          },
+          "hits": {
+            "eval_abroad_0000": 1,
+            "eval_abroad_0001": 1,
+            "eval_abroad_0002": 1,
+            "eval_abroad_0003": 1,
+            "eval_abroad_0004": 1,
+            "eval_abroad_0005": 1,
+            "eval_abroad_0006": 1,
+            "eval_abroad_0007": 1,
+            "eval_abroad_0008": 1,
+            "eval_abroad_0009": 1,
+            "eval_abroad_0010": 1,
+            "eval_abroad_0011": 1,
+            "eval_abroad_0012": 1,
+            "eval_abroad_0013": 1,
+            "eval_abroad_0014": 1,
+            "eval_abroad_0015": 1,
+            "eval_abroad_0016": 1,
+            "eval_abroad_0017": 1,
+            "eval_abroad_0018": 1,
+            "eval_abroad_0019": 1,
+            "eval_abroad_0020": 1,
+            "eval_abroad_0021": 1,
+            "eval_abroad_0022": 1,
+            "eval_abroad_0023": 1,
+            "eval_abroad_0024": 1,
+            "eval_address_0000": 1,
+            "eval_address_0001": 1,
+            "eval_address_0002": 1,
+            "eval_address_0003": 1,
+            "eval_address_0004": 1,
+            "eval_address_0005": 1,
+            "eval_address_0006": 1,
+            "eval_address_0007": 1,
+            "eval_address_0008": 1,
+            "eval_address_0009": 1,
+            "eval_address_0010": 1,
+            "eval_address_0011": 1,
+            "eval_address_0012": 1,
+            "eval_address_0013": 1,
+            "eval_address_0014": 1,
+            "eval_address_0015": 1,
+            "eval_address_0016": 1,
+            "eval_address_0017": 1,
+            "eval_address_0018": 1,
+            "eval_address_0019": 1,
+            "eval_address_0020": 1,
+            "eval_address_0021": 1,
+            "eval_address_0022": 1,
+            "eval_address_0023": 1,
+            "eval_address_0024": 1
+          },
+          "label_descriptions": {
+            "abroad": "Tool schema card for spoken command routing. Tool name: abroad. Task type: intent. Domain: unknown. Use this tool when the user command asks for: abroad. Positive example: I need my card abroad can I pay for things I'm stamps hi yes I'm going on vacation for a few weeks and wanted to ask if I have to do it. Positive example: I'm going on vacation for a few weeks. Positive example: hello I'm about to travel abroad and I was just wondering if my card will work where I'm traveling to. Boundary note: do not choose this tool for nearby tools or intents: address.",
+            "address": "Tool schema card for spoken command routing. Tool name: address. Task type: intent. Domain: unknown. Use this tool when the user command asks for: address. Positive example: I want to change my address. Positive example: so I moved to a different house and I was wondering I wanted to. Positive example: I want to change my address. Boundary note: do not choose this tool for nearby tools or intents: abroad."
+          },
+          "delta_vs_naive": {
+            "delta": 0.02,
+            "ci95": [
+              0.0,
+              0.06
+            ],
+            "fixes": 1,
+            "regressions": 0,
+            "n": 50,
+            "significant": false
+          }
+        }
+      ]
+    },
+    "instruction_plus_cards": {
+      "instruction_arm": "tool_specific_intent",
+      "label_description_style": "contrastive_boundary_tool",
+      "uses_cards": true,
+      "n_draws": 3,
+      "pooled_accuracy_at_1": 1.0,
+      "per_draw_accuracy_at_1": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "pooled_hits": {
+        "eval_abroad_0000": 1.0,
+        "eval_abroad_0001": 1.0,
+        "eval_abroad_0002": 1.0,
+        "eval_abroad_0003": 1.0,
+        "eval_abroad_0004": 1.0,
+        "eval_abroad_0005": 1.0,
+        "eval_abroad_0006": 1.0,
+        "eval_abroad_0007": 1.0,
+        "eval_abroad_0008": 1.0,
+        "eval_abroad_0009": 1.0,
+        "eval_abroad_0010": 1.0,
+        "eval_abroad_0011": 1.0,
+        "eval_abroad_0012": 1.0,
+        "eval_abroad_0013": 1.0,
+        "eval_abroad_0014": 1.0,
+        "eval_abroad_0015": 1.0,
+        "eval_abroad_0016": 1.0,
+        "eval_abroad_0017": 1.0,
+        "eval_abroad_0018": 1.0,
+        "eval_abroad_0019": 1.0,
+        "eval_abroad_0020": 1.0,
+        "eval_abroad_0021": 1.0,
+        "eval_abroad_0022": 1.0,
+        "eval_abroad_0023": 1.0,
+        "eval_abroad_0024": 1.0,
+        "eval_address_0000": 1.0,
+        "eval_address_0001": 1.0,
+        "eval_address_0002": 1.0,
+        "eval_address_0003": 1.0,
+        "eval_address_0004": 1.0,
+        "eval_address_0005": 1.0,
+        "eval_address_0006": 1.0,
+        "eval_address_0007": 1.0,
+        "eval_address_0008": 1.0,
+        "eval_address_0009": 1.0,
+        "eval_address_0010": 1.0,
+        "eval_address_0011": 1.0,
+        "eval_address_0012": 1.0,
+        "eval_address_0013": 1.0,
+        "eval_address_0014": 1.0,
+        "eval_address_0015": 1.0,
+        "eval_address_0016": 1.0,
+        "eval_address_0017": 1.0,
+        "eval_address_0018": 1.0,
+        "eval_address_0019": 1.0,
+        "eval_address_0020": 1.0,
+        "eval_address_0021": 1.0,
+        "eval_address_0022": 1.0,
+        "eval_address_0023": 1.0,
+        "eval_address_0024": 1.0
+      },
+      "draws": [
+        {
+          "draw": 0,
+          "card_ids": [
+            "card_abroad_0000",
+            "card_abroad_0001",
+            "card_abroad_0002",
+            "card_address_0000",
+            "card_address_0001",
+            "card_address_0002"
+          ],
+          "accuracy_at_1": 1.0,
+          "metrics": {
+            "accuracy_at_1": 1.0,
+            "accuracy_at_3": 1.0,
+            "accuracy_at_5": 1.0,
+            "accuracy": 1.0,
+            "mrr": 1.0,
+            "mean_rank": 1.0
+          },
+          "hits": {
+            "eval_abroad_0000": 1,
+            "eval_abroad_0001": 1,
+            "eval_abroad_0002": 1,
+            "eval_abroad_0003": 1,
+            "eval_abroad_0004": 1,
+            "eval_abroad_0005": 1,
+            "eval_abroad_0006": 1,
+            "eval_abroad_0007": 1,
+            "eval_abroad_0008": 1,
+            "eval_abroad_0009": 1,
+            "eval_abroad_0010": 1,
+            "eval_abroad_0011": 1,
+            "eval_abroad_0012": 1,
+            "eval_abroad_0013": 1,
+            "eval_abroad_0014": 1,
+            "eval_abroad_0015": 1,
+            "eval_abroad_0016": 1,
+            "eval_abroad_0017": 1,
+            "eval_abroad_0018": 1,
+            "eval_abroad_0019": 1,
+            "eval_abroad_0020": 1,
+            "eval_abroad_0021": 1,
+            "eval_abroad_0022": 1,
+            "eval_abroad_0023": 1,
+            "eval_abroad_0024": 1,
+            "eval_address_0000": 1,
+            "eval_address_0001": 1,
+            "eval_address_0002": 1,
+            "eval_address_0003": 1,
+            "eval_address_0004": 1,
+            "eval_address_0005": 1,
+            "eval_address_0006": 1,
+            "eval_address_0007": 1,
+            "eval_address_0008": 1,
+            "eval_address_0009": 1,
+            "eval_address_0010": 1,
+            "eval_address_0011": 1,
+            "eval_address_0012": 1,
+            "eval_address_0013": 1,
+            "eval_address_0014": 1,
+            "eval_address_0015": 1,
+            "eval_address_0016": 1,
+            "eval_address_0017": 1,
+            "eval_address_0018": 1,
+            "eval_address_0019": 1,
+            "eval_address_0020": 1,
+            "eval_address_0021": 1,
+            "eval_address_0022": 1,
+            "eval_address_0023": 1,
+            "eval_address_0024": 1
+          },
+          "label_descriptions": {
+            "abroad": "Tool schema card for spoken command routing. Tool name: abroad. Task type: intent. Domain: unknown. Use this tool when the user command asks for: abroad. Positive example: I'll be traveling abroad and I'd like to know if there's anything I need to do as far as notifying you that I'll be out of the country when I want to use my credit card. Positive example: card work abroad. Positive example: hello I'm calling you to see if I can use my card abroad currently I'm in Japan and I don't know if I'm able to use my card processing in some stores. Boundary note: do not choose this tool for nearby tools or intents: address.",
+            "address": "Tool schema card for spoken command routing. Tool name: address. Task type: intent. Domain: unknown. Use this tool when the user command asks for: address. Positive example: I want to change my address to something else I have moved and I no longer at that particular address so again I'm calling about getting a new address for updating my address rather. Positive example: hi yes I want to change my address. Positive example: change my dress. Boundary note: do not choose this tool for nearby tools or intents: abroad."
+          },
+          "delta_vs_naive": {
+            "delta": 0.02,
+            "ci95": [
+              0.0,
+              0.06
+            ],
+            "fixes": 1,
+            "regressions": 0,
+            "n": 50,
+            "significant": false
+          }
+        },
+        {
+          "draw": 1,
+          "card_ids": [
+            "card_abroad_0003",
+            "card_abroad_0004",
+            "card_abroad_0005",
+            "card_address_0003",
+            "card_address_0004",
+            "card_address_0005"
+          ],
+          "accuracy_at_1": 1.0,
+          "metrics": {
+            "accuracy_at_1": 1.0,
+            "accuracy_at_3": 1.0,
+            "accuracy_at_5": 1.0,
+            "accuracy": 1.0,
+            "mrr": 1.0,
+            "mean_rank": 1.0
+          },
+          "hits": {
+            "eval_abroad_0000": 1,
+            "eval_abroad_0001": 1,
+            "eval_abroad_0002": 1,
+            "eval_abroad_0003": 1,
+            "eval_abroad_0004": 1,
+            "eval_abroad_0005": 1,
+            "eval_abroad_0006": 1,
+            "eval_abroad_0007": 1,
+            "eval_abroad_0008": 1,
+            "eval_abroad_0009": 1,
+            "eval_abroad_0010": 1,
+            "eval_abroad_0011": 1,
+            "eval_abroad_0012": 1,
+            "eval_abroad_0013": 1,
+            "eval_abroad_0014": 1,
+            "eval_abroad_0015": 1,
+            "eval_abroad_0016": 1,
+            "eval_abroad_0017": 1,
+            "eval_abroad_0018": 1,
+            "eval_abroad_0019": 1,
+            "eval_abroad_0020": 1,
+            "eval_abroad_0021": 1,
+            "eval_abroad_0022": 1,
+            "eval_abroad_0023": 1,
+            "eval_abroad_0024": 1,
+            "eval_address_0000": 1,
+            "eval_address_0001": 1,
+            "eval_address_0002": 1,
+            "eval_address_0003": 1,
+            "eval_address_0004": 1,
+            "eval_address_0005": 1,
+            "eval_address_0006": 1,
+            "eval_address_0007": 1,
+            "eval_address_0008": 1,
+            "eval_address_0009": 1,
+            "eval_address_0010": 1,
+            "eval_address_0011": 1,
+            "eval_address_0012": 1,
+            "eval_address_0013": 1,
+            "eval_address_0014": 1,
+            "eval_address_0015": 1,
+            "eval_address_0016": 1,
+            "eval_address_0017": 1,
+            "eval_address_0018": 1,
+            "eval_address_0019": 1,
+            "eval_address_0020": 1,
+            "eval_address_0021": 1,
+            "eval_address_0022": 1,
+            "eval_address_0023": 1,
+            "eval_address_0024": 1
+          },
+          "label_descriptions": {
+            "abroad": "Tool schema card for spoken command routing. Tool name: abroad. Task type: intent. Domain: unknown. Use this tool when the user command asks for: abroad. Positive example: hi I'm going to be leaving the country and I'm going abroad I need to make sure that my card will work or anything that I need to do to make sure does it stop working. Positive example: yes I'm going to be traveling to the United Kingdom for a couple of weeks next month I need to know if I can use my card from from my bank account while I'm in Europe. Positive example: I'm planning to go to the UK on the 16th and come back on the 24th I was wondering if my car. Boundary note: do not choose this tool for nearby tools or intents: address.",
+            "address": "Tool schema card for spoken command routing. Tool name: address. Task type: intent. Domain: unknown. Use this tool when the user command asks for: address. Positive example: hi I need to change my address. Positive example: hi Dan Conchas I need to register my new address with you guys so I wanted to change my address on bank account. Positive example: do I need to change my address. Boundary note: do not choose this tool for nearby tools or intents: abroad."
+          },
+          "delta_vs_naive": {
+            "delta": 0.02,
+            "ci95": [
+              0.0,
+              0.06
+            ],
+            "fixes": 1,
+            "regressions": 0,
+            "n": 50,
+            "significant": false
+          }
+        },
+        {
+          "draw": 2,
+          "card_ids": [
+            "card_abroad_0006",
+            "card_abroad_0007",
+            "card_abroad_0008",
+            "card_address_0006",
+            "card_address_0007",
+            "card_address_0008"
+          ],
+          "accuracy_at_1": 1.0,
+          "metrics": {
+            "accuracy_at_1": 1.0,
+            "accuracy_at_3": 1.0,
+            "accuracy_at_5": 1.0,
+            "accuracy": 1.0,
+            "mrr": 1.0,
+            "mean_rank": 1.0
+          },
+          "hits": {
+            "eval_abroad_0000": 1,
+            "eval_abroad_0001": 1,
+            "eval_abroad_0002": 1,
+            "eval_abroad_0003": 1,
+            "eval_abroad_0004": 1,
+            "eval_abroad_0005": 1,
+            "eval_abroad_0006": 1,
+            "eval_abroad_0007": 1,
+            "eval_abroad_0008": 1,
+            "eval_abroad_0009": 1,
+            "eval_abroad_0010": 1,
+            "eval_abroad_0011": 1,
+            "eval_abroad_0012": 1,
+            "eval_abroad_0013": 1,
+            "eval_abroad_0014": 1,
+            "eval_abroad_0015": 1,
+            "eval_abroad_0016": 1,
+            "eval_abroad_0017": 1,
+            "eval_abroad_0018": 1,
+            "eval_abroad_0019": 1,
+            "eval_abroad_0020": 1,
+            "eval_abroad_0021": 1,
+            "eval_abroad_0022": 1,
+            "eval_abroad_0023": 1,
+            "eval_abroad_0024": 1,
+            "eval_address_0000": 1,
+            "eval_address_0001": 1,
+            "eval_address_0002": 1,
+            "eval_address_0003": 1,
+            "eval_address_0004": 1,
+            "eval_address_0005": 1,
+            "eval_address_0006": 1,
+            "eval_address_0007": 1,
+            "eval_address_0008": 1,
+            "eval_address_0009": 1,
+            "eval_address_0010": 1,
+            "eval_address_0011": 1,
+            "eval_address_0012": 1,
+            "eval_address_0013": 1,
+            "eval_address_0014": 1,
+            "eval_address_0015": 1,
+            "eval_address_0016": 1,
+            "eval_address_0017": 1,
+            "eval_address_0018": 1,
+            "eval_address_0019": 1,
+            "eval_address_0020": 1,
+            "eval_address_0021": 1,
+            "eval_address_0022": 1,
+            "eval_address_0023": 1,
+            "eval_address_0024": 1
+          },
+          "label_descriptions": {
+            "abroad": "Tool schema card for spoken command routing. Tool name: abroad. Task type: intent. Domain: unknown. Use this tool when the user command asks for: abroad. Positive example: I need my card abroad can I pay for things I'm stamps hi yes I'm going on vacation for a few weeks and wanted to ask if I have to do it. Positive example: I'm going on vacation for a few weeks. Positive example: hello I'm about to travel abroad and I was just wondering if my card will work where I'm traveling to. Boundary note: do not choose this tool for nearby tools or intents: address.",
+            "address": "Tool schema card for spoken command routing. Tool name: address. Task type: intent. Domain: unknown. Use this tool when the user command asks for: address. Positive example: I want to change my address. Positive example: so I moved to a different house and I was wondering I wanted to. Positive example: I want to change my address. Boundary note: do not choose this tool for nearby tools or intents: abroad."
+          },
+          "delta_vs_naive": {
+            "delta": 0.02,
+            "ci95": [
+              0.0,
+              0.06
+            ],
+            "fixes": 1,
+            "regressions": 0,
+            "n": 50,
+            "significant": false
+          }
+        }
+      ]
+    }
+  },
+  "deltas_vs_naive": {
+    "instruction_only": {
+      "delta": 0.0,
+      "ci95": [
+        -0.06,
+        0.06
+      ],
+      "fixes": 1,
+      "regressions": 1,
+      "n": 50,
+      "significant": false
+    },
+    "cards_only": {
+      "delta": 0.02,
+      "ci95": [
+        0.0,
+        0.06
+      ],
+      "fixes": 1,
+      "regressions": 0,
+      "n": 50,
+      "significant": false
+    },
+    "instruction_plus_cards": {
+      "delta": 0.02,
+      "ci95": [
+        0.0,
+        0.06
+      ],
+      "fixes": 1,
+      "regressions": 0,
+      "n": 50,
+      "significant": false
+    }
+  },
+  "factor_isolation_deltas": {
+    "instruction_effect__cards_absent": {
+      "comparison": "instruction_only - naive",
+      "delta": 0.0,
+      "ci95": [
+        -0.06,
+        0.06
+      ],
+      "fixes": 1,
+      "regressions": 1,
+      "n": 50,
+      "significant": false
+    },
+    "instruction_effect__cards_present": {
+      "comparison": "instruction_plus_cards - cards_only",
+      "delta": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "fixes": 0,
+      "regressions": 0,
+      "n": 50,
+      "significant": false
+    },
+    "cards_effect__instruction_absent": {
+      "comparison": "cards_only - naive",
+      "delta": 0.02,
+      "ci95": [
+        0.0,
+        0.06
+      ],
+      "fixes": 1,
+      "regressions": 0,
+      "n": 50,
+      "significant": false
+    },
+    "cards_effect__instruction_present": {
+      "comparison": "instruction_plus_cards - instruction_only",
+      "delta": 0.02,
+      "ci95": [
+        0.0,
+        0.06
+      ],
+      "fixes": 1,
+      "regressions": 0,
+      "n": 50,
+      "significant": false
+    }
+  }
+}
