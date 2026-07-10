@@ -1,0 +1,80 @@
+{
+  "summary": {
+    "n_seeds": 3,
+    "mean_test_acc": 0.0333,
+    "chance": 0.011,
+    "mean_ratio_over_chance": 3.03,
+    "n_classes": 91,
+    "n_seeds_ci_excludes_chance_from_below": 2,
+    "across_seed_t_ci": {
+      "n_seeds": 3,
+      "mean_test_acc": 0.0333,
+      "sd": 0.0121,
+      "t_ci95": [
+        0.0034,
+        0.0633
+      ],
+      "chance": 0.011,
+      "excludes_chance": false,
+      "directional_only": true,
+      "caveat": "n=3 seeds; per this project's convention (CLAUDE.md) small-n lacks significance and can settle nothing on its own -- this across-seed t-CI is reported as a conservative cross-check, not as the headline statistic. The headline is the per-seed superiority check (at least one seed's OWN stored CI excludes chance)."
+    },
+    "honest_verdict": "Speaker readout is LOW in absolute terms (mean 0.033 vs chance 0.011, ~3x chance over 91 classes) AND significantly ABOVE chance in at least 2/3 seed(s) individually (that seed's own stored bootstrap CI excludes chance from below) -- the frozen omni-embed's pooled vector is NOT speaker-free. 'No speaker information' / 'speaker never written to the pooled vector' / 'measured-zero paralinguistic spread' are RETIRED as descriptions of this artifact; the accurate statement is 'low but non-zero, and significantly non-chance in at least one seed.' The n=3-seed across-seed t-CI [0.0034, 0.0633] is more conservative and spans chance (directional-only, underpowered at this seed count) -- it does not contradict the per-seed superiority finding, it simply cannot itself establish the mean is above chance at this small n.",
+    "retired_phrasings": [
+      "no speaker information",
+      "speaker never written to the pooled vector",
+      "measured-zero paralinguistic spread"
+    ],
+    "superiority_and_equivalence_going_forward": "Per ticket #34: any future 'near chance' / 'no X information' claim about this representation must report BOTH a superiority test (does the CI exclude chance) AND an equivalence test (TOST-style against a pre-declared SESOI) -- a claim of 'no signal' is not supported merely because a point estimate ratio-over-chance looks small, nor is 'has signal' supported merely because a ratio-over-chance is > 1x without a CI check."
+  },
+  "per_seed": [
+    {
+      "seed": 42,
+      "test_acc": 0.0233,
+      "acc_ci95": [
+        0.0067,
+        0.0433
+      ],
+      "chance": 0.011,
+      "ratio_over_chance": 2.12,
+      "ci_excludes_chance_from_below": false,
+      "interpretation": "CI [0.0067, 0.0433] includes chance 0.011 -> not significant at this seed (does not exclude chance)"
+    },
+    {
+      "seed": 7,
+      "test_acc": 0.03,
+      "acc_ci95": [
+        0.0133,
+        0.05
+      ],
+      "chance": 0.011,
+      "ratio_over_chance": 2.73,
+      "ci_excludes_chance_from_below": true,
+      "interpretation": "CI [0.0133, 0.05] lower bound 0.0133 > chance 0.011 -> significantly ABOVE chance at this seed"
+    },
+    {
+      "seed": 123,
+      "test_acc": 0.0467,
+      "acc_ci95": [
+        0.0267,
+        0.07
+      ],
+      "chance": 0.011,
+      "ratio_over_chance": 4.25,
+      "ci_excludes_chance_from_below": true,
+      "interpretation": "CI [0.0267, 0.07] lower bound 0.0267 > chance 0.011 -> significantly ABOVE chance at this seed"
+    }
+  ],
+  "config": {
+    "method": "Per-seed: compare the FROZEN artifact's own stored bootstrap CI lower bound to the frozen chance value (no CI recomputation). Across-seed: one-sample t-CI (n=3, directional-only) on the stored per-seed test_acc values.",
+    "source_artifact": "/mnt/d/chao_workspace/exploring-l4-intelligence/projects/speech-mllm-omni-embedding-rl/_repro/paralinguistic_negative_probe.json",
+    "source_artifact_sha256": "6c3e7cf4f251ee287cc91ac40a76a32c718ff2628ebb30d8f920d419a25abe94",
+    "note": "This script performs NO model inference and NO dataset access; it recomputes statistics from paralinguistic_negative_probe.json alone (frozen, not rerun)."
+  },
+  "provenance": {
+    "git_sha": "9ead4d4cfb96b628f0d639583b30166abe12593d",
+    "git_dirty": true,
+    "generated_at_utc": "2026-07-10T17:45:15Z",
+    "reproduce_command": "python scripts/speaker_probe_restatement.py"
+  }
+}
