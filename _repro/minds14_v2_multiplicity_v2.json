@@ -1,0 +1,109 @@
+{
+  "experiment": "minds14_toolintent_v2_factorial -- family-wise multiplicity, v2 (5 UNIQUE contrasts)",
+  "supersedes": "_repro/minds14_v2_multiplicity.json (RI item 4 / 续15 finding: that 7-row family double-counted 2 report-key duplicates -- see this file's own note_on_duplicates and _repro/minds14_v2_multiplicity.superseded-note.md)",
+  "dedup_note": "The prior 7-row analysis reported factor_isolation_deltas.instruction_effect__cards_absent and deltas_vs_naive.instruction_only as two rows; they are the SAME comparison (instruction_only - naive) computed twice under two report keys. Likewise factor_isolation_deltas.cards_effect__instruction_absent duplicates deltas_vs_naive.cards_only (cards_only - naive). This script recomputes over the 5 UNIQUE pairwise contrasts that remain after removing both duplicates.",
+  "alpha": 0.05,
+  "nboot": 10000,
+  "boot_seed": 42,
+  "comparisons": [
+    {
+      "name": "instruction_only_minus_naive",
+      "base_arm": "naive",
+      "other_arm": "instruction_only",
+      "comparison": "instruction_only - naive",
+      "n_items": 437,
+      "bootstrap_unit": "item",
+      "observed_delta": -0.2449,
+      "raw_bootstrap_p": 0.0,
+      "holm_adjusted_p": 0.0,
+      "holm_reject_at_alpha": true,
+      "maxT_observed_z": -11.9682,
+      "maxT_adjusted_p": 0.0,
+      "maxT_reject_at_alpha": true
+    },
+    {
+      "name": "cards_only_minus_naive",
+      "base_arm": "naive",
+      "other_arm": "cards_only",
+      "comparison": "cards_only - naive",
+      "n_items": 437,
+      "bootstrap_unit": "item",
+      "observed_delta": 0.2464,
+      "raw_bootstrap_p": 0.0,
+      "holm_adjusted_p": 0.0,
+      "holm_reject_at_alpha": true,
+      "maxT_observed_z": 11.1109,
+      "maxT_adjusted_p": 0.0,
+      "maxT_reject_at_alpha": true
+    },
+    {
+      "name": "instruction_plus_cards_minus_naive",
+      "base_arm": "naive",
+      "other_arm": "instruction_plus_cards",
+      "comparison": "instruction_plus_cards - naive",
+      "n_items": 437,
+      "bootstrap_unit": "item",
+      "observed_delta": 0.2616,
+      "raw_bootstrap_p": 0.0,
+      "holm_adjusted_p": 0.0,
+      "holm_reject_at_alpha": true,
+      "maxT_observed_z": 12.1322,
+      "maxT_adjusted_p": 0.0,
+      "maxT_reject_at_alpha": true
+    },
+    {
+      "name": "instruction_plus_cards_minus_cards_only",
+      "base_arm": "cards_only",
+      "other_arm": "instruction_plus_cards",
+      "comparison": "instruction_plus_cards - cards_only",
+      "n_items": 437,
+      "bootstrap_unit": "item",
+      "observed_delta": 0.0153,
+      "raw_bootstrap_p": 0.0006,
+      "holm_adjusted_p": 0.0006,
+      "holm_reject_at_alpha": true,
+      "maxT_observed_z": 3.165,
+      "maxT_adjusted_p": 0.0062,
+      "maxT_reject_at_alpha": true
+    },
+    {
+      "name": "instruction_plus_cards_minus_instruction_only",
+      "base_arm": "instruction_only",
+      "other_arm": "instruction_plus_cards",
+      "comparison": "instruction_plus_cards - instruction_only",
+      "n_items": 437,
+      "bootstrap_unit": "item",
+      "observed_delta": 0.5065,
+      "raw_bootstrap_p": 0.0,
+      "holm_adjusted_p": 0.0,
+      "holm_reject_at_alpha": true,
+      "maxT_observed_z": 20.964,
+      "maxT_adjusted_p": 0.0,
+      "maxT_reject_at_alpha": true
+    }
+  ],
+  "n_survive_holm": 5,
+  "survivors_holm": [
+    "instruction_only_minus_naive",
+    "cards_only_minus_naive",
+    "instruction_plus_cards_minus_naive",
+    "instruction_plus_cards_minus_cards_only",
+    "instruction_plus_cards_minus_instruction_only"
+  ],
+  "n_survive_maxT": 5,
+  "survivors_maxT": [
+    "instruction_only_minus_naive",
+    "cards_only_minus_naive",
+    "instruction_plus_cards_minus_naive",
+    "instruction_plus_cards_minus_cards_only",
+    "instruction_plus_cards_minus_instruction_only"
+  ],
+  "provenance": {
+    "git_sha": "f154886c26d93ddc259f88c74d6f425aa19efe8e",
+    "git_dirty": true,
+    "input_path": "_repro/minds14_toolintent_v2.json",
+    "input_sha256": "e2b5b857f9f80109ebf450fc4e2a18d9b717f48cf153223de79704e879d6477a",
+    "command": "python scripts/minds14_multiplicity_v2.py",
+    "generated_at_utc": "2026-07-11T16:46:53.062158+00:00"
+  }
+}
